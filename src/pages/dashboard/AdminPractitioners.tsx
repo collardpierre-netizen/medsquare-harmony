@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
-import { Users, Plus, Edit, Ban, CheckCircle } from "lucide-react";
+import { Users, Ban, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminPractitioners = () => {
@@ -22,11 +13,25 @@ const AdminPractitioners = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchPractitioners = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*, user_roles(role)")
-      .order("last_name");
-    setPractitioners(data || []);
+    // Fetch profiles and roles separately, then merge
+    const [{ data: profiles }, { data: roles }] = await Promise.all([
+      supabase.from("profiles").select("*").order("last_name"),
+      supabase.from("user_roles").select("user_id, role"),
+    ]);
+
+    const rolesMap = new Map<string, string[]>();
+    (roles || []).forEach((r: any) => {
+      const existing = rolesMap.get(r.user_id) || [];
+      existing.push(r.role);
+      rolesMap.set(r.user_id, existing);
+    });
+
+    const merged = (profiles || []).map((p: any) => ({
+      ...p,
+      roles: rolesMap.get(p.user_id) || [],
+    }));
+
+    setPractitioners(merged);
     setLoading(false);
   };
 
@@ -87,7 +92,7 @@ const AdminPractitioners = () => {
                           <p className="font-medium text-sm">
                             {p.first_name} {p.last_name}
                           </p>
-                          {p.user_roles?.some((r: any) => r.role === "admin") && (
+                          {p.roles.includes("admin") && (
                             <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
                               Admin
                             </Badge>
