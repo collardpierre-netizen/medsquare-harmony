@@ -10,11 +10,13 @@ import Centre from "./pages/Centre";
 import Praticiens from "./pages/Praticiens";
 import PraticienDetail from "./pages/PraticienDetail";
 import Espaces from "./pages/Espaces";
+import Activites from "./pages/Activites";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Profile from "./pages/dashboard/Profile";
 import Bookings from "./pages/dashboard/Bookings";
+import Activities from "./pages/dashboard/Activities";
 import Documents from "./pages/dashboard/Documents";
 import AdminPractitioners from "./pages/dashboard/AdminPractitioners";
 import AdminRooms from "./pages/dashboard/AdminRooms";
@@ -37,6 +39,7 @@ const App = () => (
             <Route path="/praticiens" element={<Praticiens />} />
             <Route path="/praticiens/:id" element={<PraticienDetail />} />
             <Route path="/espaces" element={<Espaces />} />
+            <Route path="/activites" element={<Activites />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
 
@@ -44,6 +47,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/dashboard/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+            <Route path="/dashboard/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
             <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
 
             {/* Protected admin pages */}

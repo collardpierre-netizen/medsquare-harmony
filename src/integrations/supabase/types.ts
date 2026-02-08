@@ -14,6 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          location: string | null
+          max_participants: number | null
+          photo_url: string | null
+          practitioner_id: string
+          recurrence: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          max_participants?: number | null
+          photo_url?: string | null
+          practitioner_id: string
+          recurrence?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          max_participants?: number | null
+          photo_url?: string | null
+          practitioner_id?: string
+          recurrence?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_registrations: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_registrations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_sessions: {
+        Row: {
+          activity_id: string
+          created_at: string
+          end_time: string
+          id: string
+          max_participants: number | null
+          room_id: string | null
+          start_time: string
+          status: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          max_participants?: number | null
+          room_id?: string | null
+          start_time: string
+          status?: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          max_participants?: number | null
+          room_id?: string | null
+          start_time?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_sessions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string

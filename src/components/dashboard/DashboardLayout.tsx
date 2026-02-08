@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   LogOut,
   Menu,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { label: "Mon profil", href: "/dashboard/profile", icon: User },
   { label: "Réservations", href: "/dashboard/bookings", icon: CalendarDays },
+  { label: "Mes activités", href: "/dashboard/activities", icon: Activity },
   { label: "Documents", href: "/dashboard/documents", icon: FileText },
   { label: "Praticiens", href: "/dashboard/admin/practitioners", icon: Users, adminOnly: true },
   { label: "Salles", href: "/dashboard/admin/rooms", icon: DoorOpen, adminOnly: true },

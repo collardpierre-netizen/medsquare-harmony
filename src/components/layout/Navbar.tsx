@@ -9,6 +9,7 @@ const navLinks = [
   { label: "Le Centre", href: "/centre" },
   { label: "Nos Praticiens", href: "/praticiens" },
   { label: "Nos Espaces", href: "/espaces" },
+  { label: "Activités", href: "/activites" },
   { label: "Contact", href: "/contact" },
 ];
 
