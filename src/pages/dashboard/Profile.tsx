@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Save, User } from "lucide-react";
+import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 
 const Profile = () => {
   const { profile, refreshProfile } = useAuth();
@@ -23,6 +24,37 @@ const Profile = () => {
     phone: profile?.phone || "",
   });
 
+  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
+
+  // Load schedule from profile
+  useEffect(() => {
+    if (profile?.schedule) {
+      try {
+        const parsed = typeof profile.schedule === "string"
+          ? JSON.parse(profile.schedule)
+          : profile.schedule;
+        if (Array.isArray(parsed)) {
+          setSchedule(parsed);
+        }
+      } catch {
+        setSchedule([]);
+      }
+    }
+  }, [profile]);
+
+  // Sync form with profile when profile loads
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        specialty: profile.specialty || "",
+        bio: profile.bio || "",
+        phone: profile.phone || "",
+      });
+    }
+  }, [profile]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
@@ -36,6 +68,7 @@ const Profile = () => {
         specialty: form.specialty,
         bio: form.bio,
         phone: form.phone,
+        schedule: schedule as any,
       })
       .eq("id", profile.id);
 
@@ -132,6 +165,15 @@ const Profile = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Schedule editor */}
+        <ScheduleEditor schedule={schedule} onChange={setSchedule} />
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={isLoading}>
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading ? "Sauvegarde..." : "Sauvegarder tout"}
+          </Button>
+        </div>
       </div>
     </DashboardLayout>
   );
