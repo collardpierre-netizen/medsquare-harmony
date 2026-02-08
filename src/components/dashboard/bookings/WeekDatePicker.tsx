@@ -39,7 +39,7 @@ const WeekDatePicker = ({ weekStart, selectedDate, onWeekChange, onDateSelect }:
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-2 px-2 snap-x snap-mandatory sm:grid sm:grid-cols-7 sm:gap-2 sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0">
           {weekDays.map((day) => {
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, new Date());
@@ -51,7 +51,7 @@ const WeekDatePicker = ({ weekStart, selectedDate, onWeekChange, onDateSelect }:
                 onClick={() => onDateSelect(day)}
                 disabled={isPast}
                 className={cn(
-                  "flex flex-col items-center py-3 px-2 rounded-xl transition-all text-center",
+                  "flex flex-col items-center py-3 px-3 min-w-[3.2rem] rounded-xl transition-all text-center snap-center shrink-0 sm:min-w-0 sm:shrink",
                   isSelected
                     ? "bg-primary text-primary-foreground shadow-md"
                     : isToday
