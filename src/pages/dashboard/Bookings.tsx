@@ -1,32 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
-import {
-  addDays,
-  format,
-  startOfWeek,
-  isSameDay,
-  setHours,
-  setMinutes,
-  addMinutes,
-  isAfter,
-  isBefore,
-  startOfDay,
-} from "date-fns";
-import { fr } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { addDays, addMinutes, setHours, setMinutes, startOfDay, startOfWeek } from "date-fns";
+import { MapPin, CalendarDays, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -34,25 +11,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import WeekDatePicker from "@/components/dashboard/bookings/WeekDatePicker";
+import TimeSlotsGrid from "@/components/dashboard/bookings/TimeSlotsGrid";
+import NewBookingDialog from "@/components/dashboard/bookings/NewBookingDialog";
+import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
+import type { Booking } from "@/components/dashboard/bookings/utils";
 
-// Generate time slots between start/end with given interval
-const generateTimeSlots = (startHour: number, endHour: number, interval: number) => {
-  const slots: Date[] = [];
-  const base = new Date(2000, 0, 1);
-  let current = setMinutes(setHours(base, startHour), 0);
-  const end = setMinutes(setHours(base, endHour), 0);
-  while (isBefore(current, end)) {
-    slots.push(current);
-    current = addMinutes(current, interval);
-  }
-  return slots;
-};
-
-const timeSlots = generateTimeSlots(8, 19, 30);
+type ViewMode = "day" | "week";
 
 const Bookings = () => {
   const { profile } = useAuth();
@@ -61,18 +28,13 @@ const Bookings = () => {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [rooms, setRooms] = useState<any[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<string>("");
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [showNewBooking, setShowNewBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [duration, setDuration] = useState("60");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Generate week days
-  const weekDays = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
-    [weekStart]
-  );
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
 
   // Fetch rooms
   useEffect(() => {
@@ -90,9 +52,9 @@ const Bookings = () => {
     fetchRooms();
   }, []);
 
-  // Fetch bookings for selected date & room
+  // Fetch bookings for selected date & room (day view)
   useEffect(() => {
-    if (!selectedRoom) return;
+    if (!selectedRoom || viewMode !== "day") return;
 
     const fetchBookings = async () => {
       const dayStart = startOfDay(selectedDate).toISOString();
@@ -107,44 +69,20 @@ const Bookings = () => {
         .neq("status", "cancelled")
         .order("start_time");
 
-      setBookings(data || []);
+      setBookings((data as Booking[]) || []);
     };
 
     fetchBookings();
-  }, [selectedDate, selectedRoom]);
-
-  // Check if a slot is booked
-  const isSlotBooked = (slot: Date) => {
-    const slotTime = setMinutes(
-      setHours(selectedDate, slot.getHours()),
-      slot.getMinutes()
-    );
-    return bookings.some((b: any) => {
-      const start = new Date(b.start_time);
-      const end = new Date(b.end_time);
-      return (
-        (isAfter(slotTime, start) || isSameDay(slotTime, start) && slotTime.getHours() === start.getHours() && slotTime.getMinutes() === start.getMinutes()) &&
-        isBefore(slotTime, end)
-      );
-    });
-  };
-
-  // Get booking at slot
-  const getBookingAtSlot = (slot: Date) => {
-    const slotTime = setMinutes(
-      setHours(selectedDate, slot.getHours()),
-      slot.getMinutes()
-    );
-    return bookings.find((b: any) => {
-      const start = new Date(b.start_time);
-      return start.getHours() === slotTime.getHours() && start.getMinutes() === slotTime.getMinutes();
-    });
-  };
+  }, [selectedDate, selectedRoom, viewMode]);
 
   const handleSlotClick = (slot: Date) => {
-    if (isSlotBooked(slot)) return;
     setSelectedSlot(slot);
     setShowNewBooking(true);
+  };
+
+  const handleDayClickFromWeek = (day: Date) => {
+    setSelectedDate(day);
+    setViewMode("day");
   };
 
   const handleCreateBooking = async () => {
@@ -186,26 +124,56 @@ const Bookings = () => {
         .lt("start_time", dayEnd)
         .neq("status", "cancelled")
         .order("start_time");
-      setBookings(data || []);
+      setBookings((data as Booking[]) || []);
     }
 
     setIsSubmitting(false);
   };
 
-  const isPastDate = isBefore(startOfDay(selectedDate), startOfDay(new Date()));
+  const roomName = rooms.find((r: any) => r.id === selectedRoom)?.name || "";
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Room selector */}
+        {/* Header with room selector and view toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="font-display text-xl font-bold">Réserver une salle</h2>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Sélectionnez une date et un créneau pour réserver.
+              Consultez les disponibilités et réservez un créneau.
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* View toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("week")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                  viewMode === "week"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Semaine
+              </button>
+              <button
+                onClick={() => setViewMode("day")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                  viewMode === "day"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Jour
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-border" />
+
             <MapPin className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedRoom} onValueChange={setSelectedRoom}>
               <SelectTrigger className="w-[220px]">
@@ -222,192 +190,51 @@ const Bookings = () => {
           </div>
         </div>
 
-        {/* Horizontal date picker (Riva.care style) */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => setWeekStart(addDays(weekStart, -7))}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <h3 className="font-display font-semibold text-lg">
-                {format(weekStart, "MMMM yyyy", { locale: fr })}
-              </h3>
-              <button
-                onClick={() => setWeekStart(addDays(weekStart, 7))}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+        {/* Date picker (shared for both views) */}
+        <WeekDatePicker
+          weekStart={weekStart}
+          selectedDate={selectedDate}
+          onWeekChange={setWeekStart}
+          onDateSelect={(day) => {
+            setSelectedDate(day);
+            if (viewMode === "week") {
+              // Stay in week view, just highlight
+            }
+          }}
+        />
 
-            <div className="grid grid-cols-7 gap-2">
-              {weekDays.map((day) => {
-                const isSelected = isSameDay(day, selectedDate);
-                const isToday = isSameDay(day, new Date());
-                const isPast = isBefore(day, startOfDay(new Date()));
-
-                return (
-                  <button
-                    key={day.toISOString()}
-                    onClick={() => setSelectedDate(day)}
-                    disabled={isPast}
-                    className={cn(
-                      "flex flex-col items-center py-3 px-2 rounded-xl transition-all text-center",
-                      isSelected
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : isToday
-                        ? "bg-accent text-accent-foreground"
-                        : isPast
-                        ? "opacity-40 cursor-not-allowed"
-                        : "hover:bg-muted cursor-pointer"
-                    )}
-                  >
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">
-                      {format(day, "EEE", { locale: fr })}
-                    </span>
-                    <span className="text-2xl font-bold mt-1">
-                      {format(day, "d")}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Time slots grid */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="font-display text-base">
-                {format(selectedDate, "EEEE d MMMM", { locale: fr })}
-              </CardTitle>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-accent border border-border" />
-                  Disponible
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-primary/20 border border-primary/30" />
-                  Réservé
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isPastDate ? (
-              <p className="text-muted-foreground text-sm text-center py-8">
-                Impossible de réserver dans le passé.
-              </p>
-            ) : rooms.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-8">
-                Aucune salle disponible.
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                {timeSlots.map((slot) => {
-                  const booked = isSlotBooked(slot);
-                  const booking = getBookingAtSlot(slot);
-                  const timeStr = format(slot, "HH:mm");
-
-                  return (
-                    <button
-                      key={timeStr}
-                      onClick={() => handleSlotClick(slot)}
-                      disabled={booked}
-                      className={cn(
-                        "relative flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all",
-                        booked
-                          ? "bg-primary/10 border-primary/20 cursor-not-allowed"
-                          : "bg-card border-border hover:border-primary hover:shadow-sm cursor-pointer"
-                      )}
-                    >
-                      <Clock className={cn("h-4 w-4 mb-1", booked ? "text-primary/50" : "text-muted-foreground")} />
-                      <span className={cn("font-semibold text-sm", booked ? "text-primary/60" : "")}>
-                        {timeStr}
-                      </span>
-                      {booking && (
-                        <span className="text-[10px] text-primary/60 mt-1 truncate max-w-full">
-                          {booking.profiles?.first_name} {booking.profiles?.last_name?.[0]}.
-                        </span>
-                      )}
-                      {!booked && (
-                        <Plus className="h-3 w-3 text-muted-foreground mt-1 opacity-0 group-hover:opacity-100" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* View content */}
+        {viewMode === "week" ? (
+          <WeeklyOverview
+            weekStart={weekStart}
+            selectedRoom={selectedRoom}
+            rooms={rooms}
+            onSlotClick={handleDayClickFromWeek}
+          />
+        ) : (
+          <TimeSlotsGrid
+            selectedDate={selectedDate}
+            bookings={bookings}
+            rooms={rooms}
+            onSlotClick={handleSlotClick}
+          />
+        )}
       </div>
 
       {/* New booking dialog */}
-      <Dialog open={showNewBooking} onOpenChange={setShowNewBooking}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Nouvelle réservation</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-accent">
-              <Clock className="h-5 w-5 text-accent-foreground" />
-              <div>
-                <p className="font-semibold text-sm">
-                  {selectedSlot && format(selectedSlot, "HH:mm")}
-                  {" — "}
-                  {format(selectedDate, "EEEE d MMMM", { locale: fr })}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {rooms.find((r: any) => r.id === selectedRoom)?.name}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <Label>Durée</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">1 heure</SelectItem>
-                  <SelectItem value="90">1h30</SelectItem>
-                  <SelectItem value="120">2 heures</SelectItem>
-                  <SelectItem value="180">3 heures</SelectItem>
-                  <SelectItem value="240">4 heures</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Notes (optionnel)</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ajoutez une note pour cette réservation..."
-                rows={3}
-                className="mt-1.5"
-                maxLength={500}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewBooking(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleCreateBooking} disabled={isSubmitting}>
-              {isSubmitting ? "Création..." : "Réserver"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NewBookingDialog
+        open={showNewBooking}
+        onOpenChange={setShowNewBooking}
+        selectedSlot={selectedSlot}
+        selectedDate={selectedDate}
+        roomName={roomName}
+        duration={duration}
+        onDurationChange={setDuration}
+        notes={notes}
+        onNotesChange={setNotes}
+        onSubmit={handleCreateBooking}
+        isSubmitting={isSubmitting}
+      />
     </DashboardLayout>
   );
 };
