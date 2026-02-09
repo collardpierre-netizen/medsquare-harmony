@@ -133,8 +133,8 @@ const Espaces = () => {
                         </div>
                       )}
 
-                      <Link to="/contact">
-                        <Button>Contactez-nous pour réserver</Button>
+                      <Link to={`/espaces/${room.id}`}>
+                        <Button>Voir les détails</Button>
                       </Link>
                     </div>
                   </motion.div>
