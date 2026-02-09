@@ -1,101 +1,139 @@
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Clock, Award } from "lucide-react";
+import { ArrowLeft, Mail, Clock, Award, User, Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
-const practitionersData: Record<string, {
-  name: string;
-  specialty: string;
-  image: string;
-  bio: string;
-  specialties: string[];
-  education: string[];
-  schedule: { day: string; hours: string }[];
-}> = {
-  "sophie-martin": {
-    name: "Dr. Sophie Martin",
-    specialty: "Médecine générale",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=600&h=700&fit=crop",
-    bio: "Le Dr. Sophie Martin exerce la médecine générale depuis plus de 12 ans. Passionnée par la médecine préventive, elle accompagne ses patients dans une approche globale de leur santé, en prenant le temps d'écouter et de comprendre chaque situation.",
-    specialties: ["Médecine préventive", "Suivi familial", "Vaccination", "Bilan de santé"],
-    education: ["Université Libre de Bruxelles — Doctorat en médecine", "Formation continue en médecine préventive"],
-    schedule: [
-      { day: "Lundi", hours: "9h00 - 17h00" },
-      { day: "Mercredi", hours: "9h00 - 17h00" },
-      { day: "Vendredi", hours: "9h00 - 13h00" },
-    ],
-  },
-  "thomas-dupont": {
-    name: "Dr. Thomas Dupont",
-    specialty: "Kinésithérapie",
-    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=600&h=700&fit=crop",
-    bio: "Le Dr. Thomas Dupont est kinésithérapeute spécialisé en rééducation sportive. Ancien athlète lui-même, il comprend les besoins spécifiques des sportifs et propose des traitements personnalisés pour une récupération optimale.",
-    specialties: ["Rééducation sportive", "Thérapie manuelle", "Drainage lymphatique", "Kinésithérapie respiratoire"],
-    education: ["UCLouvain — Master en kinésithérapie", "Certification en thérapie manuelle avancée"],
-    schedule: [
-      { day: "Mardi", hours: "8h00 - 18h00" },
-      { day: "Jeudi", hours: "8h00 - 18h00" },
-      { day: "Samedi", hours: "9h00 - 13h00" },
-    ],
-  },
-  "claire-leblanc": {
-    name: "Dr. Claire Leblanc",
-    specialty: "Dermatologie",
-    image: "https://images.unsplash.com/photo-1594824476967-48c8b964f137?w=600&h=700&fit=crop",
-    bio: "Le Dr. Claire Leblanc est dermatologue avec une expertise en dermatologie clinique et esthétique. Elle prend en charge toutes les pathologies cutanées et propose des traitements personnalisés adaptés à chaque type de peau.",
-    specialties: ["Dermatologie clinique", "Dermatologie esthétique", "Suivi des grains de beauté", "Traitement de l'acné"],
-    education: ["ULB — Spécialisation en dermatologie", "Formation en dermatoscopie digitale"],
-    schedule: [
-      { day: "Lundi", hours: "10h00 - 18h00" },
-      { day: "Jeudi", hours: "10h00 - 18h00" },
-    ],
-  },
-  "marc-janssen": {
-    name: "Dr. Marc Janssen",
-    specialty: "Ostéopathie",
-    image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=600&h=700&fit=crop",
-    bio: "Le Dr. Marc Janssen pratique l'ostéopathie depuis 15 ans. Son approche holistique lui permet de traiter une grande variété de troubles fonctionnels en considérant le corps dans sa globalité.",
-    specialties: ["Ostéopathie structurelle", "Ostéopathie crânienne", "Ostéopathie viscérale", "Ostéopathie pédiatrique"],
-    education: ["FICO — Diplôme d'ostéopathie", "Formation en ostéopathie pédiatrique"],
-    schedule: [
-      { day: "Mardi", hours: "9h00 - 17h00" },
-      { day: "Vendredi", hours: "9h00 - 17h00" },
-    ],
-  },
-  "amelie-peeters": {
-    name: "Dr. Amélie Peeters",
-    specialty: "Psychologie",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&h=700&fit=crop",
-    bio: "Le Dr. Amélie Peeters est psychologue clinicienne spécialisée en thérapie cognitive et comportementale. Elle accompagne adultes et adolescents dans la gestion du stress, de l'anxiété et des troubles émotionnels.",
-    specialties: ["Thérapie cognitive et comportementale", "Gestion du stress", "Burn-out", "Troubles anxieux"],
-    education: ["UCLouvain — Master en psychologie clinique", "Formation en TCC"],
-    schedule: [
-      { day: "Lundi", hours: "9h00 - 18h00" },
-      { day: "Mercredi", hours: "9h00 - 18h00" },
-      { day: "Vendredi", hours: "9h00 - 14h00" },
-    ],
-  },
-  "nicolas-vandenberg": {
-    name: "Dr. Nicolas Vandenberg",
-    specialty: "Nutrition",
-    image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=600&h=700&fit=crop",
-    bio: "Le Dr. Nicolas Vandenberg est nutritionniste-diététicien passionné par l'alimentation thérapeutique. Il accompagne ses patients dans l'adoption d'habitudes alimentaires saines et adaptées à leurs besoins spécifiques.",
-    specialties: ["Rééquilibrage alimentaire", "Nutrition sportive", "Alimentation thérapeutique", "Gestion du poids"],
-    education: ["ULB — Master en nutrition et diététique", "Certification en nutrition sportive"],
-    schedule: [
-      { day: "Mardi", hours: "10h00 - 18h00" },
-      { day: "Jeudi", hours: "10h00 - 18h00" },
-      { day: "Samedi", hours: "9h00 - 12h00" },
-    ],
-  },
-};
+interface DaySchedule {
+  day: string;
+  start: string;
+  end: string;
+}
+
+interface PractitionerProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  specialty: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  schedule: DaySchedule[] | null;
+}
+
+interface ActivityWithSessions {
+  id: string;
+  title: string;
+  category: string;
+  description: string | null;
+  duration_minutes: number;
+  max_participants: number | null;
+  activity_sessions: {
+    id: string;
+    start_time: string;
+    end_time: string;
+    rooms: { name: string } | null;
+  }[];
+}
+
+const DAYS_ORDER = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
 
 const PraticienDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const practitioner = id ? practitionersData[id] : null;
+  const [practitioner, setPractitioner] = useState<PractitionerProfile | null>(null);
+  const [activities, setActivities] = useState<ActivityWithSessions[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!practitioner) {
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, specialty, bio, avatar_url, phone, schedule")
+        .eq("id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!profile) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      // Parse schedule
+      let parsedSchedule: DaySchedule[] | null = null;
+      if (profile.schedule) {
+        try {
+          const raw = typeof profile.schedule === "string"
+            ? JSON.parse(profile.schedule)
+            : profile.schedule;
+          if (Array.isArray(raw)) parsedSchedule = raw;
+        } catch { /* ignore */ }
+      }
+
+      setPractitioner({ ...profile, schedule: parsedSchedule });
+
+      // Fetch practitioner's active activities with upcoming sessions
+      const { data: acts } = await supabase
+        .from("activities")
+        .select("id, title, category, description, duration_minutes, max_participants, activity_sessions(id, start_time, end_time, rooms(name))")
+        .eq("practitioner_id", profile.id)
+        .eq("is_active", true)
+        .order("title");
+
+      // Filter to only upcoming sessions
+      const now = new Date().toISOString();
+      const filtered = (acts || []).map((a: any) => ({
+        ...a,
+        activity_sessions: (a.activity_sessions || [])
+          .filter((s: any) => s.start_time >= now)
+          .sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
+          .slice(0, 3),
+      }));
+
+      setActivities(filtered);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [id]);
+
+  // Group schedule by day and format
+  const formatSchedule = (schedule: DaySchedule[]) => {
+    const grouped = new Map<string, string[]>();
+    schedule.forEach((slot) => {
+      const existing = grouped.get(slot.day) || [];
+      existing.push(`${slot.start} - ${slot.end}`);
+      grouped.set(slot.day, existing);
+    });
+
+    return DAYS_ORDER
+      .filter((day) => grouped.has(day))
+      .map((day) => ({
+        day: day.charAt(0).toUpperCase() + day.slice(1),
+        hours: grouped.get(day)!.join(", "),
+      }));
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (notFound || !practitioner) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -109,6 +147,8 @@ const PraticienDetail = () => {
       </Layout>
     );
   }
+
+  const scheduleSlots = practitioner.schedule ? formatSchedule(practitioner.schedule) : [];
 
   return (
     <Layout>
@@ -129,12 +169,18 @@ const PraticienDetail = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="overflow-hidden rounded-2xl">
-                <img
-                  src={practitioner.image}
-                  alt={practitioner.name}
-                  className="w-full aspect-[4/5] object-cover"
-                />
+              <div className="overflow-hidden rounded-2xl bg-muted aspect-[4/5]">
+                {practitioner.avatar_url ? (
+                  <img
+                    src={practitioner.avatar_url}
+                    alt={`${practitioner.first_name} ${practitioner.last_name}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-accent">
+                    <User className="h-32 w-32 text-muted-foreground/20" />
+                  </div>
+                )}
               </div>
             </motion.div>
 
@@ -144,52 +190,94 @@ const PraticienDetail = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <span className="text-primary text-sm font-medium tracking-widest uppercase">
-                {practitioner.specialty}
-              </span>
+              {practitioner.specialty && (
+                <span className="text-primary text-sm font-medium tracking-widest uppercase">
+                  {practitioner.specialty}
+                </span>
+              )}
               <h1 className="font-display text-3xl md:text-4xl font-bold mt-2 mb-6">
-                {practitioner.name}
+                {practitioner.first_name} {practitioner.last_name}
               </h1>
-              <p className="text-muted-foreground leading-relaxed mb-8">
-                {practitioner.bio}
-              </p>
 
-              {/* Spécialités */}
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <Award className="h-5 w-5 text-primary" />
-                  <h3 className="font-display text-lg font-semibold">Spécialités</h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {practitioner.specialties.map((spec) => (
-                    <span
-                      key={spec}
-                      className="px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-sm"
-                    >
-                      {spec}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              {practitioner.bio ? (
+                <p className="text-muted-foreground leading-relaxed mb-8">
+                  {practitioner.bio}
+                </p>
+              ) : (
+                <p className="text-muted-foreground leading-relaxed mb-8 italic">
+                  Ce praticien n'a pas encore renseigné sa biographie.
+                </p>
+              )}
 
               {/* Horaires */}
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="h-5 w-5 text-primary" />
-                  <h3 className="font-display text-lg font-semibold">Horaires de consultation</h3>
+              {scheduleSlots.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <h3 className="font-display text-lg font-semibold">Horaires de consultation</h3>
+                  </div>
+                  <ul className="space-y-2">
+                    {scheduleSlots.map((slot) => (
+                      <li
+                        key={slot.day}
+                        className="flex justify-between py-2 border-b border-border text-sm"
+                      >
+                        <span className="font-medium">{slot.day}</span>
+                        <span className="text-muted-foreground">{slot.hours}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {practitioner.schedule.map((slot) => (
-                    <li
-                      key={slot.day}
-                      className="flex justify-between py-2 border-b border-border text-sm"
-                    >
-                      <span className="font-medium">{slot.day}</span>
-                      <span className="text-muted-foreground">{slot.hours}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              )}
+
+              {/* Activities */}
+              {activities.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="h-5 w-5 text-primary" />
+                    <h3 className="font-display text-lg font-semibold">Activités proposées</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {activities.map((activity) => (
+                      <Card key={activity.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-sm">{activity.title}</h4>
+                            <Badge variant="secondary" className="text-[10px]">
+                              {activity.category}
+                            </Badge>
+                          </div>
+                          {activity.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                              {activity.description}
+                            </p>
+                          )}
+                          {activity.activity_sessions.length > 0 && (
+                            <div className="space-y-1 mt-2">
+                              {activity.activity_sessions.map((session) => (
+                                <div key={session.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Calendar className="h-3 w-3 text-primary" />
+                                  <span>
+                                    {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
+                                  </span>
+                                  {session.rooms?.name && (
+                                    <span className="text-primary/70">· {session.rooms.name}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <Link to="/activites" className="mt-3 inline-block">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      Voir toutes les activités
+                    </Button>
+                  </Link>
+                </div>
+              )}
 
               {/* Contact */}
               <Link to="/contact">
