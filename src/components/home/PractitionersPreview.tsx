@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, User } from "lucide-react";
+import { ArrowRight, User, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -39,7 +39,7 @@ const PractitionersPreview = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col md:flex-row md:items-end md:justify-between mb-12"
+          className="flex flex-col md:flex-row md:items-end md:justify-between mb-10"
         >
           <div>
             <span className="text-primary text-sm font-medium tracking-widest uppercase">
@@ -79,7 +79,7 @@ const PractitionersPreview = () => {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <Link to={`/praticiens/${practitioner.id}`} className="group block">
-                  <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/5] bg-muted">
+                  <div className="relative overflow-hidden rounded-xl mb-3 aspect-[4/5] bg-muted">
                     {practitioner.avatar_url ? (
                       <img
                         src={practitioner.avatar_url}
@@ -92,13 +92,15 @@ const PractitionersPreview = () => {
                         <User className="h-16 w-16 text-muted-foreground/20" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
-                  <h3 className="font-display text-lg font-semibold group-hover:text-primary transition-colors">
+                  <h3 className="font-display text-base font-semibold group-hover:text-primary transition-colors">
                     {practitioner.first_name} {practitioner.last_name}
                   </h3>
                   {practitioner.specialty && (
-                    <p className="text-muted-foreground text-sm">{practitioner.specialty}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Award className="h-3.5 w-3.5 text-primary" />
+                      {practitioner.specialty}
+                    </p>
                   )}
                 </Link>
               </motion.div>
