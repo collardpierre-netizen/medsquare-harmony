@@ -22,7 +22,7 @@ const Navbar = () => {
       <nav className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="font-display text-2xl font-bold text-primary">Medsquare</span>
+          <img src="/logo-medsquare.png" alt="Medsquare" className="h-10 md:h-12 w-auto" />
         </Link>
 
         {/* Desktop Navigation */}
