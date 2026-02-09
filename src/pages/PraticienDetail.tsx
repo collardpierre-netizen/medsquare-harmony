@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Clock, Award, User, Calendar } from "lucide-react";
+import { ArrowLeft, User, MapPin, Award } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfoSidebar";
+import PractitionerActivities from "@/components/practitioners/PractitionerActivities";
 
 interface DaySchedule {
   day: string;
@@ -34,6 +35,7 @@ interface ActivityWithSessions {
   description: string | null;
   duration_minutes: number;
   max_participants: number | null;
+  photo_url?: string | null;
   activity_sessions: {
     id: string;
     start_time: string;
@@ -68,7 +70,6 @@ const PraticienDetail = () => {
         return;
       }
 
-      // Parse schedule
       let parsedSchedule: DaySchedule[] | null = null;
       if (profile.schedule) {
         try {
@@ -81,15 +82,13 @@ const PraticienDetail = () => {
 
       setPractitioner({ ...profile, schedule: parsedSchedule });
 
-      // Fetch practitioner's active activities with upcoming sessions
       const { data: acts } = await supabase
         .from("activities")
-        .select("id, title, category, description, duration_minutes, max_participants, activity_sessions(id, start_time, end_time, rooms(name))")
+        .select("id, title, category, description, duration_minutes, max_participants, photo_url, activity_sessions(id, start_time, end_time, rooms(name))")
         .eq("practitioner_id", profile.id)
         .eq("is_active", true)
         .order("title");
 
-      // Filter to only upcoming sessions
       const now = new Date().toISOString();
       const filtered = (acts || []).map((a: any) => ({
         ...a,
@@ -106,12 +105,11 @@ const PraticienDetail = () => {
     fetchData();
   }, [id]);
 
-  // Group schedule by day and format
   const formatSchedule = (schedule: DaySchedule[]) => {
     const grouped = new Map<string, string[]>();
     schedule.forEach((slot) => {
       const existing = grouped.get(slot.day) || [];
-      existing.push(`${slot.start} - ${slot.end}`);
+      existing.push(`${slot.start} – ${slot.end}`);
       grouped.set(slot.day, existing);
     });
 
@@ -152,144 +150,122 @@ const PraticienDetail = () => {
 
   return (
     <Layout>
-      <section className="py-12 md:py-20">
-        <div className="container mx-auto px-4">
-          <Link
-            to="/praticiens"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm mb-8 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour aux praticiens
-          </Link>
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <Link
+          to="/praticiens"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Praticiens
+        </Link>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            {/* Photo */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="overflow-hidden rounded-2xl bg-muted aspect-[4/5]">
-                {practitioner.avatar_url ? (
-                  <img
-                    src={practitioner.avatar_url}
-                    alt={`${practitioner.first_name} ${practitioner.last_name}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-accent">
-                    <User className="h-32 w-32 text-muted-foreground/20" />
-                  </div>
-                )}
+        {/* Hero photo + title */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-8"
+        >
+          <div className="overflow-hidden rounded-2xl bg-muted aspect-[21/9] max-h-[400px]">
+            {practitioner.avatar_url ? (
+              <img
+                src={practitioner.avatar_url}
+                alt={`${practitioner.first_name} ${practitioner.last_name}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-accent">
+                <User className="h-24 w-24 text-muted-foreground/20" />
               </div>
-            </motion.div>
+            )}
+          </div>
+        </motion.div>
 
-            {/* Info */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              {practitioner.specialty && (
-                <span className="text-primary text-sm font-medium tracking-widest uppercase">
-                  {practitioner.specialty}
-                </span>
-              )}
-              <h1 className="font-display text-3xl md:text-4xl font-bold mt-2 mb-6">
+        {/* Main grid: content + sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 items-start">
+          {/* Left content */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            {/* Title + specialty */}
+            <div className="mb-6">
+              <h1 className="font-display text-3xl md:text-4xl font-bold">
                 {practitioner.first_name} {practitioner.last_name}
               </h1>
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
+                {practitioner.specialty && (
+                  <span className="flex items-center gap-1.5">
+                    <Award className="h-4 w-4 text-primary" />
+                    {practitioner.specialty}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" />
+                  Medsquare, Bruxelles
+                </span>
+              </div>
+            </div>
 
+            <Separator className="mb-6" />
+
+            {/* Bio */}
+            <div className="mb-8">
+              <h2 className="font-display text-xl font-semibold mb-3">À propos</h2>
               {practitioner.bio ? (
-                <p className="text-muted-foreground leading-relaxed mb-8">
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
                   {practitioner.bio}
                 </p>
               ) : (
-                <p className="text-muted-foreground leading-relaxed mb-8 italic">
+                <p className="text-muted-foreground italic">
                   Ce praticien n'a pas encore renseigné sa biographie.
                 </p>
               )}
+            </div>
 
-              {/* Horaires */}
-              {scheduleSlots.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Clock className="h-5 w-5 text-primary" />
-                    <h3 className="font-display text-lg font-semibold">Horaires de consultation</h3>
-                  </div>
-                  <ul className="space-y-2">
-                    {scheduleSlots.map((slot) => (
-                      <li
-                        key={slot.day}
-                        className="flex justify-between py-2 border-b border-border text-sm"
-                      >
-                        <span className="font-medium">{slot.day}</span>
-                        <span className="text-muted-foreground">{slot.hours}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <Separator className="mb-8" />
+
+            {/* Activities */}
+            {activities.length > 0 && (
+              <div className="mb-8">
+                <PractitionerActivities activities={activities} />
+              </div>
+            )}
+          </motion.div>
+
+          {/* Right sidebar */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="hidden lg:block"
+          >
+            <PractitionerInfoSidebar
+              practitioner={practitioner}
+              scheduleSlots={scheduleSlots}
+            />
+          </motion.div>
+        </div>
+
+        {/* Mobile CTA (visible only on smaller screens) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-40">
+          <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
+            <div>
+              <p className="font-display font-semibold text-sm">
+                {practitioner.first_name} {practitioner.last_name}
+              </p>
+              {practitioner.specialty && (
+                <p className="text-xs text-muted-foreground">{practitioner.specialty}</p>
               )}
-
-              {/* Activities */}
-              {activities.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Award className="h-5 w-5 text-primary" />
-                    <h3 className="font-display text-lg font-semibold">Activités proposées</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {activities.map((activity) => (
-                      <Card key={activity.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-sm">{activity.title}</h4>
-                            <Badge variant="secondary" className="text-[10px]">
-                              {activity.category}
-                            </Badge>
-                          </div>
-                          {activity.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                              {activity.description}
-                            </p>
-                          )}
-                          {activity.activity_sessions.length > 0 && (
-                            <div className="space-y-1 mt-2">
-                              {activity.activity_sessions.map((session) => (
-                                <div key={session.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Calendar className="h-3 w-3 text-primary" />
-                                  <span>
-                                    {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
-                                  </span>
-                                  {session.rooms?.name && (
-                                    <span className="text-primary/70">· {session.rooms.name}</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                  <Link to="/activites" className="mt-3 inline-block">
-                    <Button variant="outline" size="sm" className="text-xs">
-                      Voir toutes les activités
-                    </Button>
-                  </Link>
-                </div>
-              )}
-
-              {/* Contact */}
-              <Link to="/contact">
-                <Button size="lg" className="w-full sm:w-auto">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Contacter ce praticien
-                </Button>
-              </Link>
-            </motion.div>
+            </div>
+            <Link to="/contact">
+              <Button size="sm">Contacter</Button>
+            </Link>
           </div>
         </div>
-      </section>
+      </div>
     </Layout>
   );
 };

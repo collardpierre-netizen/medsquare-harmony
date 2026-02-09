@@ -1,21 +1,12 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Calendar, Clock, MapPin, Users, ChevronRight, Search } from "lucide-react";
+import { Calendar, Search, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import ActivityCard from "@/components/activities/ActivityCard";
+import CategoryPills from "@/components/activities/CategoryPills";
 
 const CATEGORIES = [
   { value: "all", label: "Toutes" },
@@ -37,17 +30,6 @@ const CATEGORIES = [
   { value: "nutrition", label: "Nutrition" },
   { value: "autre", label: "Autre" },
 ];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  yoga: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  pilates: "bg-blue-50 text-blue-700 border-blue-200",
-  meditation: "bg-purple-50 text-purple-700 border-purple-200",
-  fitness: "bg-orange-50 text-orange-700 border-orange-200",
-  danse: "bg-pink-50 text-pink-700 border-pink-200",
-  sophrologie: "bg-teal-50 text-teal-700 border-teal-200",
-  nutrition: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  autre: "bg-gray-50 text-gray-700 border-gray-200",
-};
 
 const ActivitesPage = () => {
   const { user } = useAuth();
@@ -64,16 +46,14 @@ const ActivitesPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch active activities with practitioner info
       const { data: acts } = await supabase
         .from("activities")
-        .select("*, profiles(first_name, last_name, specialty, avatar_url)")
+        .select("*, profiles(id, first_name, last_name, specialty, avatar_url)")
         .eq("is_active", true)
         .order("title");
 
       setActivities(acts || []);
 
-      // Fetch upcoming sessions
       const { data: sess } = await supabase
         .from("activity_sessions")
         .select("*, rooms(name), activity_registrations(id, user_id)")
@@ -83,7 +63,6 @@ const ActivitesPage = () => {
 
       setSessions(sess || []);
 
-      // Fetch current user's registrations
       if (user) {
         const { data: regs } = await supabase
           .from("activity_registrations")
@@ -136,190 +115,134 @@ const ActivitesPage = () => {
     toast({ title: "Inscription annulée" });
   };
 
-  // Filter activities
   const filtered = activities.filter((a: any) => {
     if (selectedCategory !== "all" && a.category !== selectedCategory) return false;
     if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  // Group sessions by activity
+  const getNextSession = (activityId: string) =>
+    sessions.find((s: any) => s.activity_id === activityId) || null;
+
   const getSessionsForActivity = (activityId: string) =>
     sessions.filter((s: any) => s.activity_id === activityId);
 
   return (
     <Layout>
       {/* Hero */}
-      <section className="bg-gradient-to-b from-accent/50 to-background py-16">
+      <section className="pt-12 pb-6">
         <div className="max-w-6xl mx-auto px-4">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-2xl mx-auto"
+            className="max-w-2xl"
           >
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
               Activités & Cours
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground">
               Yoga, Pilates, Méditation… Découvrez nos activités bien-être et inscrivez-vous en quelques clics.
             </p>
           </motion.div>
-
-          {/* Filters */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center gap-3 max-w-xl mx-auto">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher une activité..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </section>
 
-      {/* Activities list */}
-      <section className="py-12">
+      {/* Search + Category pills */}
+      <section className="border-b border-border sticky top-[72px] z-30 bg-background/95 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-10"
+            />
+          </div>
+          <CategoryPills
+            categories={CATEGORIES}
+            selected={selectedCategory}
+            onSelect={setSelectedCategory}
+          />
+        </div>
+      </section>
+
+      {/* Grid */}
+      <section className="py-8">
         <div className="max-w-6xl mx-auto px-4">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
+            <div className="flex items-center justify-center py-20">
               <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <Calendar className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-              <h3 className="font-display text-xl font-semibold mb-2">Aucune activité trouvée</h3>
-              <p className="text-muted-foreground">Essayez de modifier vos filtres de recherche.</p>
+            <div className="text-center py-20">
+              <Calendar className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+              <h3 className="font-display text-lg font-semibold mb-1">Aucune activité trouvée</h3>
+              <p className="text-muted-foreground text-sm">Essayez de modifier vos filtres.</p>
             </div>
           ) : (
-            <div className="grid gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map((activity: any, index: number) => {
+                const nextSession = getNextSession(activity.id);
                 const actSessions = getSessionsForActivity(activity.id);
 
                 return (
                   <motion.div
                     key={activity.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.03 }}
                   >
-                    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row gap-6">
-                          {/* Activity info */}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge
-                                variant="secondary"
-                                className={CATEGORY_COLORS[activity.category] || CATEGORY_COLORS.autre}
+                    <div className="space-y-3">
+                      <ActivityCard
+                        activity={activity}
+                        nextSession={nextSession}
+                      />
+
+                      {/* Upcoming sessions under card */}
+                      {actSessions.length > 0 && (
+                        <div className="space-y-1.5 pl-1">
+                          {actSessions.slice(0, 2).map((session: any) => {
+                            const registered = myRegistrations.includes(session.id);
+                            const registrationCount = session.activity_registrations?.length || 0;
+                            const isFull = registrationCount >= (session.max_participants || 10);
+
+                            return (
+                              <div
+                                key={session.id}
+                                className="flex items-center justify-between gap-2 text-xs"
                               >
-                                {CATEGORIES.find((c) => c.value === activity.category)?.label || activity.category}
-                              </Badge>
-                            </div>
-                            <h3 className="font-display text-xl font-bold mb-1">
-                              {activity.title}
-                            </h3>
-                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                              {activity.description || "Découvrez cette activité proposée par notre praticien."}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                {activity.duration_minutes} min
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="h-3.5 w-3.5" />
-                                {activity.max_participants} places
-                              </span>
-                              {activity.profiles && (
-                                <span className="flex items-center gap-1">
-                                  Par {activity.profiles.first_name} {activity.profiles.last_name}
-                                  {activity.profiles.specialty && (
-                                    <span className="text-primary/70"> · {activity.profiles.specialty}</span>
-                                  )}
+                                <span className="text-muted-foreground truncate">
+                                  {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
+                                  <span className="text-muted-foreground/60 ml-1">
+                                    ({registrationCount}/{session.max_participants || "∞"})
+                                  </span>
                                 </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Sessions */}
-                          <div className="md:w-80 md:border-l md:pl-6 border-border">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                              Prochaines séances
-                            </p>
-                            {actSessions.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">
-                                Aucune séance programmée pour le moment.
-                              </p>
-                            ) : (
-                              <div className="space-y-2">
-                                {actSessions.slice(0, 3).map((session: any) => {
-                                  const registered = myRegistrations.includes(session.id);
-                                  const registrationCount = session.activity_registrations?.length || 0;
-                                  const isFull = registrationCount >= (session.max_participants || 10);
-
-                                  return (
-                                    <div
-                                      key={session.id}
-                                      className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50 border border-border/50"
-                                    >
-                                      <div>
-                                        <p className="text-sm font-medium">
-                                          {format(new Date(session.start_time), "EEE d MMM", { locale: fr })}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {format(new Date(session.start_time), "HH:mm")} — {format(new Date(session.end_time), "HH:mm")}
-                                          {session.rooms?.name && ` · ${session.rooms.name}`}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                                          {registrationCount}/{session.max_participants || "∞"} inscrits
-                                        </p>
-                                      </div>
-                                      {registered ? (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="text-xs"
-                                          onClick={() => handleUnregister(session.id)}
-                                        >
-                                          Annuler
-                                        </Button>
-                                      ) : (
-                                        <Button
-                                          size="sm"
-                                          className="text-xs"
-                                          disabled={isFull || !user}
-                                          onClick={() => {
-                                            setSelectedSession({ ...session, activity });
-                                            setShowConfirmDialog(true);
-                                          }}
-                                        >
-                                          {isFull ? "Complet" : "S'inscrire"}
-                                        </Button>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                {registered ? (
+                                  <button
+                                    onClick={() => handleUnregister(session.id)}
+                                    className="text-destructive hover:underline font-medium shrink-0"
+                                  >
+                                    Annuler
+                                  </button>
+                                ) : (
+                                  <button
+                                    disabled={isFull || !user}
+                                    onClick={() => {
+                                      setSelectedSession({ ...session, activity });
+                                      setShowConfirmDialog(true);
+                                    }}
+                                    className="text-primary hover:underline font-medium shrink-0 disabled:opacity-40 disabled:no-underline"
+                                  >
+                                    {isFull ? "Complet" : "S'inscrire"}
+                                  </button>
+                                )}
                               </div>
-                            )}
-                          </div>
+                            );
+                          })}
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
@@ -328,7 +251,7 @@ const ActivitesPage = () => {
         </div>
       </section>
 
-      {/* Confirm registration dialog */}
+      {/* Confirm dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
@@ -336,8 +259,8 @@ const ActivitesPage = () => {
           </DialogHeader>
           {selectedSession && (
             <div className="space-y-3 py-2">
-              <div className="p-3 rounded-lg bg-accent">
-                <p className="font-semibold">{selectedSession.activity?.title}</p>
+              <div className="p-4 rounded-xl bg-accent/50 border border-border">
+                <p className="font-display font-semibold">{selectedSession.activity?.title}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {format(new Date(selectedSession.start_time), "EEEE d MMMM yyyy", { locale: fr })}
                 </p>
@@ -363,7 +286,7 @@ const ActivitesPage = () => {
               Annuler
             </Button>
             <Button onClick={handleRegister} disabled={isRegistering || !user}>
-              {isRegistering ? "Inscription..." : "Confirmer l'inscription"}
+              {isRegistering ? "Inscription…" : "Confirmer"}
             </Button>
           </DialogFooter>
         </DialogContent>
