@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Save, User } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
+import ImageUpload from "@/components/dashboard/ImageUpload";
 
 const Profile = () => {
   const { profile, refreshProfile } = useAuth();
@@ -89,6 +90,19 @@ const Profile = () => {
     setIsLoading(false);
   };
 
+  const handleAvatarUpload = async (url: string) => {
+    if (!profile) return;
+    await supabase.from("profiles").update({ avatar_url: url }).eq("id", profile.id);
+    await refreshProfile();
+    toast({ title: "Photo de profil mise à jour" });
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!profile) return;
+    await supabase.from("profiles").update({ avatar_url: "" }).eq("id", profile.id);
+    await refreshProfile();
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-2xl space-y-6">
@@ -101,6 +115,29 @@ const Profile = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSave} className="space-y-5">
+              {/* Avatar upload */}
+              <div className="flex items-center gap-5">
+                <ImageUpload
+                  bucket="avatars"
+                  folder={profile?.user_id || "unknown"}
+                  currentUrl={profile?.avatar_url || null}
+                  onUpload={handleAvatarUpload}
+                  onRemove={handleAvatarRemove}
+                  shape="circle"
+                  className="h-24 w-24"
+                  placeholder={
+                    <div className="h-24 w-24 flex items-center justify-center">
+                      <User className="h-8 w-8 text-muted-foreground/30" />
+                    </div>
+                  }
+                />
+                <div>
+                  <p className="text-sm font-medium">Photo de profil</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    JPG, PNG ou WebP · max 5 Mo
+                  </p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="first_name">Prénom</Label>

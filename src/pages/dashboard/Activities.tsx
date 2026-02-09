@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Users, Calendar, Clock } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import ImageUpload from "@/components/dashboard/ImageUpload";
 
 const CATEGORIES = [
   { value: "yoga", label: "Yoga" },
@@ -46,6 +47,7 @@ interface ActivityForm {
   duration_minutes: number;
   max_participants: number;
   location: string;
+  photo_url: string;
 }
 
 const emptyForm: ActivityForm = {
@@ -55,6 +57,7 @@ const emptyForm: ActivityForm = {
   duration_minutes: 60,
   max_participants: 10,
   location: "",
+  photo_url: "",
 };
 
 const Activities = () => {
@@ -158,6 +161,7 @@ const Activities = () => {
       duration_minutes: activity.duration_minutes,
       max_participants: activity.max_participants,
       location: activity.location || "",
+      photo_url: activity.photo_url || "",
     });
     setShowDialog(true);
   };
@@ -354,6 +358,29 @@ const Activities = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Photo upload */}
+            <div>
+              <Label>Photo de l'activité</Label>
+              <div className="mt-1.5">
+                <ImageUpload
+                  bucket="activity-photos"
+                  folder={profile?.user_id || "unknown"}
+                  currentUrl={form.photo_url || null}
+                  onUpload={(url) => setForm({ ...form, photo_url: url })}
+                  onRemove={() => setForm({ ...form, photo_url: "" })}
+                  shape="rounded"
+                  className="w-full h-36"
+                  placeholder={
+                    <div className="w-full h-36 flex flex-col items-center justify-center gap-1.5">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                      <span className="text-xs text-muted-foreground/60">
+                        Cliquez pour ajouter une photo
+                      </span>
+                    </div>
+                  }
+                />
+              </div>
+            </div>
             <div>
               <Label>Titre</Label>
               <Input
