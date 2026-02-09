@@ -10,6 +10,7 @@ import Centre from "./pages/Centre";
 import Praticiens from "./pages/Praticiens";
 import PraticienDetail from "./pages/PraticienDetail";
 import Espaces from "./pages/Espaces";
+import EspaceDetail from "./pages/EspaceDetail";
 import Activites from "./pages/Activites";
 import ActiviteDetail from "./pages/ActiviteDetail";
 import Contact from "./pages/Contact";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/praticiens" element={<Praticiens />} />
             <Route path="/praticiens/:id" element={<PraticienDetail />} />
             <Route path="/espaces" element={<Espaces />} />
+            <Route path="/espaces/:id" element={<EspaceDetail />} />
             <Route path="/activites" element={<Activites />} />
             <Route path="/activites/:id" element={<ActiviteDetail />} />
             <Route path="/contact" element={<Contact />} />
