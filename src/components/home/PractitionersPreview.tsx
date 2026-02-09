@@ -1,32 +1,36 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const practitioners = [
-  {
-    name: "Dr. Sophie Martin",
-    specialty: "Médecine générale",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=500&fit=crop",
-  },
-  {
-    name: "Dr. Thomas Dupont",
-    specialty: "Kinésithérapie",
-    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=500&fit=crop",
-  },
-  {
-    name: "Dr. Claire Leblanc",
-    specialty: "Dermatologie",
-    image: "https://images.unsplash.com/photo-1594824476967-48c8b964f137?w=400&h=500&fit=crop",
-  },
-  {
-    name: "Dr. Marc Janssen",
-    specialty: "Ostéopathie",
-    image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=500&fit=crop",
-  },
-];
+interface Practitioner {
+  id: string;
+  first_name: string;
+  last_name: string;
+  specialty: string | null;
+  avatar_url: string | null;
+}
 
 const PractitionersPreview = () => {
+  const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, specialty, avatar_url")
+        .eq("is_active", true)
+        .order("last_name")
+        .limit(4);
+      setPractitioners(data || []);
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
   return (
     <section className="py-20 md:py-28">
       <div className="container mx-auto px-4">
@@ -56,30 +60,51 @@ const PractitionersPreview = () => {
           </Link>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {practitioners.map((practitioner, index) => (
-            <motion.div
-              key={practitioner.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="group cursor-pointer"
-            >
-              <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/5]">
-                <img
-                  src={practitioner.image}
-                  alt={practitioner.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-              <h3 className="font-display text-lg font-semibold">{practitioner.name}</h3>
-              <p className="text-muted-foreground text-sm">{practitioner.specialty}</p>
-            </motion.div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        ) : practitioners.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">
+            Aucun praticien disponible pour le moment.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {practitioners.map((practitioner, index) => (
+              <motion.div
+                key={practitioner.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <Link to={`/praticiens/${practitioner.id}`} className="group block">
+                  <div className="relative overflow-hidden rounded-xl mb-4 aspect-[4/5] bg-muted">
+                    {practitioner.avatar_url ? (
+                      <img
+                        src={practitioner.avatar_url}
+                        alt={`${practitioner.first_name} ${practitioner.last_name}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-accent">
+                        <User className="h-16 w-16 text-muted-foreground/20" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
+                  <h3 className="font-display text-lg font-semibold group-hover:text-primary transition-colors">
+                    {practitioner.first_name} {practitioner.last_name}
+                  </h3>
+                  {practitioner.specialty && (
+                    <p className="text-muted-foreground text-sm">{practitioner.specialty}</p>
+                  )}
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
