@@ -11,6 +11,7 @@ import Praticiens from "./pages/Praticiens";
 import PraticienDetail from "./pages/PraticienDetail";
 import Espaces from "./pages/Espaces";
 import Activites from "./pages/Activites";
+import ActiviteDetail from "./pages/ActiviteDetail";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/praticiens/:id" element={<PraticienDetail />} />
             <Route path="/espaces" element={<Espaces />} />
             <Route path="/activites" element={<Activites />} />
+            <Route path="/activites/:id" element={<ActiviteDetail />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
 
