@@ -13,6 +13,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationBell from "./NotificationBell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -157,9 +158,10 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <h1 className="font-display text-lg font-semibold">
+          <h1 className="font-display text-lg font-semibold flex-1">
             {filteredItems.find((i) => i.href === location.pathname)?.label || "Dashboard"}
           </h1>
+          <NotificationBell />
         </header>
 
         {/* Content */}
