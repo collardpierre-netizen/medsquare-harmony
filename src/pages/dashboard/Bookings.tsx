@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addDays, addMinutes, setHours, setMinutes, startOfDay, startOfWeek } from "date-fns";
+import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek } from "date-fns";
 import { MapPin, CalendarDays, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +17,8 @@ import WeekDatePicker from "@/components/dashboard/bookings/WeekDatePicker";
 import TimeSlotsGrid from "@/components/dashboard/bookings/TimeSlotsGrid";
 import NewBookingDialog from "@/components/dashboard/bookings/NewBookingDialog";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
-import type { Booking } from "@/components/dashboard/bookings/utils";
+import { getOpeningHours, type Booking } from "@/components/dashboard/bookings/utils";
+import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
 
@@ -85,23 +86,65 @@ const Bookings = () => {
     setViewMode("day");
   };
 
-  const handleCreateBooking = async () => {
+  const refreshBookings = async () => {
+    const dayStart = startOfDay(selectedDate).toISOString();
+    const dayEnd = addDays(startOfDay(selectedDate), 1).toISOString();
+    const { data } = await supabase
+      .from("bookings")
+      .select("*, profiles(first_name, last_name)")
+      .eq("room_id", selectedRoom)
+      .gte("start_time", dayStart)
+      .lt("start_time", dayEnd)
+      .neq("status", "cancelled")
+      .order("start_time");
+    setBookings((data as Booking[]) || []);
+  };
+
+  const handleCreateBooking = async (options: {
+    bookingType: BookingType;
+    recurrence: RecurrenceType;
+    recurrenceWeeks: number;
+  }) => {
     if (!profile || !selectedSlot || !selectedRoom) return;
     setIsSubmitting(true);
 
-    const startTime = setMinutes(
-      setHours(new Date(selectedDate), selectedSlot.getHours()),
-      selectedSlot.getMinutes()
-    );
-    const endTime = addMinutes(startTime, parseInt(duration));
+    const { bookingType, recurrence, recurrenceWeeks } = options;
+    const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
 
-    const { error } = await supabase.from("bookings").insert({
-      practitioner_id: profile.id,
-      room_id: selectedRoom,
-      start_time: startTime.toISOString(),
-      end_time: endTime.toISOString(),
-      notes,
-    });
+    // Calculate how many bookings to create
+    const count = recurrence === "weekly" ? recurrenceWeeks : 1;
+    const insertRows: any[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const baseDate = addWeeks(selectedDate, i);
+
+      let startTime: Date;
+      let endTime: Date;
+
+      if (bookingType === "full_day") {
+        // Full day: use opening hours for that specific day
+        const dayHours = getOpeningHours(baseDate);
+        startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
+        endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
+      } else {
+        // Hourly
+        startTime = setMinutes(
+          setHours(new Date(baseDate), selectedSlot.getHours()),
+          selectedSlot.getMinutes()
+        );
+        endTime = addMinutes(startTime, parseInt(duration));
+      }
+
+      insertRows.push({
+        practitioner_id: profile.id,
+        room_id: selectedRoom,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        notes: notes || null,
+      });
+    }
+
+    const { error } = await supabase.from("bookings").insert(insertRows);
 
     if (error) {
       toast({
@@ -110,21 +153,13 @@ const Bookings = () => {
         description: "Impossible de créer la réservation.",
       });
     } else {
-      toast({ title: "Réservation créée !", description: "En attente de confirmation." });
+      const label = count > 1
+        ? `${count} réservations créées !`
+        : "Réservation créée !";
+      toast({ title: label, description: "En attente de confirmation." });
       setShowNewBooking(false);
       setNotes("");
-      // Refresh bookings
-      const dayStart = startOfDay(selectedDate).toISOString();
-      const dayEnd = addDays(startOfDay(selectedDate), 1).toISOString();
-      const { data } = await supabase
-        .from("bookings")
-        .select("*, profiles(first_name, last_name)")
-        .eq("room_id", selectedRoom)
-        .gte("start_time", dayStart)
-        .lt("start_time", dayEnd)
-        .neq("status", "cancelled")
-        .order("start_time");
-      setBookings((data as Booking[]) || []);
+      await refreshBookings();
     }
 
     setIsSubmitting(false);
@@ -190,16 +225,13 @@ const Bookings = () => {
           </div>
         </div>
 
-        {/* Date picker (shared for both views) */}
+        {/* Date picker */}
         <WeekDatePicker
           weekStart={weekStart}
           selectedDate={selectedDate}
           onWeekChange={setWeekStart}
           onDateSelect={(day) => {
             setSelectedDate(day);
-            if (viewMode === "week") {
-              // Stay in week view, just highlight
-            }
           }}
         />
 

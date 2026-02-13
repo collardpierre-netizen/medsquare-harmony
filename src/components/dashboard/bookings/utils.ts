@@ -1,4 +1,4 @@
-import { setHours, setMinutes, addMinutes, isBefore } from "date-fns";
+import { setHours, setMinutes, addMinutes, isBefore, isWeekend } from "date-fns";
 
 export interface Booking {
   id: string;
@@ -14,6 +14,14 @@ export interface Booking {
   };
 }
 
+/** Returns opening hours based on day type */
+export const getOpeningHours = (date: Date) => {
+  if (isWeekend(date)) {
+    return { start: 9, end: 21 };
+  }
+  return { start: 8, end: 22 };
+};
+
 export const generateTimeSlots = (
   startHour: number,
   endHour: number,
@@ -28,4 +36,10 @@ export const generateTimeSlots = (
     current = addMinutes(current, interval);
   }
   return slots;
+};
+
+/** Generate time slots for a specific date, respecting weekday/weekend hours */
+export const generateTimeSlotsForDate = (date: Date, interval: number) => {
+  const { start, end } = getOpeningHours(date);
+  return generateTimeSlots(start, end, interval);
 };
