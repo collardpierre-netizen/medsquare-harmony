@@ -50,6 +50,9 @@ interface Activity {
   duration_minutes: number;
   max_participants: number | null;
   photo_url: string | null;
+  photos: string[] | null;
+  is_free: boolean;
+  price: number | null;
   location: string | null;
   profiles: {
     id: string;
@@ -80,6 +83,7 @@ const ActiviteDetail = () => {
   const [myRegistrations, setMyRegistrations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,7 +92,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-          "id, title, description, category, duration_minutes, max_participants, photo_url, location, profiles(id, first_name, last_name, specialty, avatar_url)"
+          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, profiles(id, first_name, last_name, specialty, avatar_url)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -190,10 +194,12 @@ const ActiviteDetail = () => {
     );
   }
 
-  const photo =
-    activity.photo_url ||
-    STOCK_PHOTOS[activity.category] ||
-    STOCK_PHOTOS.autre;
+  const allPhotos = activity.photos?.length
+    ? activity.photos
+    : activity.photo_url
+    ? [activity.photo_url]
+    : [STOCK_PHOTOS[activity.category] || STOCK_PHOTOS.autre];
+  // selectedPhoto state is declared at the top of the component
   const practitioner = activity.profiles;
 
   return (
@@ -217,16 +223,42 @@ const ActiviteDetail = () => {
         >
           <div className="overflow-hidden rounded-2xl bg-muted aspect-[21/9] max-h-[400px] relative">
             <img
-              src={photo}
+              src={allPhotos[selectedPhoto]}
               alt={activity.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 left-4 flex items-center gap-2">
               <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
                 {CATEGORY_LABELS[activity.category] || activity.category}
               </span>
+              {!activity.is_free && activity.price && (
+                <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
+                  {activity.price} €
+                </span>
+              )}
+              {activity.is_free && (
+                <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-primary shadow-sm">
+                  Gratuit
+                </span>
+              )}
             </div>
           </div>
+          {/* Photo thumbnails */}
+          {allPhotos.length > 1 && (
+            <div className="flex gap-2 mt-3">
+              {allPhotos.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedPhoto(i)}
+                  className={`w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                    i === selectedPhoto ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
+                  }`}
+                >
+                  <img src={p} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Grid: content + sidebar */}

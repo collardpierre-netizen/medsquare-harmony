@@ -48,6 +48,9 @@ interface ActivityForm {
   max_participants: number;
   location: string;
   photo_url: string;
+  photos: string[];
+  is_free: boolean;
+  price: number | null;
 }
 
 const emptyForm: ActivityForm = {
@@ -58,6 +61,9 @@ const emptyForm: ActivityForm = {
   max_participants: 10,
   location: "",
   photo_url: "",
+  photos: [],
+  is_free: true,
+  price: null,
 };
 
 const Activities = () => {
@@ -162,6 +168,9 @@ const Activities = () => {
       max_participants: activity.max_participants,
       location: activity.location || "",
       photo_url: activity.photo_url || "",
+      photos: activity.photos || [],
+      is_free: activity.is_free ?? true,
+      price: activity.price ?? null,
     });
     setShowDialog(true);
   };
@@ -280,6 +289,15 @@ const Activities = () => {
                             <Users className="h-3.5 w-3.5" />
                             {activity.max_participants} places max
                           </span>
+                          <Badge variant={activity.is_free ? "secondary" : "default"} className="text-[10px]">
+                            {activity.is_free ? "Gratuit" : `${activity.price ?? "—"} €`}
+                          </Badge>
+                          {(activity.photos?.length || 0) > 0 && (
+                            <span className="flex items-center gap-1">
+                              <ImageIcon className="h-3.5 w-3.5" />
+                              {activity.photos.length} photo{activity.photos.length > 1 ? "s" : ""}
+                            </span>
+                          )}
                         </div>
 
                         {/* Upcoming sessions */}
@@ -358,28 +376,65 @@ const Activities = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Photo upload */}
+            {/* Photos gallery upload */}
             <div>
-              <Label>Photo de l'activité</Label>
-              <div className="mt-1.5">
+              <Label>Photos de l'activité</Label>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {form.photos.map((url, idx) => (
+                  <div key={idx} className="relative group w-24 h-24">
+                    <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover rounded-xl border border-border" />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, photos: form.photos.filter((_, i) => i !== idx) })}
+                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
                 <ImageUpload
                   bucket="activity-photos"
                   folder={profile?.user_id || "unknown"}
-                  currentUrl={form.photo_url || null}
-                  onUpload={(url) => setForm({ ...form, photo_url: url })}
-                  onRemove={() => setForm({ ...form, photo_url: "" })}
+                  currentUrl={null}
+                  onUpload={(url) => setForm({ ...form, photos: [...form.photos, url] })}
                   shape="rounded"
-                  className="w-full h-36"
+                  className="w-24 h-24"
                   placeholder={
-                    <div className="w-full h-36 flex flex-col items-center justify-center gap-1.5">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
-                      <span className="text-xs text-muted-foreground/60">
-                        Cliquez pour ajouter une photo
-                      </span>
+                    <div className="w-24 h-24 flex flex-col items-center justify-center gap-1">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                      <span className="text-[9px] text-muted-foreground/60">Ajouter</span>
                     </div>
                   }
                 />
               </div>
+            </div>
+
+            {/* Pricing */}
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm">Activité gratuite</Label>
+                  <p className="text-xs text-muted-foreground">Désactivez pour définir un prix</p>
+                </div>
+                <Switch
+                  checked={form.is_free}
+                  onCheckedChange={(checked) => setForm({ ...form, is_free: checked, price: checked ? null : form.price })}
+                />
+              </div>
+              {!form.is_free && (
+                <div>
+                  <Label>Prix (€)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={form.price ?? ""}
+                    onChange={(e) => setForm({ ...form, price: e.target.value ? parseFloat(e.target.value) : null })}
+                    placeholder="Ex: 15"
+                    className="mt-1.5 w-32"
+                  />
+                </div>
+              )}
             </div>
             <div>
               <Label>Titre</Label>

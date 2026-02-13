@@ -12,6 +12,9 @@ interface ActivityCardProps {
     duration_minutes: number;
     max_participants: number | null;
     photo_url: string | null;
+    photos?: string[] | null;
+    is_free?: boolean;
+    price?: number | null;
     profiles?: {
       id?: string;
       first_name: string;
@@ -49,7 +52,8 @@ const STOCK_PHOTOS: Record<string, string> = {
 };
 
 const ActivityCard = ({ activity, nextSession }: ActivityCardProps) => {
-  const photo = activity.photo_url || STOCK_PHOTOS[activity.category] || STOCK_PHOTOS.autre;
+  const photos = activity.photos?.length ? activity.photos : [];
+  const photo = photos[0] || activity.photo_url || STOCK_PHOTOS[activity.category] || STOCK_PHOTOS.autre;
   const practitioner = activity.profiles;
 
   return (
@@ -107,6 +111,9 @@ const ActivityCard = ({ activity, nextSession }: ActivityCardProps) => {
               {activity.max_participants} pers.
             </span>
           )}
+          <span className="font-medium">
+            {activity.is_free !== false ? "Gratuit" : activity.price ? `${activity.price} €` : "Payant"}
+          </span>
         </div>
 
         {nextSession && (
