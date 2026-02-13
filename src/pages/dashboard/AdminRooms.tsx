@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DoorOpen, Plus, Edit, Trash2 } from "lucide-react";
+import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,28 +12,58 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/dashboard/ImageUpload";
+
+interface Room {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number | null;
+  hourly_rate: number | null;
+  equipment: string[] | null;
+  photos: string[] | null;
+  is_available: boolean;
+  floor: string | null;
+  surface_area: number | null;
+}
 
 const AdminRooms = () => {
   const { toast } = useToast();
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
-  const [editingRoom, setEditingRoom] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [form, setForm] = useState({
     name: "",
     description: "",
     capacity: "1",
     hourly_rate: "0",
     equipment: "",
+    floor: "",
+    surface_area: "",
+    is_available: true,
+    photos: [] as string[],
   });
 
   const fetchRooms = async () => {
     const { data } = await supabase.from("rooms").select("*").order("name");
-    setRooms(data || []);
+    setRooms((data as Room[]) || []);
     setLoading(false);
   };
 
@@ -43,11 +73,14 @@ const AdminRooms = () => {
 
   const openNew = () => {
     setEditingRoom(null);
-    setForm({ name: "", description: "", capacity: "1", hourly_rate: "0", equipment: "" });
+    setForm({
+      name: "", description: "", capacity: "1", hourly_rate: "0",
+      equipment: "", floor: "", surface_area: "", is_available: true, photos: [],
+    });
     setShowDialog(true);
   };
 
-  const openEdit = (room: any) => {
+  const openEdit = (room: Room) => {
     setEditingRoom(room);
     setForm({
       name: room.name,
@@ -55,6 +88,10 @@ const AdminRooms = () => {
       capacity: String(room.capacity || 1),
       hourly_rate: String(room.hourly_rate || 0),
       equipment: (room.equipment || []).join(", "),
+      floor: room.floor || "",
+      surface_area: room.surface_area ? String(room.surface_area) : "",
+      is_available: room.is_available,
+      photos: room.photos || [],
     });
     setShowDialog(true);
   };
@@ -66,133 +103,154 @@ const AdminRooms = () => {
       capacity: parseInt(form.capacity) || 1,
       hourly_rate: parseFloat(form.hourly_rate) || 0,
       equipment: form.equipment.split(",").map((s) => s.trim()).filter(Boolean),
+      floor: form.floor,
+      surface_area: form.surface_area ? parseInt(form.surface_area) : null,
+      is_available: form.is_available,
+      photos: form.photos,
     };
 
     if (editingRoom) {
-      const { error } = await supabase
-        .from("rooms")
-        .update(payload)
-        .eq("id", editingRoom.id);
+      const { error } = await supabase.from("rooms").update(payload).eq("id", editingRoom.id);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
         return;
       }
-      toast({ title: "Salle modifiée" });
+      toast({ title: "Salle modifiée ✅" });
     } else {
       const { error } = await supabase.from("rooms").insert(payload);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
         return;
       }
-      toast({ title: "Salle créée" });
+      toast({ title: "Salle créée ✅" });
     }
 
     setShowDialog(false);
     fetchRooms();
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("rooms").delete().eq("id", id);
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("rooms").delete().eq("id", deleteId);
     if (!error) {
       toast({ title: "Salle supprimée" });
       fetchRooms();
     }
+    setDeleteId(null);
+  };
+
+  const addPhoto = (url: string) => {
+    setForm((prev) => ({ ...prev, photos: [...prev.photos, url] }));
+  };
+
+  const removePhoto = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-xl font-bold">Gestion des salles</h2>
+            <h2 className="font-display text-xl font-bold">Nos Cabinets</h2>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Ajoutez, modifiez ou désactivez des salles.
+              Gérez vos espaces, tarifs et disponibilités.
             </p>
           </div>
           <Button onClick={openNew}>
             <Plus className="h-4 w-4 mr-2" />
-            Nouvelle salle
+            Nouveau cabinet
           </Button>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              </div>
-            ) : rooms.length === 0 ? (
+        {/* Room cards */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        ) : rooms.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
               <div className="text-center py-12">
                 <DoorOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">Aucune salle créée.</p>
+                <p className="text-muted-foreground text-sm">Aucun cabinet créé.</p>
                 <Button variant="outline" className="mt-3" onClick={openNew}>
-                  Créer une salle
+                  Créer un cabinet
                 </Button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {rooms.map((room: any) => (
-                  <div
-                    key={room.id}
-                    className="p-5 rounded-xl border border-border hover:shadow-sm transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-display font-semibold">{room.name}</h3>
-                        <p className="text-muted-foreground text-xs mt-0.5">
-                          {room.description || "Pas de description"}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(room)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(room.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>Capacité: {room.capacity}</span>
-                      <span>•</span>
-                      <span>{room.hourly_rate}€/h</span>
-                    </div>
-                    {room.equipment?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-3">
-                        {room.equipment.map((eq: string) => (
-                          <Badge key={eq} variant="secondary" className="text-[10px]">
-                            {eq}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {rooms.map((room) => (
+              <RoomCard
+                key={room.id}
+                room={room}
+                onEdit={() => openEdit(room)}
+                onDelete={() => setDeleteId(room.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Dialog */}
+      {/* Edit/Create Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {editingRoom ? "Modifier la salle" : "Nouvelle salle"}
+              {editingRoom ? "Modifier le cabinet" : "Nouveau cabinet"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-5 py-2">
+            {/* Photos */}
             <div>
-              <Label>Nom de la salle</Label>
+              <Label className="text-sm font-medium mb-2 block">Photos</Label>
+              <div className="flex flex-wrap gap-3">
+                {form.photos.map((url, i) => (
+                  <div key={i} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-border">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <ImageUpload
+                  bucket="room-photos"
+                  folder={editingRoom?.id || "new"}
+                  currentUrl={null}
+                  onUpload={addPhoto}
+                  shape="rounded"
+                  className="w-24 h-24"
+                  placeholder={
+                    <div className="flex flex-col items-center gap-1 p-2">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+                      <span className="text-[9px] text-muted-foreground/60">Ajouter</span>
+                    </div>
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Nom du cabinet</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="mt-1.5"
+                placeholder="Ex: Cabinet 01"
                 required
               />
             </div>
+
             <div>
               <Label>Description</Label>
               <Textarea
@@ -200,11 +258,36 @@ const AdminRooms = () => {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="mt-1.5"
                 rows={3}
+                placeholder="Décrivez le cabinet, son ambiance, ses caractéristiques..."
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Capacité</Label>
+                <Label>Étage</Label>
+                <Input
+                  value={form.floor}
+                  onChange={(e) => setForm({ ...form, floor: e.target.value })}
+                  className="mt-1.5"
+                  placeholder="Ex: RDC, 1er, 2ème"
+                />
+              </div>
+              <div>
+                <Label>Superficie (m²)</Label>
+                <Input
+                  type="number"
+                  value={form.surface_area}
+                  onChange={(e) => setForm({ ...form, surface_area: e.target.value })}
+                  className="mt-1.5"
+                  min="0"
+                  placeholder="Ex: 15"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Capacité (personnes)</Label>
                 <Input
                   type="number"
                   value={form.capacity}
@@ -221,17 +304,31 @@ const AdminRooms = () => {
                   onChange={(e) => setForm({ ...form, hourly_rate: e.target.value })}
                   className="mt-1.5"
                   min="0"
-                  step="0.01"
+                  step="0.5"
                 />
               </div>
             </div>
+
             <div>
               <Label>Équipements (séparés par des virgules)</Label>
               <Input
                 value={form.equipment}
                 onChange={(e) => setForm({ ...form, equipment: e.target.value })}
-                placeholder="Wi-Fi, Bureau, Lit d'examen..."
+                placeholder="Wi-Fi, Bureau, Lit d'examen, Eau..."
                 className="mt-1.5"
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <Label className="text-sm">Disponible à la réservation</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Désactivez pour rendre ce cabinet temporairement indisponible.
+                </p>
+              </div>
+              <Switch
+                checked={form.is_available}
+                onCheckedChange={(checked) => setForm({ ...form, is_available: checked })}
               />
             </div>
           </div>
@@ -240,11 +337,142 @@ const AdminRooms = () => {
             <Button variant="outline" onClick={() => setShowDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleSave}>{editingRoom ? "Modifier" : "Créer"}</Button>
+            <Button onClick={handleSave} disabled={!form.name.trim()}>
+              {editingRoom ? "Enregistrer" : "Créer le cabinet"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce cabinet ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Toutes les réservations associées seront également supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
+  );
+};
+
+/* ─── Room Card Component ─── */
+
+const RoomCard = ({
+  room,
+  onEdit,
+  onDelete,
+}: {
+  room: Room;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const mainPhoto = room.photos?.[0];
+
+  return (
+    <Card className="overflow-hidden group hover:shadow-md transition-shadow">
+      {/* Photo */}
+      <div className="relative h-48 bg-muted">
+        {mainPhoto ? (
+          <img src={mainPhoto} alt={room.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <DoorOpen className="h-12 w-12 text-muted-foreground/20" />
+          </div>
+        )}
+
+        {/* Photo count badge */}
+        {room.photos && room.photos.length > 1 && (
+          <div className="absolute bottom-2 left-2 bg-foreground/70 text-background text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+            <ImageIcon className="h-3 w-3" />
+            {room.photos.length} photos
+          </div>
+        )}
+
+        {/* Availability badge */}
+        {!room.is_available && (
+          <div className="absolute top-2 left-2">
+            <Badge variant="destructive" className="text-[10px]">Indisponible</Badge>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={onEdit}>
+            <Edit className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-display font-semibold text-lg">{room.name}</h3>
+          {room.surface_area && (
+            <Badge variant="outline" className="text-xs font-medium shrink-0 ml-2">
+              {room.surface_area}m²
+            </Badge>
+          )}
+        </div>
+
+        {room.floor && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+            <MapPin className="h-3 w-3" />
+            {room.floor}
+          </div>
+        )}
+
+        {room.description && (
+          <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+            {room.description}
+          </p>
+        )}
+
+        {/* Equipment pills */}
+        {room.equipment && room.equipment.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Équipements disponibles</p>
+            <div className="flex flex-wrap gap-1.5">
+              {room.equipment.slice(0, 4).map((eq) => (
+                <Badge key={eq} variant="secondary" className="text-[11px] font-normal">
+                  {eq}
+                </Badge>
+              ))}
+              {room.equipment.length > 4 && (
+                <Badge variant="secondary" className="text-[11px] font-normal">
+                  +{room.equipment.length - 4} autres
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bottom stats */}
+        <div className="flex items-center justify-between pt-3 border-t border-border">
+          <div className="flex items-center gap-1 text-sm">
+            <Euro className="h-3.5 w-3.5 text-primary" />
+            <span className="font-semibold">{room.hourly_rate}€</span>
+            <span className="text-xs text-muted-foreground">/heure</span>
+          </div>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            <span>{room.capacity} pers. max</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
