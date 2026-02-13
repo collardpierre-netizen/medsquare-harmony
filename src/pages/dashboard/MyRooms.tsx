@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
-import { addDays, startOfDay, format, isSameDay } from "date-fns";
+import { useEffect, useState, useMemo } from "react";
+import { addDays, startOfDay, startOfWeek, format, isSameDay, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
+import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,13 @@ const MyRooms = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dayData, setDayData] = useState<Record<string, SlotInfo[]>>({});
+  const [weeklyOccupancy, setWeeklyOccupancy] = useState<Record<string, { occupied: number; total: number }>>({});
+
+  // Compute current week start based on selectedDate
+  const currentWeekStart = useMemo(
+    () => startOfWeek(selectedDate, { weekStartsOn: 1 }),
+    [selectedDate]
+  );
 
   // Fetch rooms the practitioner uses (has bookings in)
   useEffect(() => {
@@ -182,6 +190,70 @@ const MyRooms = () => {
     fetchDayAvailability();
   }, [rooms, selectedDate, profile]);
 
+  // Fetch weekly occupancy stats
+  useEffect(() => {
+    if (rooms.length === 0) return;
+
+    const fetchWeeklyOccupancy = async () => {
+      const weekEnd = addDays(currentWeekStart, 7);
+      const roomIds = rooms.map((r) => r.id);
+
+      const [{ data: bookingsData }, { data: sessionsData }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("room_id, start_time, end_time")
+          .in("room_id", roomIds)
+          .gte("start_time", currentWeekStart.toISOString())
+          .lt("start_time", weekEnd.toISOString())
+          .neq("status", "cancelled"),
+        supabase
+          .from("activity_sessions")
+          .select("room_id, start_time, end_time")
+          .in("room_id", roomIds)
+          .gte("start_time", currentWeekStart.toISOString())
+          .lt("start_time", weekEnd.toISOString())
+          .eq("status", "scheduled"),
+      ]);
+
+      const result: Record<string, { occupied: number; total: number }> = {};
+
+      for (const room of rooms) {
+        let totalSlots = 0;
+        let occupiedSlots = 0;
+
+        for (let d = 0; d < 7; d++) {
+          const day = addDays(currentWeekStart, d);
+          const { start: openStart, end: openEnd } = getOpeningHours(day);
+          totalSlots += openEnd - openStart;
+
+          for (let h = openStart; h < openEnd; h++) {
+            const slotStart = new Date(day);
+            slotStart.setHours(h, 0, 0, 0);
+            const slotEnd = new Date(day);
+            slotEnd.setHours(h + 1, 0, 0, 0);
+
+            const hasBooking = (bookingsData || []).some((b: any) => {
+              if (b.room_id !== room.id) return false;
+              return new Date(b.start_time) < slotEnd && new Date(b.end_time) > slotStart;
+            });
+            const hasActivity = !hasBooking && (sessionsData || []).some((s: any) => {
+              if (s.room_id !== room.id) return false;
+              return new Date(s.start_time) < slotEnd && new Date(s.end_time) > slotStart;
+            });
+
+            if (hasBooking || hasActivity) occupiedSlots++;
+          }
+        }
+
+        result[room.id] = { occupied: occupiedSlots, total: totalSlots };
+      }
+
+      setWeeklyOccupancy(result);
+    };
+
+    fetchWeeklyOccupancy();
+  }, [rooms, currentWeekStart]);
+
   const statusConfig = {
     free: { bg: "bg-emerald-500/15", text: "text-emerald-700", label: "Libre" },
     mine: { bg: "bg-primary/15", text: "text-primary", label: "Ma réservation" },
@@ -250,6 +322,53 @@ const MyRooms = () => {
             </div>
           ))}
         </div>
+
+        {/* Weekly occupancy summary */}
+        {!loading && rooms.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm">Occupation de la semaine</CardTitle>
+              </div>
+              <CardDescription className="text-xs">
+                Semaine du {format(currentWeekStart, "d MMM", { locale: fr })} au{" "}
+                {format(addDays(currentWeekStart, 6), "d MMM yyyy", { locale: fr })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {rooms.map((room) => {
+                const stats = weeklyOccupancy[room.id];
+                const pct = stats && stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0;
+                return (
+                  <div key={room.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{room.name}</span>
+                      <span className={cn(
+                        "font-semibold",
+                        pct >= 75 ? "text-destructive" : pct >= 40 ? "text-orange-600" : "text-emerald-600"
+                      )}>
+                        {pct}% occupé
+                        {stats && (
+                          <span className="text-muted-foreground font-normal ml-1.5">
+                            ({stats.occupied}/{stats.total}h)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <Progress
+                      value={pct}
+                      className={cn(
+                        "h-2",
+                        pct >= 75 ? "[&>div]:bg-destructive" : pct >= 40 ? "[&>div]:bg-orange-500" : "[&>div]:bg-emerald-500"
+                      )}
+                    />
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Loading */}
         {loading && (
