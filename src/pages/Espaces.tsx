@@ -205,7 +205,7 @@ const Espaces = () => {
                         className="flex items-center justify-between py-2.5 border-b border-border/50"
                       >
                         <span className="text-sm text-primary font-medium">{item.label}</span>
-                        <span className="text-sm font-semibold tabular-nums">{item.price}</span>
+                        <span className="text-sm font-semibold tabular-nums">{item.price}€</span>
                       </div>
                     ))}
                   </div>
