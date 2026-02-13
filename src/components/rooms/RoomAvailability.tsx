@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { format, addDays, startOfDay, isSameDay } from "date-fns";
+import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface Booking {
@@ -15,26 +15,64 @@ interface Props {
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8h → 19h
 
+// Brussels timezone offset helper: CET = UTC+1, CEST = UTC+2
+const getBrusselsOffset = (date: Date): number => {
+  // Use Intl to determine if DST is active in Brussels
+  const jan = new Date(date.getFullYear(), 0, 1);
+  const jul = new Date(date.getFullYear(), 6, 1);
+  const stdOffset = Math.max(
+    jan.getTimezoneOffset(),
+    jul.getTimezoneOffset()
+  );
+  // This trick works for the browser's local TZ; for Brussels we hardcode:
+  // CET (last Sun Oct → last Sun Mar) = UTC+1, CEST = UTC+2
+  const month = date.getUTCMonth(); // 0-indexed
+  const day = date.getUTCDate();
+  const weekday = date.getUTCDay(); // 0=Sun
+  
+  // DST in Europe: starts last Sunday of March, ends last Sunday of October
+  const isAfterMarchSwitch = month > 2 || (month === 2 && day - weekday >= 25);
+  const isBeforeOctoberSwitch = month < 9 || (month === 9 && day - weekday < 25);
+  
+  return (isAfterMarchSwitch && isBeforeOctoberSwitch) ? 2 : 1;
+};
+
 const RoomAvailability = ({ bookings }: Props) => {
   const days = useMemo(() => {
-    const today = startOfDay(new Date());
-    return Array.from({ length: 14 }, (_, i) => addDays(today, i));
+    // Create days based on Brussels date (not browser local time)
+    const now = new Date();
+    const brusselsOffset = getBrusselsOffset(now);
+    const brusselsNow = new Date(now.getTime() + brusselsOffset * 60 * 60 * 1000);
+    // Start of today in Brussels = midnight Brussels = (midnight UTC - offset)
+    const todayUTC = new Date(Date.UTC(
+      brusselsNow.getUTCFullYear(),
+      brusselsNow.getUTCMonth(),
+      brusselsNow.getUTCDate()
+    ));
+    // todayUTC represents midnight Brussels in terms of the calendar date
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(todayUTC);
+      d.setUTCDate(d.getUTCDate() + i);
+      return d;
+    });
   }, []);
 
   const isSlotBooked = (day: Date, hour: number) => {
+    const brusselsOffset = getBrusselsOffset(day);
+    // Slot at "hour" Brussels time = (hour - offset) UTC
+    const slotStartUTC = new Date(Date.UTC(
+      day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(),
+      hour - brusselsOffset, 0, 0
+    ));
+    const slotEndUTC = new Date(Date.UTC(
+      day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(),
+      hour - brusselsOffset + 1, 0, 0
+    ));
+    
     return bookings.some((b) => {
       const start = new Date(b.start_time);
       const end = new Date(b.end_time);
-      if (!isSameDay(start, day) && !isSameDay(end, day)) {
-        // Check if the day falls between start and end
-        if (day < start || day > end) return false;
-        return true;
-      }
-      const slotStart = new Date(day);
-      slotStart.setHours(hour, 0, 0, 0);
-      const slotEnd = new Date(day);
-      slotEnd.setHours(hour + 1, 0, 0, 0);
-      return start < slotEnd && end > slotStart;
+      return start < slotEndUTC && end > slotStartUTC;
     });
   };
 
@@ -60,7 +98,7 @@ const RoomAvailability = ({ bookings }: Props) => {
           {days.map((day) => (
             <tr key={day.toISOString()} className="border-t border-border">
               <td className="sticky left-0 bg-card px-3 py-1.5 font-medium capitalize whitespace-nowrap">
-                {format(day, "EEE d MMM", { locale: fr })}
+                {format(new Date(day.getTime() + getBrusselsOffset(day) * 60 * 60 * 1000), "EEE d MMM", { locale: fr })}
               </td>
               {HOURS.map((h) => {
                 const booked = isSlotBooked(day, h);
