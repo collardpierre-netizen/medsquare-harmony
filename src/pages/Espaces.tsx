@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen, Euro } from "lucide-react";
+import { Users, DoorOpen, Euro, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface PricingItem {
+  label: string;
+  price: number;
+}
 
 interface Room {
   id: string;
@@ -14,6 +25,8 @@ interface Room {
   hourly_rate: number | null;
   equipment: string[] | null;
   photos: string[] | null;
+  pricing: PricingItem[] | null;
+  credits_info: string | null;
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=500&fit=crop";
@@ -21,15 +34,16 @@ const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1631217868264-e5b90bb7e
 const Espaces = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pricingRoom, setPricingRoom] = useState<Room | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
       const { data } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info")
         .eq("is_available", true)
         .order("name");
-      setRooms(data || []);
+      setRooms((data as unknown as Room[]) || []);
       setLoading(false);
     };
     fetch();
@@ -137,12 +151,13 @@ const Espaces = () => {
                         <Link to={`/espaces/${room.id}`}>
                           <Button>Voir les détails</Button>
                         </Link>
-                        <Link to={`/espaces/${room.id}#tarifs`}>
-                          <Button variant="outline">
-                            <Euro className="h-4 w-4 mr-1.5" />
-                            Voir les tarifs
-                          </Button>
-                        </Link>
+                        <Button
+                          variant="outline"
+                          onClick={() => setPricingRoom(room)}
+                        >
+                          <Euro className="h-4 w-4 mr-1.5" />
+                          Voir les tarifs
+                        </Button>
                       </div>
                     </div>
                   </motion.div>
@@ -152,6 +167,65 @@ const Espaces = () => {
           )}
         </div>
       </section>
+
+      {/* Pricing Dialog */}
+      <Dialog open={!!pricingRoom} onOpenChange={(open) => !open && setPricingRoom(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {pricingRoom && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-lg">
+                  Tarifs – {pricingRoom.name}
+                </DialogTitle>
+              </DialogHeader>
+
+              {pricingRoom.credits_info && (
+                <p className="text-sm text-primary font-medium">{pricingRoom.credits_info}</p>
+              )}
+              <p className="text-xs text-muted-foreground">Tous les tarifs sont indiqués HTVA.</p>
+
+              {/* Hourly rate highlight */}
+              {pricingRoom.hourly_rate != null && pricingRoom.hourly_rate > 0 && (
+                <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mt-2">
+                  <span className="font-medium">Tarif horaire</span>
+                  <span className="font-display font-bold text-primary">
+                    {pricingRoom.hourly_rate} € / h
+                  </span>
+                </div>
+              )}
+
+              {/* Pricing grid */}
+              {pricingRoom.pricing && pricingRoom.pricing.length > 0 ? (
+                <div className="mt-4">
+                  <h3 className="font-semibold text-sm mb-3">Autres forfaits</h3>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                    {pricingRoom.pricing.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-2.5 border-b border-border/50"
+                      >
+                        <span className="text-sm text-primary font-medium">{item.label}</span>
+                        <span className="text-sm font-semibold tabular-nums">{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-4">
+                  Aucun forfait configuré pour cet espace.
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground mt-4">
+                Besoin d'un devis ou d'un forfait personnalisé ?{" "}
+                <Link to="/contact" className="text-primary hover:underline">
+                  Contactez-nous
+                </Link>.
+              </p>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
