@@ -189,41 +189,54 @@ const Bookings = () => {
       });
     }
 
-    // Check for conflicts
-    const conflicts: Array<{ week: number; conflictingBooking: any }> = [];
+    // Check for conflicts (bookings + activity sessions)
+    const bookingConflicts: Array<{ week: number; detail: string }> = [];
 
     for (const booking of bookingsToCreate) {
-      const { data: existingBookings } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("room_id", selectedRoom)
-        .neq("status", "cancelled")
-        .gte("end_time", booking.startTime.toISOString())
-        .lte("start_time", booking.endTime.toISOString());
+      const [{ data: existingBookings }, { data: existingSessions }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("*")
+          .eq("room_id", selectedRoom)
+          .neq("status", "cancelled")
+          .lt("start_time", booking.endTime.toISOString())
+          .gt("end_time", booking.startTime.toISOString()),
+        supabase
+          .from("activity_sessions")
+          .select("*, activities(title)")
+          .eq("room_id", selectedRoom)
+          .eq("status", "scheduled")
+          .lt("start_time", booking.endTime.toISOString())
+          .gt("end_time", booking.startTime.toISOString()),
+      ]);
 
       if (existingBookings && existingBookings.length > 0) {
-        conflicts.push({
+        const b = existingBookings[0];
+        bookingConflicts.push({
           week: booking.week,
-          conflictingBooking: existingBookings[0],
+          detail: `${new Date(b.start_time).toLocaleDateString("fr-FR")} ${new Date(b.start_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} (réservation)`,
+        });
+      } else if (existingSessions && existingSessions.length > 0) {
+        const s = existingSessions[0];
+        bookingConflicts.push({
+          week: booking.week,
+          detail: `${new Date(s.start_time).toLocaleDateString("fr-FR")} ${new Date(s.start_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} — ${s.activities?.title || "activité"}`,
         });
       }
     }
 
-    if (conflicts.length > 0) {
-      const conflictDetails = conflicts
-        .map(
-          (c) =>
-            `Semaine ${c.week}: ${new Date(c.conflictingBooking.start_time).toLocaleDateString("fr-FR")} ${new Date(c.conflictingBooking.start_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
-        )
+    if (bookingConflicts.length > 0) {
+      const conflictDetails = bookingConflicts
+        .map((c) => `Semaine ${c.week}: ${c.detail}`)
         .join("\n");
 
       toast({
         variant: "destructive",
-        title: "Conflit de réservation détecté",
+        title: "Conflit détecté",
         description:
-          conflicts.length === 1
-            ? `Créneau déjà réservé: ${conflictDetails}`
-            : `${conflicts.length} créneaux sont déjà réservés:\n${conflictDetails}`,
+          bookingConflicts.length === 1
+            ? `Créneau occupé: ${conflictDetails}`
+            : `${bookingConflicts.length} créneaux occupés:\n${conflictDetails}`,
       });
       setIsSubmitting(false);
       return;
