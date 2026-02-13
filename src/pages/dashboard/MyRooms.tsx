@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { addDays, startOfDay, format, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MapPin, Clock, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -28,6 +29,7 @@ interface SlotInfo {
 }
 
 const MyRooms = () => {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const [rooms, setRooms] = useState<RoomWithStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,6 +303,15 @@ const MyRooms = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs gap-1.5"
+                        onClick={() => navigate(`/dashboard/bookings?room=${room.id}`)}
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        Réserver
+                      </Button>
                       {mineCount > 0 && (
                         <Badge variant="default" className="text-[10px]">
                           {mineCount} créneau{mineCount !== 1 ? "x" : ""} à moi
