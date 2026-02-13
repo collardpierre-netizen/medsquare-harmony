@@ -22,10 +22,13 @@ export type Database = {
           duration_minutes: number
           id: string
           is_active: boolean
+          is_free: boolean
           location: string | null
           max_participants: number | null
           photo_url: string | null
+          photos: string[] | null
           practitioner_id: string
+          price: number | null
           recurrence: Json | null
           title: string
           updated_at: string
@@ -37,10 +40,13 @@ export type Database = {
           duration_minutes?: number
           id?: string
           is_active?: boolean
+          is_free?: boolean
           location?: string | null
           max_participants?: number | null
           photo_url?: string | null
+          photos?: string[] | null
           practitioner_id: string
+          price?: number | null
           recurrence?: Json | null
           title: string
           updated_at?: string
@@ -52,10 +58,13 @@ export type Database = {
           duration_minutes?: number
           id?: string
           is_active?: boolean
+          is_free?: boolean
           location?: string | null
           max_participants?: number | null
           photo_url?: string | null
+          photos?: string[] | null
           practitioner_id?: string
+          price?: number | null
           recurrence?: Json | null
           title?: string
           updated_at?: string
