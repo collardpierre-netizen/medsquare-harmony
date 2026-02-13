@@ -14,6 +14,23 @@ export interface Booking {
   };
 }
 
+export interface ActivitySessionSlot {
+  id: string;
+  activity_id: string;
+  room_id: string | null;
+  start_time: string;
+  end_time: string;
+  status: string;
+  activities?: {
+    title: string;
+    category: string;
+    profiles?: {
+      first_name: string;
+      last_name: string;
+    };
+  };
+}
+
 /** Returns opening hours based on day type */
 export const getOpeningHours = (date: Date) => {
   if (isWeekend(date)) {

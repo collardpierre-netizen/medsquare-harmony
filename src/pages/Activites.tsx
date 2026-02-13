@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import ActivityCard from "@/components/activities/ActivityCard";
 import CategoryPills from "@/components/activities/CategoryPills";
+import PublicActivitySchedule from "@/components/activities/PublicActivitySchedule";
 
 const CATEGORIES = [
   { value: "all", label: "Toutes" },
@@ -164,6 +165,13 @@ const ActivitesPage = () => {
             selected={selectedCategory}
             onSelect={setSelectedCategory}
           />
+        </div>
+      </section>
+
+      {/* Weekly schedule */}
+      <section className="py-6 border-b border-border">
+        <div className="max-w-6xl mx-auto px-4">
+          <PublicActivitySchedule />
         </div>
       </section>
 
