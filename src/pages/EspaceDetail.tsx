@@ -204,7 +204,7 @@ const EspaceDetail = () => {
             {room.pricing && room.pricing.length > 0 && (
               <>
                 <Separator className="mb-8" />
-                <div className="mb-8">
+                <div id="tarifs" className="mb-8 scroll-mt-24">
                   <h2 className="font-display text-xl font-semibold mb-2">
                     Tarifs – {room.name}
                   </h2>

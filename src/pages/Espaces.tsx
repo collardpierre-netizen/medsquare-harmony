@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen } from "lucide-react";
+import { Users, DoorOpen, Euro } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -133,9 +133,17 @@ const Espaces = () => {
                         </div>
                       )}
 
-                      <Link to={`/espaces/${room.id}`}>
-                        <Button>Voir les détails</Button>
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link to={`/espaces/${room.id}`}>
+                          <Button>Voir les détails</Button>
+                        </Link>
+                        <Link to={`/espaces/${room.id}#tarifs`}>
+                          <Button variant="outline">
+                            <Euro className="h-4 w-4 mr-1.5" />
+                            Voir les tarifs
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </motion.div>
                 );
