@@ -58,9 +58,10 @@ const PractitionerActivities = ({ activities }: Props) => {
             const nextSession = activity.activity_sessions[0];
 
             return (
-              <div
+              <Link
                 key={activity.id}
-                className="min-w-[260px] max-w-[280px] flex-shrink-0 rounded-xl border border-border overflow-hidden bg-card hover:shadow-md transition-shadow group"
+                to={`/activites/${activity.id}`}
+                className="min-w-[260px] max-w-[280px] flex-shrink-0 rounded-xl border border-border overflow-hidden bg-card hover:shadow-md transition-shadow group block"
               >
                 <div className="aspect-[4/3] overflow-hidden">
                   <img
@@ -103,7 +104,7 @@ const PractitionerActivities = ({ activities }: Props) => {
                     </div>
                   )}
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
