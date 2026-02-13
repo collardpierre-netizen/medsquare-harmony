@@ -1,20 +1,56 @@
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-centre.jpg";
+import { cn } from "@/lib/utils";
+import heroImage1 from "@/assets/hero-centre.jpg";
+import heroImage2 from "@/assets/hero-gallery-2.jpg";
+import heroImage3 from "@/assets/hero-gallery-3.jpg";
+import heroImage4 from "@/assets/hero-gallery-4.jpg";
+
+const images = [
+  { src: heroImage1, alt: "Intérieur du centre Medsquare" },
+  { src: heroImage2, alt: "Accueil chaleureux du centre" },
+  { src: heroImage3, alt: "Salle de consultation moderne" },
+  { src: heroImage4, alt: "Espace yoga et bien-être" },
+];
+
+const INTERVAL = 6000;
 
 const HeroSection = () => {
+  const [current, setCurrent] = useState(0);
+
+  const next = useCallback(() => {
+    setCurrent((prev) => (prev + 1) % images.length);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(next, INTERVAL);
+    return () => clearInterval(timer);
+  }, [next]);
+
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <img
-          src={heroImage}
-          alt="Intérieur du centre médical Medsquare"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-foreground/80 via-foreground/50 to-transparent" />
-      </div>
+      {/* Background gallery with crossfade */}
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={current}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          className="absolute inset-0"
+        >
+          <img
+            src={images[current].src}
+            alt={images[current].alt}
+            className="w-full h-full object-cover"
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-foreground/80 via-foreground/50 to-transparent z-[1]" />
 
       {/* Content */}
       <div className="container mx-auto px-4 relative z-10">
@@ -70,6 +106,23 @@ const HeroSection = () => {
             </Link>
           </motion.div>
         </div>
+      </div>
+
+      {/* Dots indicator */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+        {images.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrent(idx)}
+            className={cn(
+              "h-2 rounded-full transition-all duration-500",
+              idx === current
+                ? "w-8 bg-white"
+                : "w-2 bg-white/40 hover:bg-white/60"
+            )}
+            aria-label={`Voir image ${idx + 1}`}
+          />
+        ))}
       </div>
     </section>
   );
