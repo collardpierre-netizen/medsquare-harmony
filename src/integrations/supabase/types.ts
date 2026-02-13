@@ -323,11 +323,13 @@ export type Database = {
           created_at: string
           description: string | null
           equipment: string[] | null
+          floor: string | null
           hourly_rate: number | null
           id: string
           is_available: boolean
           name: string
           photos: string[] | null
+          surface_area: number | null
           updated_at: string
         }
         Insert: {
@@ -335,11 +337,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           equipment?: string[] | null
+          floor?: string | null
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
           name: string
           photos?: string[] | null
+          surface_area?: number | null
           updated_at?: string
         }
         Update: {
@@ -347,11 +351,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           equipment?: string[] | null
+          floor?: string | null
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
           name?: string
           photos?: string[] | null
+          surface_area?: number | null
           updated_at?: string
         }
         Relationships: []
