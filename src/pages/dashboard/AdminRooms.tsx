@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,8 +54,12 @@ const AdminRooms = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [showDefaultsDialog, setShowDefaultsDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [defaultPricing, setDefaultPricing] = useState<PricingItem[]>([]);
+  const [defaultCreditsInfo, setDefaultCreditsInfo] = useState("");
+  const [defaultsForm, setDefaultsForm] = useState<{ pricing: PricingItem[]; credits_info: string }>({ pricing: [], credits_info: "" });
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -76,18 +80,69 @@ const AdminRooms = () => {
     setLoading(false);
   };
 
+  const fetchDefaults = useCallback(async () => {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "default_room_pricing")
+      .maybeSingle();
+    if (data?.value) {
+      const val = data.value as any;
+      setDefaultPricing(val.pricing || []);
+      setDefaultCreditsInfo(val.credits_info || "");
+    }
+  }, []);
+
   useEffect(() => {
     fetchRooms();
-  }, []);
+    fetchDefaults();
+  }, [fetchDefaults]);
 
   const openNew = () => {
     setEditingRoom(null);
     setForm({
       name: "", description: "", capacity: "1", hourly_rate: "0",
       equipment: "", floor: "", surface_area: "", is_available: true, photos: [],
-      pricing: [], credits_info: "",
+      pricing: [...defaultPricing],
+      credits_info: defaultCreditsInfo,
     });
     setShowDialog(true);
+  };
+
+  const openDefaultsDialog = () => {
+    setDefaultsForm({ pricing: [...defaultPricing], credits_info: defaultCreditsInfo });
+    setShowDefaultsDialog(true);
+  };
+
+  const addDefaultPricingItem = () => {
+    setDefaultsForm((prev) => ({ ...prev, pricing: [...prev.pricing, { label: "", price: 0 }] }));
+  };
+
+  const updateDefaultPricingItem = (index: number, field: keyof PricingItem, value: string | number) => {
+    setDefaultsForm((prev) => ({
+      ...prev,
+      pricing: prev.pricing.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    }));
+  };
+
+  const removeDefaultPricingItem = (index: number) => {
+    setDefaultsForm((prev) => ({ ...prev, pricing: prev.pricing.filter((_, i) => i !== index) }));
+  };
+
+  const saveDefaults = async () => {
+    const cleanPricing = defaultsForm.pricing.filter((p) => p.label.trim());
+    const { error } = await supabase
+      .from("settings")
+      .update({ value: { pricing: cleanPricing, credits_info: defaultsForm.credits_info } as any })
+      .eq("key", "default_room_pricing");
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: error.message });
+      return;
+    }
+    setDefaultPricing(cleanPricing);
+    setDefaultCreditsInfo(defaultsForm.credits_info);
+    setShowDefaultsDialog(false);
+    toast({ title: "Tarifs par défaut enregistrés ✅" });
   };
 
   const openEdit = (room: Room) => {
@@ -198,10 +253,16 @@ const AdminRooms = () => {
               Gérez vos espaces, tarifs et disponibilités.
             </p>
           </div>
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau cabinet
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={openDefaultsDialog}>
+              <Settings className="h-4 w-4 mr-2" />
+              Tarifs par défaut
+            </Button>
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau cabinet
+            </Button>
+          </div>
         </div>
 
         {/* Room cards */}
@@ -443,6 +504,70 @@ const AdminRooms = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Default Pricing Dialog */}
+      <Dialog open={showDefaultsDialog} onOpenChange={setShowDefaultsDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">Tarifs par défaut</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Ces tarifs seront automatiquement pré-remplis lors de la création d'un nouveau cabinet.
+          </p>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs text-muted-foreground">Note crédits</Label>
+              <Input
+                value={defaultsForm.credits_info}
+                onChange={(e) => setDefaultsForm({ ...defaultsForm, credits_info: e.target.value })}
+                className="mt-1"
+                placeholder="Ex: 1€ = 2 crédits"
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Forfaits</Label>
+              <div className="space-y-2">
+                {defaultsForm.pricing.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={item.label}
+                      onChange={(e) => updateDefaultPricingItem(i, "label", e.target.value)}
+                      placeholder="Ex: 1j/sem."
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={item.price}
+                      onChange={(e) => updateDefaultPricingItem(i, "price", parseFloat(e.target.value) || 0)}
+                      className="w-24"
+                      min="0"
+                    />
+                    <span className="text-xs text-muted-foreground">€</span>
+                    <button
+                      type="button"
+                      onClick={() => removeDefaultPricingItem(i)}
+                      className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-destructive/10 text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addDefaultPricingItem}>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Ajouter un forfait
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDefaultsDialog(false)}>Annuler</Button>
+            <Button onClick={saveDefaults}>Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
