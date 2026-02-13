@@ -18,7 +18,7 @@ import TimeSlotsGrid from "@/components/dashboard/bookings/TimeSlotsGrid";
 import NewBookingDialog from "@/components/dashboard/bookings/NewBookingDialog";
 import CancelBookingDialog from "@/components/dashboard/bookings/CancelBookingDialog";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
-import { getOpeningHours, type Booking } from "@/components/dashboard/bookings/utils";
+import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
@@ -42,6 +42,7 @@ const Bookings = () => {
   const [futureBookingsCount, setFutureBookingsCount] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [practitioners, setPractitioners] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
+  const [activitySessions, setActivitySessions] = useState<ActivitySessionSlot[]>([]);
 
   // Fetch rooms
   useEffect(() => {
@@ -77,23 +78,34 @@ const Bookings = () => {
   useEffect(() => {
     if (!selectedRoom || viewMode !== "day") return;
 
-    const fetchBookings = async () => {
+    const fetchDayData = async () => {
       const dayStart = startOfDay(selectedDate).toISOString();
       const dayEnd = addDays(startOfDay(selectedDate), 1).toISOString();
 
-      const { data } = await supabase
-        .from("bookings")
-        .select("*, profiles(first_name, last_name)")
-        .eq("room_id", selectedRoom)
-        .gte("start_time", dayStart)
-        .lt("start_time", dayEnd)
-        .neq("status", "cancelled")
-        .order("start_time");
+      const [{ data: bookingsData }, { data: sessionsData }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("*, profiles(first_name, last_name)")
+          .eq("room_id", selectedRoom)
+          .gte("start_time", dayStart)
+          .lt("start_time", dayEnd)
+          .neq("status", "cancelled")
+          .order("start_time"),
+        supabase
+          .from("activity_sessions")
+          .select("*, activities(title, category, profiles(first_name, last_name))")
+          .eq("room_id", selectedRoom)
+          .gte("start_time", dayStart)
+          .lt("start_time", dayEnd)
+          .eq("status", "scheduled")
+          .order("start_time"),
+      ]);
 
-      setBookings((data as Booking[]) || []);
+      setBookings((bookingsData as Booking[]) || []);
+      setActivitySessions((sessionsData as ActivitySessionSlot[]) || []);
     };
 
-    fetchBookings();
+    fetchDayData();
   }, [selectedDate, selectedRoom, viewMode]);
 
   const handleSlotClick = (slot: Date) => {
@@ -404,6 +416,7 @@ const Bookings = () => {
           <TimeSlotsGrid
             selectedDate={selectedDate}
             bookings={bookings}
+            activitySessions={activitySessions}
             rooms={rooms}
             onSlotClick={handleSlotClick}
             onBookingClick={handleBookingClick}
