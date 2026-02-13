@@ -37,8 +37,11 @@ interface NewBookingDialogProps {
   onDurationChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
-  onSubmit: (options: { bookingType: BookingType; recurrence: RecurrenceType; recurrenceWeeks: number }) => void;
+  onSubmit: (options: { bookingType: BookingType; recurrence: RecurrenceType; recurrenceWeeks: number; practitionerId?: string }) => void;
   isSubmitting: boolean;
+  isAdmin?: boolean;
+  practitioners?: Array<{ id: string; first_name: string; last_name: string }>;
+  currentProfileId?: string;
 }
 
 const NewBookingDialog = ({
@@ -53,16 +56,25 @@ const NewBookingDialog = ({
   onNotesChange,
   onSubmit,
   isSubmitting,
+  isAdmin,
+  practitioners,
+  currentProfileId,
 }: NewBookingDialogProps) => {
   const [bookingType, setBookingType] = useState<BookingType>("hourly");
   const [recurrence, setRecurrence] = useState<RecurrenceType>("none");
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
+  const [selectedPractitioner, setSelectedPractitioner] = useState<string>("");
 
   const { start, end } = getOpeningHours(selectedDate);
   const isWE = isWeekend(selectedDate);
 
   const handleSubmit = () => {
-    onSubmit({ bookingType, recurrence, recurrenceWeeks });
+    onSubmit({
+      bookingType,
+      recurrence,
+      recurrenceWeeks,
+      practitionerId: isAdmin && selectedPractitioner ? selectedPractitioner : undefined,
+    });
   };
 
   return (
@@ -71,6 +83,7 @@ const NewBookingDialog = ({
         setBookingType("hourly");
         setRecurrence("none");
         setRecurrenceWeeks(4);
+        setSelectedPractitioner("");
       }
       onOpenChange(v);
     }}>
@@ -94,6 +107,28 @@ const NewBookingDialog = ({
               </p>
             </div>
           </div>
+
+          {/* Admin: practitioner selector */}
+          {isAdmin && practitioners && practitioners.length > 0 && (
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Praticien</Label>
+              <Select value={selectedPractitioner} onValueChange={setSelectedPractitioner}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Choisir un praticien" />
+                </SelectTrigger>
+                <SelectContent>
+                  {practitioners.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.first_name} {p.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Laissez vide pour réserver à votre nom.
+              </p>
+            </div>
+          )}
 
           {/* Booking type toggle */}
           <div>
