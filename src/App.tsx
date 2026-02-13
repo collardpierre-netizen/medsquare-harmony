@@ -20,6 +20,7 @@ import Profile from "./pages/dashboard/Profile";
 import Bookings from "./pages/dashboard/Bookings";
 import Activities from "./pages/dashboard/Activities";
 import Documents from "./pages/dashboard/Documents";
+import MyRooms from "./pages/dashboard/MyRooms";
 import AdminPractitioners from "./pages/dashboard/AdminPractitioners";
 import AdminRooms from "./pages/dashboard/AdminRooms";
 import AdminBookings from "./pages/dashboard/AdminBookings";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/dashboard/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
             <Route path="/dashboard/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+            <Route path="/dashboard/rooms" element={<ProtectedRoute><MyRooms /></ProtectedRoute>} />
             <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
