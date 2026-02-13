@@ -198,12 +198,59 @@ const Activities = () => {
     const activity = activities.find((a: any) => a.id === sessionActivityId);
     const startTime = new Date(`${sessionForm.date}T${sessionForm.time}:00`);
     const endTime = addMinutes(startTime, activity?.duration_minutes || 60);
+    const roomId = sessionForm.room_id || null;
+
+    // Conflict detection when a room is selected
+    if (roomId) {
+      const [{ data: conflictingBookings }, { data: conflictingSessions }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("*, profiles(first_name, last_name)")
+          .eq("room_id", roomId)
+          .neq("status", "cancelled")
+          .lt("start_time", endTime.toISOString())
+          .gt("end_time", startTime.toISOString()),
+        supabase
+          .from("activity_sessions")
+          .select("*, activities(title)")
+          .eq("room_id", roomId)
+          .eq("status", "scheduled")
+          .lt("start_time", endTime.toISOString())
+          .gt("end_time", startTime.toISOString()),
+      ]);
+
+      const roomName = rooms.find((r: any) => r.id === roomId)?.name || "la salle";
+
+      if (conflictingBookings && conflictingBookings.length > 0) {
+        const b = conflictingBookings[0];
+        const bStart = new Date(b.start_time);
+        toast({
+          variant: "destructive",
+          title: "Conflit avec une réservation",
+          description: `${roomName} est déjà réservée par ${b.profiles?.first_name} ${b.profiles?.last_name} de ${bStart.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} à ${new Date(b.end_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`,
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      if (conflictingSessions && conflictingSessions.length > 0) {
+        const s = conflictingSessions[0];
+        const sStart = new Date(s.start_time);
+        toast({
+          variant: "destructive",
+          title: "Conflit avec une activité",
+          description: `${roomName} est déjà occupée par « ${s.activities?.title || "une activité"} » de ${sStart.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} à ${new Date(s.end_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`,
+        });
+        setIsSaving(false);
+        return;
+      }
+    }
 
     const { error } = await supabase.from("activity_sessions").insert({
       activity_id: sessionActivityId,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
-      room_id: sessionForm.room_id || null,
+      room_id: roomId,
       max_participants: activity?.max_participants || 10,
     });
 
