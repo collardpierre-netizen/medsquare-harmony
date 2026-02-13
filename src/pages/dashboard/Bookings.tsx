@@ -114,6 +114,7 @@ const Bookings = () => {
     // Calculate how many bookings to create
     const count = recurrence === "weekly" ? recurrenceWeeks : 1;
     const insertRows: any[] = [];
+    const bookingsToCreate: Array<{ startTime: Date; endTime: Date; week: number }> = [];
 
     for (let i = 0; i < count; i++) {
       const baseDate = addWeeks(selectedDate, i);
@@ -135,6 +136,7 @@ const Bookings = () => {
         endTime = addMinutes(startTime, parseInt(duration));
       }
 
+      bookingsToCreate.push({ startTime, endTime, week: i + 1 });
       insertRows.push({
         practitioner_id: profile.id,
         room_id: selectedRoom,
@@ -142,6 +144,46 @@ const Bookings = () => {
         end_time: endTime.toISOString(),
         notes: notes || null,
       });
+    }
+
+    // Check for conflicts
+    const conflicts: Array<{ week: number; conflictingBooking: any }> = [];
+
+    for (const booking of bookingsToCreate) {
+      const { data: existingBookings } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("room_id", selectedRoom)
+        .neq("status", "cancelled")
+        .gte("end_time", booking.startTime.toISOString())
+        .lte("start_time", booking.endTime.toISOString());
+
+      if (existingBookings && existingBookings.length > 0) {
+        conflicts.push({
+          week: booking.week,
+          conflictingBooking: existingBookings[0],
+        });
+      }
+    }
+
+    if (conflicts.length > 0) {
+      const conflictDetails = conflicts
+        .map(
+          (c) =>
+            `Semaine ${c.week}: ${new Date(c.conflictingBooking.start_time).toLocaleDateString("fr-FR")} ${new Date(c.conflictingBooking.start_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+        )
+        .join("\n");
+
+      toast({
+        variant: "destructive",
+        title: "Conflit de réservation détecté",
+        description:
+          conflicts.length === 1
+            ? `Créneau déjà réservé: ${conflictDetails}`
+            : `${conflicts.length} créneaux sont déjà réservés:\n${conflictDetails}`,
+      });
+      setIsSubmitting(false);
+      return;
     }
 
     const { error } = await supabase.from("bookings").insert(insertRows);
