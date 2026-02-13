@@ -321,6 +321,7 @@ export type Database = {
         Row: {
           capacity: number | null
           created_at: string
+          credits_info: string | null
           description: string | null
           equipment: string[] | null
           floor: string | null
@@ -329,12 +330,14 @@ export type Database = {
           is_available: boolean
           name: string
           photos: string[] | null
+          pricing: Json | null
           surface_area: number | null
           updated_at: string
         }
         Insert: {
           capacity?: number | null
           created_at?: string
+          credits_info?: string | null
           description?: string | null
           equipment?: string[] | null
           floor?: string | null
@@ -343,12 +346,14 @@ export type Database = {
           is_available?: boolean
           name: string
           photos?: string[] | null
+          pricing?: Json | null
           surface_area?: number | null
           updated_at?: string
         }
         Update: {
           capacity?: number | null
           created_at?: string
+          credits_info?: string | null
           description?: string | null
           equipment?: string[] | null
           floor?: string | null
@@ -357,6 +362,7 @@ export type Database = {
           is_available?: boolean
           name?: string
           photos?: string[] | null
+          pricing?: Json | null
           surface_area?: number | null
           updated_at?: string
         }

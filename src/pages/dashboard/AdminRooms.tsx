@@ -29,6 +29,11 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
+interface PricingItem {
+  label: string;
+  price: number;
+}
+
 interface Room {
   id: string;
   name: string;
@@ -40,6 +45,8 @@ interface Room {
   is_available: boolean;
   floor: string | null;
   surface_area: number | null;
+  pricing: PricingItem[] | null;
+  credits_info: string | null;
 }
 
 const AdminRooms = () => {
@@ -59,11 +66,13 @@ const AdminRooms = () => {
     surface_area: "",
     is_available: true,
     photos: [] as string[],
+    pricing: [] as PricingItem[],
+    credits_info: "",
   });
 
   const fetchRooms = async () => {
     const { data } = await supabase.from("rooms").select("*").order("name");
-    setRooms((data as Room[]) || []);
+    setRooms((data as unknown as Room[]) || []);
     setLoading(false);
   };
 
@@ -76,6 +85,7 @@ const AdminRooms = () => {
     setForm({
       name: "", description: "", capacity: "1", hourly_rate: "0",
       equipment: "", floor: "", surface_area: "", is_available: true, photos: [],
+      pricing: [], credits_info: "",
     });
     setShowDialog(true);
   };
@@ -92,12 +102,37 @@ const AdminRooms = () => {
       surface_area: room.surface_area ? String(room.surface_area) : "",
       is_available: room.is_available,
       photos: room.photos || [],
+      pricing: (room.pricing as PricingItem[]) || [],
+      credits_info: room.credits_info || "",
     });
     setShowDialog(true);
   };
 
+  const addPricingItem = () => {
+    setForm((prev) => ({
+      ...prev,
+      pricing: [...prev.pricing, { label: "", price: 0 }],
+    }));
+  };
+
+  const updatePricingItem = (index: number, field: keyof PricingItem, value: string | number) => {
+    setForm((prev) => ({
+      ...prev,
+      pricing: prev.pricing.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const removePricingItem = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      pricing: prev.pricing.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSave = async () => {
-    const payload = {
+    const payload: any = {
       name: form.name,
       description: form.description,
       capacity: parseInt(form.capacity) || 1,
@@ -107,6 +142,8 @@ const AdminRooms = () => {
       surface_area: form.surface_area ? parseInt(form.surface_area) : null,
       is_available: form.is_available,
       photos: form.photos,
+      pricing: form.pricing.filter((p) => p.label.trim()),
+      credits_info: form.credits_info,
     };
 
     if (editingRoom) {
@@ -317,6 +354,51 @@ const AdminRooms = () => {
                 placeholder="Wi-Fi, Bureau, Lit d'examen, Eau..."
                 className="mt-1.5"
               />
+            </div>
+
+            {/* Pricing / Forfaits */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Grille tarifaire (forfaits)</Label>
+              <div>
+                <Label className="text-xs text-muted-foreground">Note crédits (ex: 1€ = 2 crédits)</Label>
+                <Input
+                  value={form.credits_info}
+                  onChange={(e) => setForm({ ...form, credits_info: e.target.value })}
+                  className="mt-1 mb-3"
+                  placeholder="Ex: 1€ = 2 crédits. Exemple: 25€ = 50 crédits."
+                />
+              </div>
+              <div className="space-y-2">
+                {form.pricing.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={item.label}
+                      onChange={(e) => updatePricingItem(i, "label", e.target.value)}
+                      placeholder="Ex: 1j/sem."
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={item.price}
+                      onChange={(e) => updatePricingItem(i, "price", parseFloat(e.target.value) || 0)}
+                      className="w-24"
+                      min="0"
+                    />
+                    <span className="text-xs text-muted-foreground">€</span>
+                    <button
+                      type="button"
+                      onClick={() => removePricingItem(i)}
+                      className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-destructive/10 text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addPricingItem}>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Ajouter un forfait
+              </Button>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
