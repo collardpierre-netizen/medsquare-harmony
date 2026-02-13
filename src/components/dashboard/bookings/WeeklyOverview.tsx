@@ -12,9 +12,10 @@ interface WeeklyOverviewProps {
   selectedRoom: string;
   rooms: any[];
   onSlotClick: (day: Date) => void;
+  onActivityClick?: (session: ActivitySessionSlot) => void;
 }
 
-const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyOverviewProps) => {
+const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivityClick }: WeeklyOverviewProps) => {
   const [weekBookings, setWeekBookings] = useState<Booking[]>([]);
   const [weekActivities, setWeekActivities] = useState<ActivitySessionSlot[]>([]);
 
@@ -239,12 +240,14 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
                               ? "bg-primary/15 text-primary/70 border border-primary/20"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
-                          onClick={() => inRange && !isPast && !isOccupied && onSlotClick(day)}
-                          title={
-                            actSession
-                              ? `${actSession.activities?.title || "Activité"} — ${actSession.activities?.profiles?.first_name || ""} ${actSession.activities?.profiles?.last_name || ""}`
-                              : undefined
-                          }
+                          onClick={() => {
+                            if (activity && actSession && onActivityClick) {
+                              onActivityClick(actSession);
+                            } else if (inRange && !isPast && !isOccupied) {
+                              onSlotClick(day);
+                            }
+                          }}
+                          style={activity ? { cursor: "pointer" } : undefined}
                         >
                           {actSession && (
                             <span className="truncate px-1">
