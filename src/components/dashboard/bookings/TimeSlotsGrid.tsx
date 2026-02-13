@@ -13,9 +13,10 @@ interface TimeSlotsGridProps {
   rooms: any[];
   onSlotClick: (slot: Date) => void;
   onBookingClick?: (booking: Booking) => void;
+  onActivityClick?: (session: ActivitySessionSlot) => void;
 }
 
-const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, onSlotClick, onBookingClick }: TimeSlotsGridProps) => {
+const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, onSlotClick, onBookingClick, onActivityClick }: TimeSlotsGridProps) => {
   const isPastDate = isBefore(startOfDay(selectedDate), startOfDay(new Date()));
   const timeSlots = useMemo(() => generateTimeSlotsForDate(selectedDate, 30), [selectedDate]);
   const { start, end } = getOpeningHours(selectedDate);
@@ -90,7 +91,11 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
       if (booking && onBookingClick) onBookingClick(booking);
       return;
     }
-    if (isSlotActivity(slot)) return;
+    if (isSlotActivity(slot)) {
+      const session = getActivityAtSlot(slot);
+      if (session && onActivityClick) onActivityClick(session);
+      return;
+    }
     onSlotClick(slot);
   };
 
@@ -147,7 +152,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
                   className={cn(
                     "relative flex flex-col items-center justify-center py-3 px-2 rounded-xl border transition-all",
                     activity
-                      ? "bg-orange-500/10 border-orange-500/20 cursor-default"
+                      ? "bg-orange-500/10 border-orange-500/20 cursor-pointer hover:bg-orange-500/20"
                       : booked
                       ? "bg-primary/10 border-primary/20 cursor-pointer hover:bg-destructive/10 hover:border-destructive/30"
                       : "bg-card border-border hover:border-primary hover:shadow-sm cursor-pointer"

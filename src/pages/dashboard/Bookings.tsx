@@ -18,6 +18,7 @@ import TimeSlotsGrid from "@/components/dashboard/bookings/TimeSlotsGrid";
 import NewBookingDialog from "@/components/dashboard/bookings/NewBookingDialog";
 import CancelBookingDialog from "@/components/dashboard/bookings/CancelBookingDialog";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
+import ActivityDetailDialog from "@/components/dashboard/bookings/ActivityDetailDialog";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
@@ -43,6 +44,8 @@ const Bookings = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [practitioners, setPractitioners] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
   const [activitySessions, setActivitySessions] = useState<ActivitySessionSlot[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<ActivitySessionSlot | null>(null);
+  const [showActivityDetail, setShowActivityDetail] = useState(false);
 
   // Fetch rooms
   useEffect(() => {
@@ -111,6 +114,11 @@ const Bookings = () => {
   const handleSlotClick = (slot: Date) => {
     setSelectedSlot(slot);
     setShowNewBooking(true);
+  };
+
+  const handleActivityClick = (session: ActivitySessionSlot) => {
+    setSelectedActivity(session);
+    setShowActivityDetail(true);
   };
 
   const handleDayClickFromWeek = (day: Date) => {
@@ -411,6 +419,7 @@ const Bookings = () => {
             selectedRoom={selectedRoom}
             rooms={rooms}
             onSlotClick={handleDayClickFromWeek}
+            onActivityClick={handleActivityClick}
           />
         ) : (
           <TimeSlotsGrid
@@ -420,6 +429,7 @@ const Bookings = () => {
             rooms={rooms}
             onSlotClick={handleSlotClick}
             onBookingClick={handleBookingClick}
+            onActivityClick={handleActivityClick}
           />
         )}
       </div>
@@ -451,6 +461,14 @@ const Bookings = () => {
         isCancelling={isCancelling}
         onCancelSingle={handleCancelSingle}
         onCancelAllFuture={handleCancelAllFuture}
+      />
+
+      {/* Activity detail dialog */}
+      <ActivityDetailDialog
+        open={showActivityDetail}
+        onOpenChange={setShowActivityDetail}
+        session={selectedActivity}
+        roomName={roomName}
       />
     </DashboardLayout>
   );

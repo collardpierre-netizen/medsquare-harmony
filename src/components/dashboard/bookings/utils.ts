@@ -21,6 +21,7 @@ export interface ActivitySessionSlot {
   start_time: string;
   end_time: string;
   status: string;
+  max_participants: number | null;
   activities?: {
     title: string;
     category: string;
