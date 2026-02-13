@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek } from "date-fns";
+import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
 import { MapPin, CalendarDays, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import WeekDatePicker from "@/components/dashboard/bookings/WeekDatePicker";
 import TimeSlotsGrid from "@/components/dashboard/bookings/TimeSlotsGrid";
 import NewBookingDialog from "@/components/dashboard/bookings/NewBookingDialog";
+import CancelBookingDialog from "@/components/dashboard/bookings/CancelBookingDialog";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import { getOpeningHours, type Booking } from "@/components/dashboard/bookings/utils";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
@@ -36,6 +37,10 @@ const Bookings = () => {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [futureBookingsCount, setFutureBookingsCount] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Fetch rooms
   useEffect(() => {
@@ -207,6 +212,99 @@ const Bookings = () => {
     setIsSubmitting(false);
   };
 
+  const handleBookingClick = async (booking: Booking) => {
+    setSelectedBooking(booking);
+
+    // Find future recurring bookings: same room, same practitioner, same day of week, same start hour
+    const bookingStart = new Date(booking.start_time);
+    const dayOfWeek = getDay(bookingStart);
+    const startHour = bookingStart.getHours();
+    const startMinute = bookingStart.getMinutes();
+
+    const { data: futureBookings } = await supabase
+      .from("bookings")
+      .select("id, start_time")
+      .eq("room_id", booking.room_id)
+      .eq("practitioner_id", booking.practitioner_id)
+      .neq("status", "cancelled")
+      .gte("start_time", bookingStart.toISOString());
+
+    // Filter to same day-of-week and same start time
+    const matching = (futureBookings || []).filter((b) => {
+      const s = new Date(b.start_time);
+      return getDay(s) === dayOfWeek && s.getHours() === startHour && s.getMinutes() === startMinute;
+    });
+
+    setFutureBookingsCount(matching.length);
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelSingle = async () => {
+    if (!selectedBooking) return;
+    setIsCancelling(true);
+
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", selectedBooking.id);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible d'annuler la réservation." });
+    } else {
+      toast({ title: "Réservation annulée", description: "La réservation a été annulée." });
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+      await refreshBookings();
+    }
+    setIsCancelling(false);
+  };
+
+  const handleCancelAllFuture = async () => {
+    if (!selectedBooking) return;
+    setIsCancelling(true);
+
+    const bookingStart = new Date(selectedBooking.start_time);
+    const dayOfWeek = getDay(bookingStart);
+    const startHour = bookingStart.getHours();
+    const startMinute = bookingStart.getMinutes();
+
+    // Fetch all future matching bookings
+    const { data: futureBookings } = await supabase
+      .from("bookings")
+      .select("id, start_time")
+      .eq("room_id", selectedBooking.room_id)
+      .eq("practitioner_id", selectedBooking.practitioner_id)
+      .neq("status", "cancelled")
+      .gte("start_time", bookingStart.toISOString());
+
+    const matchingIds = (futureBookings || [])
+      .filter((b) => {
+        const s = new Date(b.start_time);
+        return getDay(s) === dayOfWeek && s.getHours() === startHour && s.getMinutes() === startMinute;
+      })
+      .map((b) => b.id);
+
+    if (matchingIds.length === 0) {
+      setIsCancelling(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .in("id", matchingIds);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible d'annuler les réservations." });
+    } else {
+      toast({ title: `${matchingIds.length} réservations annulées`, description: "Toutes les occurrences futures ont été annulées." });
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+      await refreshBookings();
+    }
+    setIsCancelling(false);
+  };
+
   const roomName = rooms.find((r: any) => r.id === selectedRoom)?.name || "";
 
   return (
@@ -291,6 +389,7 @@ const Bookings = () => {
             bookings={bookings}
             rooms={rooms}
             onSlotClick={handleSlotClick}
+            onBookingClick={handleBookingClick}
           />
         )}
       </div>
@@ -308,6 +407,17 @@ const Bookings = () => {
         onNotesChange={setNotes}
         onSubmit={handleCreateBooking}
         isSubmitting={isSubmitting}
+      />
+
+      {/* Cancel booking dialog */}
+      <CancelBookingDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        booking={selectedBooking}
+        futureCount={futureBookingsCount}
+        isCancelling={isCancelling}
+        onCancelSingle={handleCancelSingle}
+        onCancelAllFuture={handleCancelAllFuture}
       />
     </DashboardLayout>
   );
