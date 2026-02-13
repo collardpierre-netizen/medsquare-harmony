@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
 import { MapPin, CalendarDays, LayoutGrid } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -27,6 +28,8 @@ type ViewMode = "day" | "week";
 const Bookings = () => {
   const { profile, isAdmin } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const roomFromUrl = searchParams.get("room");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [rooms, setRooms] = useState<any[]>([]);
@@ -58,7 +61,10 @@ const Bookings = () => {
         .order("name");
       setRooms(data || []);
       if (data && data.length > 0 && !selectedRoom) {
-        setSelectedRoom(data[0].id);
+        const initialRoom = roomFromUrl && data.some((r: any) => r.id === roomFromUrl)
+          ? roomFromUrl
+          : data[0].id;
+        setSelectedRoom(initialRoom);
       }
     };
     fetchRooms();
