@@ -24,7 +24,7 @@ import type { BookingType, RecurrenceType } from "@/components/dashboard/booking
 type ViewMode = "day" | "week";
 
 const Bookings = () => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -41,6 +41,7 @@ const Bookings = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [futureBookingsCount, setFutureBookingsCount] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [practitioners, setPractitioners] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
 
   // Fetch rooms
   useEffect(() => {
@@ -57,6 +58,20 @@ const Bookings = () => {
     };
     fetchRooms();
   }, []);
+
+  // Fetch practitioners (admin only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const fetchPractitioners = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .eq("is_active", true)
+        .order("last_name");
+      setPractitioners(data || []);
+    };
+    fetchPractitioners();
+  }, [isAdmin]);
 
   // Fetch bookings for selected date & room (day view)
   useEffect(() => {
@@ -109,9 +124,11 @@ const Bookings = () => {
     bookingType: BookingType;
     recurrence: RecurrenceType;
     recurrenceWeeks: number;
+    practitionerId?: string;
   }) => {
     if (!profile || !selectedSlot || !selectedRoom) return;
     setIsSubmitting(true);
+    const targetPractitionerId = options.practitionerId || profile.id;
 
     const { bookingType, recurrence, recurrenceWeeks } = options;
     const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
@@ -143,7 +160,7 @@ const Bookings = () => {
 
       bookingsToCreate.push({ startTime, endTime, week: i + 1 });
       insertRows.push({
-        practitioner_id: profile.id,
+        practitioner_id: targetPractitionerId,
         room_id: selectedRoom,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
@@ -407,6 +424,9 @@ const Bookings = () => {
         onNotesChange={setNotes}
         onSubmit={handleCreateBooking}
         isSubmitting={isSubmitting}
+        isAdmin={isAdmin}
+        practitioners={practitioners}
+        currentProfileId={profile?.id}
       />
 
       {/* Cancel booking dialog */}
