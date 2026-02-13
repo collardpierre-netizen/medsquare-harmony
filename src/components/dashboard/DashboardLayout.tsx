@@ -68,8 +68,8 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-border">
-          <Link to="/" className="font-display text-xl font-bold text-primary">
-            Medsquare
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo-medsquare.png" alt="Medsquare" className="h-12 w-auto" />
           </Link>
         </div>
 
