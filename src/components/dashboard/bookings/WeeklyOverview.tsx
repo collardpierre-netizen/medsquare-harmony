@@ -1,13 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
-import { addDays, format, startOfDay, isBefore, isSameDay } from "date-fns";
+import { addDays, format, startOfDay, isBefore, isSameDay, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { generateTimeSlots, type Booking } from "./utils";
-
-const HOURS = generateTimeSlots(8, 19, 60); // 1-hour blocks for overview
+import { getOpeningHours, type Booking } from "./utils";
 
 interface WeeklyOverviewProps {
   weekStart: Date;
@@ -24,7 +22,12 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
     [weekStart]
   );
 
-  // Fetch all bookings for the entire week
+  // Build a union of all possible hours across the week (8–22 covers both cases)
+  const allHours = useMemo(() => {
+    // We show 8–22 but grey out hours outside opening for each day
+    return Array.from({ length: 14 }, (_, i) => i + 8); // 8..21
+  }, []);
+
   useEffect(() => {
     if (!selectedRoom) return;
 
@@ -46,7 +49,6 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
     fetchWeekBookings();
   }, [weekStart, selectedRoom]);
 
-  // Count bookings per day
   const getBookingsForDay = (day: Date) => {
     return weekBookings.filter((b) => {
       const start = new Date(b.start_time);
@@ -54,7 +56,6 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
     });
   };
 
-  // Check if a specific hour on a specific day is booked
   const isHourBooked = (day: Date, hour: number) => {
     return weekBookings.some((b) => {
       const start = new Date(b.start_time);
@@ -73,6 +74,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
       const start = new Date(b.start_time);
       return isSameDay(start, day) && start.getHours() === hour;
     });
+  };
+
+  const isHourInOpeningRange = (day: Date, hour: number) => {
+    const { start, end } = getOpeningHours(day);
+    return hour >= start && hour < end;
   };
 
   const roomName = rooms.find((r) => r.id === selectedRoom)?.name || "Salle";
@@ -95,7 +101,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-muted border border-border opacity-50" />
-              Passé
+              Fermé / Passé
             </div>
           </div>
         </div>
@@ -112,6 +118,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
                   const isToday = isSameDay(day, new Date());
                   const isPast = isBefore(day, startOfDay(new Date()));
                   const dayBookings = getBookingsForDay(day);
+                  const { start, end } = getOpeningHours(day);
 
                   return (
                     <th
@@ -138,6 +145,9 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
                         )}>
                           {format(day, "d")}
                         </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {start}h–{end}h
+                        </span>
                         {dayBookings.length > 0 && (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0 mt-0.5">
                             {dayBookings.length} rés.
@@ -150,50 +160,50 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick }: WeeklyO
               </tr>
             </thead>
             <tbody>
-              {HOURS.map((slot) => {
-                const hour = slot.getHours();
-                return (
-                  <tr key={hour} className="border-t border-border/50">
-                    <td className="text-xs font-medium text-muted-foreground p-2 sticky left-0 bg-card">
-                      {format(slot, "HH:mm")}
-                    </td>
-                    {weekDays.map((day) => {
-                      const isPast = isBefore(day, startOfDay(new Date()));
-                      const booked = isHourBooked(day, hour);
-                      const booking = getBookingAtHour(day, hour);
-                      const isToday = isSameDay(day, new Date());
+              {allHours.map((hour) => (
+                <tr key={hour} className="border-t border-border/50">
+                  <td className="text-xs font-medium text-muted-foreground p-2 sticky left-0 bg-card">
+                    {String(hour).padStart(2, "0")}:00
+                  </td>
+                  {weekDays.map((day) => {
+                    const isPast = isBefore(day, startOfDay(new Date()));
+                    const inRange = isHourInOpeningRange(day, hour);
+                    const booked = inRange && isHourBooked(day, hour);
+                    const booking = inRange ? getBookingAtHour(day, hour) : undefined;
+                    const isToday = isSameDay(day, new Date());
 
-                      return (
-                        <td
-                          key={day.toISOString() + hour}
+                    return (
+                      <td
+                        key={day.toISOString() + hour}
+                        className={cn(
+                          "p-1 text-center",
+                          isToday && "bg-accent/30"
+                        )}
+                      >
+                        <div
                           className={cn(
-                            "p-1 text-center",
-                            isToday && "bg-accent/30"
+                            "rounded-lg h-10 flex items-center justify-center text-[10px] font-medium transition-all",
+                            !inRange
+                              ? "bg-muted/30 text-muted-foreground/20"
+                              : isPast
+                              ? "bg-muted/50 text-muted-foreground/30"
+                              : booked
+                              ? "bg-primary/15 text-primary/70 border border-primary/20"
+                              : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
+                          onClick={() => inRange && !isPast && !booked && onSlotClick(day)}
                         >
-                          <div
-                            className={cn(
-                              "rounded-lg h-10 flex items-center justify-center text-[10px] font-medium transition-all",
-                              isPast
-                                ? "bg-muted/50 text-muted-foreground/30"
-                                : booked
-                                ? "bg-primary/15 text-primary/70 border border-primary/20"
-                                : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
-                            )}
-                            onClick={() => !isPast && !booked && onSlotClick(day)}
-                          >
-                            {booking && (
-                              <span className="truncate px-1">
-                                {booking.profiles?.first_name?.[0]}.{booking.profiles?.last_name?.[0]}.
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+                          {booking && (
+                            <span className="truncate px-1">
+                              {booking.profiles?.first_name?.[0]}.{booking.profiles?.last_name?.[0]}.
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

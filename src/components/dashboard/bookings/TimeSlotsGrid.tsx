@@ -1,11 +1,10 @@
+import { useMemo } from "react";
 import { format, setHours, setMinutes, isAfter, isBefore, isSameDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Clock, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { generateTimeSlots, type Booking } from "./utils";
-
-const timeSlots = generateTimeSlots(8, 19, 30);
+import { generateTimeSlotsForDate, getOpeningHours, type Booking } from "./utils";
 
 interface TimeSlotsGridProps {
   selectedDate: Date;
@@ -16,6 +15,8 @@ interface TimeSlotsGridProps {
 
 const TimeSlotsGrid = ({ selectedDate, bookings, rooms, onSlotClick }: TimeSlotsGridProps) => {
   const isPastDate = isBefore(startOfDay(selectedDate), startOfDay(new Date()));
+  const timeSlots = useMemo(() => generateTimeSlotsForDate(selectedDate, 30), [selectedDate]);
+  const { start, end } = getOpeningHours(selectedDate);
 
   const isSlotBooked = (slot: Date) => {
     const slotTime = setMinutes(
@@ -60,6 +61,9 @@ const TimeSlotsGrid = ({ selectedDate, bookings, rooms, onSlotClick }: TimeSlots
         <div className="flex items-center justify-between">
           <CardTitle className="font-display text-base">
             {format(selectedDate, "EEEE d MMMM", { locale: fr })}
+            <span className="text-xs text-muted-foreground font-normal ml-2">
+              {start}h – {end}h
+            </span>
           </CardTitle>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
@@ -83,7 +87,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, rooms, onSlotClick }: TimeSlots
             Aucune salle disponible.
           </p>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
             {timeSlots.map((slot) => {
               const booked = isSlotBooked(slot);
               const booking = getBookingAtSlot(slot);
@@ -95,7 +99,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, rooms, onSlotClick }: TimeSlots
                   onClick={() => handleSlotClick(slot)}
                   disabled={booked}
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all",
+                    "relative flex flex-col items-center justify-center py-3 px-2 rounded-xl border transition-all",
                     booked
                       ? "bg-primary/10 border-primary/20 cursor-not-allowed"
                       : "bg-card border-border hover:border-primary hover:shadow-sm cursor-pointer"

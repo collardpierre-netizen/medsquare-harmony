@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { format, addDays } from "date-fns";
+import { format, addDays, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface Booking {
@@ -13,7 +13,13 @@ interface Props {
   bookings: Booking[];
 }
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8h → 19h
+// Full range covering both weekday (8-22) and weekend (9-21)
+const ALL_HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 8..21
+
+const getOpeningHours = (date: Date) => {
+  if (isWeekend(date)) return { start: 9, end: 21 };
+  return { start: 8, end: 22 };
+};
 
 // Brussels timezone offset helper: CET = UTC+1, CEST = UTC+2
 const getBrusselsOffset = (date: Date): number => {
@@ -84,10 +90,10 @@ const RoomAvailability = ({ bookings }: Props) => {
             <th className="sticky left-0 bg-muted/50 px-3 py-2 text-left font-medium text-muted-foreground min-w-[90px]">
               Date
             </th>
-            {HOURS.map((h) => (
+            {ALL_HOURS.map((h) => (
               <th
                 key={h}
-                className="px-1 py-2 text-center font-medium text-muted-foreground min-w-[40px]"
+                className="px-1 py-2 text-center font-medium text-muted-foreground min-w-[34px]"
               >
                 {h}h
               </th>
@@ -100,18 +106,25 @@ const RoomAvailability = ({ bookings }: Props) => {
               <td className="sticky left-0 bg-card px-3 py-1.5 font-medium capitalize whitespace-nowrap">
                 {format(new Date(day.getTime() + getBrusselsOffset(day) * 60 * 60 * 1000), "EEE d MMM", { locale: fr })}
               </td>
-              {HOURS.map((h) => {
-                const booked = isSlotBooked(day, h);
+              {ALL_HOURS.map((h) => {
+                const brusselsDate = new Date(day.getTime() + getBrusselsOffset(day) * 60 * 60 * 1000);
+                const dayOpening = getOpeningHours(brusselsDate);
+                const inRange = h >= dayOpening.start && h < dayOpening.end;
+                const booked = inRange && isSlotBooked(day, h);
                 return (
                   <td key={h} className="px-0.5 py-1.5 text-center">
                     <div
                       className={`mx-auto h-5 w-5 rounded-sm ${
-                        booked
+                        !inRange
+                          ? "bg-muted/30 border border-border/30"
+                          : booked
                           ? "bg-destructive/20 border border-destructive/30"
                           : "bg-primary/10 border border-primary/20"
                       }`}
                       title={
-                        booked
+                        !inRange
+                          ? `Fermé — ${h}h`
+                          : booked
                           ? `Réservé — ${format(day, "d MMM", { locale: fr })} ${h}h`
                           : `Disponible — ${format(day, "d MMM", { locale: fr })} ${h}h`
                       }
@@ -125,7 +138,7 @@ const RoomAvailability = ({ bookings }: Props) => {
       </table>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 px-3 py-2 border-t border-border bg-muted/30 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-4 px-3 py-2 border-t border-border bg-muted/30 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded-sm bg-primary/10 border border-primary/20" />
           Disponible
@@ -134,6 +147,11 @@ const RoomAvailability = ({ bookings }: Props) => {
           <div className="h-3 w-3 rounded-sm bg-destructive/20 border border-destructive/30" />
           Réservé
         </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-sm bg-muted/30 border border-border/30" />
+          Fermé
+        </div>
+        <span className="ml-auto">Sem. 8h–22h • W-E 9h–21h</span>
       </div>
     </div>
   );
