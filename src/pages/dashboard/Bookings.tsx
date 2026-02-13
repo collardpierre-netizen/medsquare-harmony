@@ -42,6 +42,7 @@ const Bookings = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [futureBookingsCount, setFutureBookingsCount] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [practitioners, setPractitioners] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
   const [activitySessions, setActivitySessions] = useState<ActivitySessionSlot[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<ActivitySessionSlot | null>(null);
@@ -342,6 +343,42 @@ const Bookings = () => {
     setIsCancelling(false);
   };
 
+  const handleConfirmBooking = async () => {
+    if (!selectedBooking) return;
+    setIsUpdatingStatus(true);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "confirmed" })
+      .eq("id", selectedBooking.id);
+    if (!error) {
+      toast({ title: "Réservation confirmée" });
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+      await refreshBookings();
+    } else {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de confirmer." });
+    }
+    setIsUpdatingStatus(false);
+  };
+
+  const handleRefuseBooking = async () => {
+    if (!selectedBooking) return;
+    setIsUpdatingStatus(true);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", selectedBooking.id);
+    if (!error) {
+      toast({ title: "Réservation refusée" });
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+      await refreshBookings();
+    } else {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de refuser." });
+    }
+    setIsUpdatingStatus(false);
+  };
+
   const roomName = rooms.find((r: any) => r.id === selectedRoom)?.name || "";
 
   return (
@@ -420,6 +457,7 @@ const Bookings = () => {
             rooms={rooms}
             onSlotClick={handleDayClickFromWeek}
             onActivityClick={handleActivityClick}
+            onBookingClick={handleBookingClick}
           />
         ) : (
           <TimeSlotsGrid
@@ -461,6 +499,11 @@ const Bookings = () => {
         isCancelling={isCancelling}
         onCancelSingle={handleCancelSingle}
         onCancelAllFuture={handleCancelAllFuture}
+        isAdmin={isAdmin}
+        onConfirm={handleConfirmBooking}
+        onRefuse={handleRefuseBooking}
+        isUpdating={isUpdatingStatus}
+        roomName={roomName}
       />
 
       {/* Activity detail dialog */}

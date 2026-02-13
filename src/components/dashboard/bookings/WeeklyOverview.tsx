@@ -13,9 +13,10 @@ interface WeeklyOverviewProps {
   rooms: any[];
   onSlotClick: (day: Date) => void;
   onActivityClick?: (session: ActivitySessionSlot) => void;
+  onBookingClick?: (booking: Booking) => void;
 }
 
-const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivityClick }: WeeklyOverviewProps) => {
+const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivityClick, onBookingClick }: WeeklyOverviewProps) => {
   const [weekBookings, setWeekBookings] = useState<Booking[]>([]);
   const [weekActivities, setWeekActivities] = useState<ActivitySessionSlot[]>([]);
 
@@ -237,17 +238,19 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               : activity
                               ? "bg-orange-500/15 text-orange-700 border border-orange-500/20"
                               : booked
-                              ? "bg-primary/15 text-primary/70 border border-primary/20"
+                              ? "bg-primary/15 text-primary/70 border border-primary/20 cursor-pointer hover:bg-primary/25"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
                           onClick={() => {
                             if (activity && actSession && onActivityClick) {
                               onActivityClick(actSession);
+                            } else if (booked && booking && onBookingClick) {
+                              onBookingClick(booking);
                             } else if (inRange && !isPast && !isOccupied) {
                               onSlotClick(day);
                             }
                           }}
-                          style={activity ? { cursor: "pointer" } : undefined}
+                          style={(activity || booked) ? { cursor: "pointer" } : undefined}
                         >
                           {actSession && (
                             <span className="truncate px-1">
