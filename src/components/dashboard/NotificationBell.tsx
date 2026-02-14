@@ -158,20 +158,23 @@ const NotificationBell = () => {
         </div>
 
         {/* Filter buttons */}
-        <div className="flex gap-1 px-4 py-2 border-b border-border bg-muted/30">
+        <div className="flex flex-wrap gap-1 px-4 py-2 border-b border-border bg-muted/30">
           {(["all", "bookings", "activities", "registrations"] as const).map((f) => (
             <Button
               key={f}
               variant={filter === f ? "default" : "outline"}
               size="sm"
-              className="text-xs h-7"
-              onClick={() => setFilter(f)}
+              className="text-xs h-7 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                setFilter(f);
+              }}
             >
               <span className="text-xs">
                 {f === "all"
                   ? "Tous"
                   : f === "bookings"
-                  ? "Réservations"
+                  ? "Réserv."
                   : f === "activities"
                   ? "Séances"
                   : "Inscriptions"}
