@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, subWeeks, subMonths, startOfWeek, startOfMonth, format, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +16,58 @@ import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 type ViewMode = "weekly" | "monthly";
 
 const AdminAnalytics = () => {
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>("weekly");
+  const [isExporting, setIsExporting] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
+  const handleExportPDF = useCallback(async () => {
+    if (!dashboardRef.current) return;
+    setIsExporting(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+
+      const element = dashboardRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = 190;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageHeight = pdf.internal.pageSize.getHeight() - 20;
+      let position = 10;
+
+      if (imgHeight <= pageHeight) {
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+      } else {
+        let heightLeft = imgHeight;
+        while (heightLeft > 0) {
+          pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+          if (heightLeft > 0) {
+            pdf.addPage();
+            position = -(imgHeight - heightLeft) + 10;
+          }
+        }
+      }
+
+      const dateStr = format(new Date(), "yyyy-MM-dd");
+      pdf.save(`medsquare-statistiques-${dateStr}.pdf`);
+      toast({ title: "PDF exporté !", description: "Le rapport a été téléchargé." });
+    } catch (err) {
+      console.error("PDF export error:", err);
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de générer le PDF." });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [toast]);
 
   // Compute period boundaries
   const periods = useMemo(() => {
@@ -266,7 +319,7 @@ const AdminAnalytics = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div ref={dashboardRef} className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-xl font-bold">Statistiques</h2>
@@ -274,15 +327,27 @@ const AdminAnalytics = () => {
               Vue d'ensemble de l'activité du centre.
             </p>
           </div>
-          <Tabs
-            value={viewMode}
-            onValueChange={(v) => setViewMode(v as ViewMode)}
-          >
-            <TabsList>
-              <TabsTrigger value="weekly">Semaines</TabsTrigger>
-              <TabsTrigger value="monthly">Mois</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={handleExportPDF}
+              disabled={isExporting}
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              {isExporting ? "Export…" : "Export PDF"}
+            </Button>
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as ViewMode)}
+            >
+              <TabsList>
+                <TabsTrigger value="weekly">Semaines</TabsTrigger>
+                <TabsTrigger value="monthly">Mois</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {/* KPI cards */}
