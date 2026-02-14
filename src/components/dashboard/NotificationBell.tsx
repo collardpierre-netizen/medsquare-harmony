@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, Check, CheckCheck, Archive, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ interface Notification {
   message: string;
   type: string;
   is_read: boolean;
+  is_archived: boolean;
   created_at: string;
 }
 
@@ -27,7 +28,7 @@ const NotificationBell = () => {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState<"all" | "bookings" | "activities" | "registrations">("all");
+  const [filter, setFilter] = useState<"all" | "bookings" | "activities" | "registrations" | "archived">("all");
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -38,15 +39,21 @@ const NotificationBell = () => {
     return "bookings"; // default
   };
 
+  const activeNotifications = notifications.filter((n) => !n.is_archived);
+  const archivedNotifications = notifications.filter((n) => n.is_archived);
+
   const filteredNotifications = filter === "all"
-    ? notifications
-    : notifications.filter((n) => getNotificationType(n.title) === filter);
+    ? activeNotifications
+    : filter === "archived"
+    ? archivedNotifications
+    : activeNotifications.filter((n) => getNotificationType(n.title) === filter);
 
   const filterCounts = {
-    all: notifications.length,
-    bookings: notifications.filter((n) => getNotificationType(n.title) === "bookings").length,
-    activities: notifications.filter((n) => getNotificationType(n.title) === "activities").length,
-    registrations: notifications.filter((n) => getNotificationType(n.title) === "registrations").length,
+    all: activeNotifications.length,
+    bookings: activeNotifications.filter((n) => getNotificationType(n.title) === "bookings").length,
+    activities: activeNotifications.filter((n) => getNotificationType(n.title) === "activities").length,
+    registrations: activeNotifications.filter((n) => getNotificationType(n.title) === "registrations").length,
+    archived: archivedNotifications.length,
   };
 
   const fetchNotifications = async () => {
@@ -112,6 +119,26 @@ const NotificationBell = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
+  const archiveNotification = async (id: string) => {
+    await supabase
+      .from("notifications")
+      .update({ is_archived: true })
+      .eq("id", id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_archived: true, is_read: true } : n))
+    );
+  };
+
+  const unarchiveNotification = async (id: string) => {
+    await supabase
+      .from("notifications")
+      .update({ is_archived: false })
+      .eq("id", id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_archived: false } : n))
+    );
+  };
+
   const deleteNotification = async (id: string) => {
     await supabase.from("notifications").delete().eq("id", id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -159,7 +186,7 @@ const NotificationBell = () => {
 
         {/* Filter buttons */}
         <div className="flex flex-wrap gap-1 px-4 py-2 border-b border-border bg-muted/30">
-          {(["all", "bookings", "activities", "registrations"] as const).map((f) => (
+          {(["all", "bookings", "activities", "registrations", "archived"] as const).map((f) => (
             <Button
               key={f}
               variant={filter === f ? "default" : "outline"}
@@ -177,7 +204,9 @@ const NotificationBell = () => {
                   ? "Réserv."
                   : f === "activities"
                   ? "Séances"
-                  : "Inscriptions"}
+                  : f === "registrations"
+                  ? "Inscriptions"
+                  : "Archivées"}
               </span>
               {filterCounts[f] > 0 && (
                 <span className="ml-1 text-[10px] opacity-75">({filterCounts[f]})</span>
@@ -222,13 +251,30 @@ const NotificationBell = () => {
                   </p>
                 </div>
                 <div className="flex flex-col gap-1 shrink-0">
-                  {!notif.is_read && (
+                  {!notif.is_read && !notif.is_archived && (
                     <button
                       onClick={() => markAsRead(notif.id)}
                       className="p-1 rounded hover:bg-muted transition-colors"
                       title="Marquer comme lu"
                     >
                       <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                  {!notif.is_archived ? (
+                    <button
+                      onClick={() => archiveNotification(notif.id)}
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                      title="Archiver"
+                    >
+                      <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => unarchiveNotification(notif.id)}
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                      title="Désarchiver"
+                    >
+                      <Archive className="h-3.5 w-3.5 text-primary" />
                     </button>
                   )}
                   <button
