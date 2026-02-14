@@ -264,6 +264,39 @@ const Bookings = () => {
       setShowNewBooking(false);
       setNotes("");
       await refreshBookings();
+
+      // Send email notification for each new booking
+      for (const row of insertRows) {
+        try {
+          // Find the created booking by matching times
+          const { data: created } = await supabase
+            .from("bookings")
+            .select("id")
+            .eq("practitioner_id", row.practitioner_id)
+            .eq("room_id", row.room_id)
+            .eq("start_time", row.start_time)
+            .eq("end_time", row.end_time)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (created) {
+            fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-new-booking`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                },
+                body: JSON.stringify({ booking_id: created.id }),
+              }
+            ).catch((err) => console.error("Error sending new booking email:", err));
+          }
+        } catch (err) {
+          console.error("Error finding created booking:", err);
+        }
+      }
     }
 
     setIsSubmitting(false);
