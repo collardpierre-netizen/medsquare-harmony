@@ -303,6 +303,7 @@ export type Database = {
           id: string
           is_active: boolean
           last_name: string
+          notification_preferences: Json
           phone: string | null
           schedule: Json | null
           specialty: string | null
@@ -318,6 +319,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_name?: string
+          notification_preferences?: Json
           phone?: string | null
           schedule?: Json | null
           specialty?: string | null
@@ -333,6 +335,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_name?: string
+          notification_preferences?: Json
           phone?: string | null
           schedule?: Json | null
           specialty?: string | null

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Save, User, Mail } from "lucide-react";
+import { Save, User, Mail, BellRing } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -27,6 +28,25 @@ const Profile = () => {
   });
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
+  const [notifPrefs, setNotifPrefs] = useState({
+    bookings: true,
+    activities: true,
+    registrations: true,
+  });
+
+  // Load notification preferences from profile
+  useEffect(() => {
+    if (profile) {
+      const prefs = (profile as any)?.notification_preferences;
+      if (prefs && typeof prefs === "object") {
+        setNotifPrefs({
+          bookings: prefs.bookings !== false,
+          activities: prefs.activities !== false,
+          registrations: prefs.registrations !== false,
+        });
+      }
+    }
+  }, [profile]);
 
   // Load schedule from profile
   useEffect(() => {
@@ -73,6 +93,7 @@ const Profile = () => {
         phone: form.phone,
         contact_email: form.contact_email || null,
         schedule: schedule as any,
+        notification_preferences: notifPrefs as any,
       } as any)
       .eq("id", profile.id);
 
@@ -224,6 +245,39 @@ const Profile = () => {
                 {isLoading ? "Sauvegarde..." : "Sauvegarder"}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Notification preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display flex items-center gap-2 text-base">
+              <BellRing className="h-5 w-5" />
+              Préférences de notification
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Choisissez les types de notifications que vous souhaitez recevoir.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { key: "bookings" as const, label: "Réservations", desc: "Nouvelles réservations, confirmations et refus" },
+              { key: "activities" as const, label: "Séances d'activité", desc: "Nouvelles séances planifiées pour vos activités" },
+              { key: "registrations" as const, label: "Inscriptions", desc: "Inscriptions et annulations de participants" },
+            ].map(({ key, label, desc }) => (
+              <div key={key} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+                <Switch
+                  checked={notifPrefs[key]}
+                  onCheckedChange={(checked) =>
+                    setNotifPrefs((prev) => ({ ...prev, [key]: checked }))
+                  }
+                />
+              </div>
+            ))}
           </CardContent>
         </Card>
 
