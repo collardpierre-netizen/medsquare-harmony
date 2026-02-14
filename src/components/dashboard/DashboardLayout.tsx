@@ -13,6 +13,7 @@ import {
   Activity,
   ClipboardList,
   TrendingUp,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "./NotificationBell";
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
   { label: "Salles", href: "/dashboard/admin/rooms", icon: DoorOpen, adminOnly: true },
   { label: "Toutes les réservations", href: "/dashboard/admin/bookings", icon: CalendarCheck, adminOnly: true },
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
+  { label: "Paramètres du site", href: "/dashboard/admin/site-settings", icon: Settings, adminOnly: true },
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
