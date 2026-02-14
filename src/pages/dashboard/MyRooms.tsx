@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { addDays, startOfDay, startOfWeek, format, isSameDay, isWeekend } from "date-fns";
+import { addDays, startOfDay, startOfWeek, subWeeks, format, isSameDay, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus, BarChart3, Download } from "lucide-react";
+import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus, BarChart3, Download, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 interface RoomWithStats {
   id: string;
@@ -37,6 +39,7 @@ const MyRooms = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dayData, setDayData] = useState<Record<string, SlotInfo[]>>({});
   const [weeklyOccupancy, setWeeklyOccupancy] = useState<Record<string, { occupied: number; total: number }>>({});
+  const [trendData, setTrendData] = useState<Array<Record<string, string | number>>>([]);
 
   // Compute current week start based on selectedDate
   const currentWeekStart = useMemo(
@@ -254,6 +257,69 @@ const MyRooms = () => {
     fetchWeeklyOccupancy();
   }, [rooms, currentWeekStart]);
 
+  // Fetch 4-week occupancy trend
+  useEffect(() => {
+    if (rooms.length === 0) return;
+
+    const fetchTrend = async () => {
+      const roomIds = rooms.map((r) => r.id);
+      const weeks: Array<{ start: Date; end: Date; label: string }> = [];
+      for (let i = 3; i >= 0; i--) {
+        const ws = subWeeks(currentWeekStart, i);
+        const we = addDays(ws, 7);
+        weeks.push({ start: ws, end: we, label: format(ws, "d MMM", { locale: fr }) });
+      }
+
+      const [{ data: allBookings }, { data: allSessions }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("room_id, start_time, end_time")
+          .in("room_id", roomIds)
+          .gte("start_time", weeks[0].start.toISOString())
+          .lt("start_time", weeks[weeks.length - 1].end.toISOString())
+          .neq("status", "cancelled"),
+        supabase
+          .from("activity_sessions")
+          .select("room_id, start_time, end_time")
+          .in("room_id", roomIds)
+          .gte("start_time", weeks[0].start.toISOString())
+          .lt("start_time", weeks[weeks.length - 1].end.toISOString())
+          .eq("status", "scheduled"),
+      ]);
+
+      const trend = weeks.map(({ start, end, label }) => {
+        const row: Record<string, string | number> = { week: label };
+        for (const room of rooms) {
+          let total = 0;
+          let occupied = 0;
+          for (let d = 0; d < 7; d++) {
+            const day = addDays(start, d);
+            const { start: oS, end: oE } = getOpeningHours(day);
+            total += oE - oS;
+            for (let h = oS; h < oE; h++) {
+              const slotStart = new Date(day);
+              slotStart.setHours(h, 0, 0, 0);
+              const slotEnd = new Date(day);
+              slotEnd.setHours(h + 1, 0, 0, 0);
+              const has = (allBookings || []).some((b: any) =>
+                b.room_id === room.id && new Date(b.start_time) < slotEnd && new Date(b.end_time) > slotStart
+              ) || (allSessions || []).some((s: any) =>
+                s.room_id === room.id && new Date(s.start_time) < slotEnd && new Date(s.end_time) > slotStart
+              );
+              if (has) occupied++;
+            }
+          }
+          row[room.name] = total > 0 ? Math.round((occupied / total) * 100) : 0;
+        }
+        return row;
+      });
+
+      setTrendData(trend);
+    };
+
+    fetchTrend();
+  }, [rooms, currentWeekStart]);
+
   const statusConfig = {
     free: { bg: "bg-emerald-500/15", text: "text-emerald-700", label: "Libre" },
     mine: { bg: "bg-primary/15", text: "text-primary", label: "Ma réservation" },
@@ -404,7 +470,55 @@ const MyRooms = () => {
           </Card>
         )}
 
-        {/* Loading */}
+        {/* 4-week occupancy trend chart */}
+        {!loading && rooms.length > 0 && trendData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm">Évolution sur 4 semaines</CardTitle>
+              </div>
+              <CardDescription className="text-xs">
+                Taux d'occupation (%) par salle
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ChartContainer
+                config={Object.fromEntries(
+                  rooms.map((room, i) => [
+                    room.name,
+                    {
+                      label: room.name,
+                      color: `hsl(var(--chart-${(i % 5) + 1}))`,
+                    },
+                  ])
+                )}
+                className="h-[220px] w-full"
+              >
+                <LineChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="week" className="text-xs" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                  <ChartTooltip
+                    content={<ChartTooltipContent formatter={(value) => `${value}%`} />}
+                  />
+                  {rooms.map((room, i) => (
+                    <Line
+                      key={room.id}
+                      type="monotone"
+                      dataKey={room.name}
+                      stroke={`hsl(var(--chart-${(i % 5) + 1}))`}
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  ))}
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
         {loading && (
           <div className="text-center py-12 text-muted-foreground text-sm">
             Chargement de vos espaces…
