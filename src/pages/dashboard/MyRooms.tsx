@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 interface RoomWithStats {
   id: string;
@@ -40,6 +40,7 @@ const MyRooms = () => {
   const [dayData, setDayData] = useState<Record<string, SlotInfo[]>>({});
   const [weeklyOccupancy, setWeeklyOccupancy] = useState<Record<string, { occupied: number; total: number }>>({});
   const [trendData, setTrendData] = useState<Array<Record<string, string | number>>>([]);
+  const [chartMode, setChartMode] = useState<"line" | "bar">("line");
 
   // Compute current week start based on selectedDate
   const currentWeekStart = useMemo(
@@ -479,9 +480,29 @@ const MyRooms = () => {
         {!loading && rooms.length > 0 && trendData.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm">Évolution sur 4 semaines</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-sm">Évolution sur 4 semaines</CardTitle>
+                </div>
+                <div className="flex items-center rounded-lg border border-border p-0.5">
+                  <Button
+                    variant={chartMode === "line" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    onClick={() => setChartMode("line")}
+                  >
+                    Lignes
+                  </Button>
+                  <Button
+                    variant={chartMode === "bar" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    onClick={() => setChartMode("bar")}
+                  >
+                    Barres
+                  </Button>
+                </div>
               </div>
               <CardDescription className="text-xs">
                 Taux d'occupation (%) par salle
@@ -506,34 +527,54 @@ const MyRooms = () => {
                 }}
                 className="h-[220px] w-full"
               >
-                <LineChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                  <XAxis dataKey="week" className="text-xs" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
-                  <ChartTooltip
-                    content={<ChartTooltipContent formatter={(value) => `${value}%`} />}
-                  />
-                  {rooms.map((room, i) => (
-                    <Line
-                      key={room.id}
-                      type="monotone"
-                      dataKey={room.name}
-                      stroke={`hsl(var(--chart-${(i % 5) + 1}))`}
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
+                {chartMode === "line" ? (
+                  <LineChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                    <XAxis dataKey="week" className="text-xs" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                    <ChartTooltip
+                      content={<ChartTooltipContent formatter={(value) => `${value}%`} />}
                     />
-                  ))}
-                  <Line
-                    type="monotone"
-                    dataKey="Moyenne"
-                    stroke="hsl(var(--muted-foreground))"
-                    strokeWidth={2}
-                    strokeDasharray="6 3"
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
+                    {rooms.map((room, i) => (
+                      <Line
+                        key={room.id}
+                        type="monotone"
+                        dataKey={room.name}
+                        stroke={`hsl(var(--chart-${(i % 5) + 1}))`}
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    ))}
+                    <Line
+                      type="monotone"
+                      dataKey="Moyenne"
+                      stroke="hsl(var(--muted-foreground))"
+                      strokeWidth={2}
+                      strokeDasharray="6 3"
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                ) : (
+                  <BarChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                    <XAxis dataKey="week" className="text-xs" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                    <ChartTooltip
+                      content={<ChartTooltipContent formatter={(value) => `${value}%`} />}
+                    />
+                    {rooms.map((room, i) => (
+                      <Bar
+                        key={room.id}
+                        dataKey={room.name}
+                        fill={`hsl(var(--chart-${(i % 5) + 1}))`}
+                        stackId="rooms"
+                        radius={i === rooms.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                      />
+                    ))}
+                  </BarChart>
+                )}
               </ChartContainer>
             </CardContent>
           </Card>
