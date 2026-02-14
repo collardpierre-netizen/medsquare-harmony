@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { medsquareEmail, infoTable, infoRow } from "../_shared/email-template.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +26,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get session with activity and practitioner details
     const { data: session, error: sessionError } = await supabase
       .from("activity_sessions")
       .select(
@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
     }
 
     // Get the registration details
-    let registrantInfo = "Un participant";
+    let registrantName = "Un participant";
+    let registrantDetails = "";
     if (registration_id) {
       const { data: reg } = await supabase
         .from("activity_registrations")
@@ -62,27 +63,25 @@ Deno.serve(async (req) => {
 
       if (reg) {
         if (reg.guest_name) {
-          registrantInfo = `${reg.guest_name} (${reg.guest_email}${reg.guest_phone ? `, ${reg.guest_phone}` : ""})`;
+          registrantName = reg.guest_name;
+          registrantDetails = [reg.guest_email, reg.guest_phone].filter(Boolean).join(" • ");
         } else if (reg.user_id) {
-          registrantInfo = `Un utilisateur inscrit (ID: ${reg.user_id})`;
+          registrantName = "Un utilisateur inscrit";
         }
       }
     }
 
     const startDate = new Date(session.start_time);
     const formattedDate = startDate.toLocaleDateString("fr-BE", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+      weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
     const formattedTime = startDate.toLocaleTimeString("fr-BE", {
-      hour: "2-digit",
-      minute: "2-digit",
+      hour: "2-digit", minute: "2-digit",
     });
 
     const roomName = session.rooms?.name || "Non définie";
     const activityTitle = session.activities?.title || "Activité";
+    const practitionerName = `${practitioner?.first_name || ""} ${practitioner?.last_name || ""}`.trim();
 
     // Get total registration count
     const { count } = await supabase
@@ -96,16 +95,38 @@ Deno.serve(async (req) => {
       ? `${count || 0}/${maxP} places occupées`
       : `${count || 0} inscrits`;
 
-    // Send email via Resend
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
-      // If no Resend key, just log and return
       console.log(`[notify-registration] Would email ${contactEmail} about registration for ${activityTitle}`);
       return new Response(
         JSON.stringify({ skipped: true, reason: "RESEND_API_KEY not configured" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const content = `
+      <p>Bonjour <strong>${practitionerName}</strong>,</p>
+      <p>Une nouvelle inscription vient d'être enregistrée pour votre activité.</p>
+      
+      <div style="margin:20px 0;padding:16px;background:#ECFDF5;border-radius:10px;border-left:4px solid #059669;">
+        <p style="margin:0 0 4px;font-weight:700;color:#059669;font-size:15px;">🎉 ${registrantName}</p>
+        ${registrantDetails ? `<p style="margin:0;color:#555;font-size:13px;">${registrantDetails}</p>` : ""}
+      </div>
+
+      ${infoTable(
+        infoRow("Activité", activityTitle) +
+        infoRow("Salle", roomName) +
+        infoRow("Date", formattedDate) +
+        infoRow("Horaire", formattedTime) +
+        infoRow("Capacité", capacityLine)
+      )}
+    `;
+
+    const html = medsquareEmail({
+      title: "Nouvelle inscription 🎉",
+      preheader: `${registrantName} s'est inscrit à ${activityTitle}`,
+      content,
+    });
 
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -117,19 +138,7 @@ Deno.serve(async (req) => {
         from: "Medsquare <notifications@medsquare.be>",
         to: [contactEmail],
         subject: `Nouvelle inscription — ${activityTitle}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #024D30;">Nouvelle inscription à votre activité</h2>
-            <p><strong>${registrantInfo}</strong> s'est inscrit à votre activité :</p>
-            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-              <tr><td style="padding: 8px 0; color: #666;">Activité</td><td style="padding: 8px 0; font-weight: bold;">${activityTitle}</td></tr>
-              <tr><td style="padding: 8px 0; color: #666;">Date</td><td style="padding: 8px 0;">${formattedDate} à ${formattedTime}</td></tr>
-              <tr><td style="padding: 8px 0; color: #666;">Salle</td><td style="padding: 8px 0;">${roomName}</td></tr>
-              <tr><td style="padding: 8px 0; color: #666;">Capacité</td><td style="padding: 8px 0;">${capacityLine}</td></tr>
-            </table>
-            <p style="color: #666; font-size: 14px;">Vous recevez cet email car vous avez configuré un email de notification dans votre profil Medsquare.</p>
-          </div>
-        `,
+        html,
       }),
     });
 
