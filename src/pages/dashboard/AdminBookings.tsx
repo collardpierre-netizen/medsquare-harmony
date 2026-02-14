@@ -45,6 +45,32 @@ const AdminBookings = () => {
         title: status === "confirmed" ? "Réservation confirmée" : "Réservation annulée",
       });
       fetchBookings();
+
+      // Send email notification
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-booking-status`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              booking_id: id,
+              new_status: status,
+            }),
+          }
+        );
+        const result = await response.json();
+        if (result.sent) {
+          console.log("Email notification sent");
+        } else if (result.skipped) {
+          console.log("Email notification skipped:", result.reason);
+        }
+      } catch (err) {
+        console.error("Error sending email notification:", err);
+      }
     }
   };
 
