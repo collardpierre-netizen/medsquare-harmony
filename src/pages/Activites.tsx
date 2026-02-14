@@ -82,10 +82,10 @@ const ActivitesPage = () => {
     if (!user || !selectedSession) return;
     setIsRegistering(true);
 
-    const { error } = await supabase.from("activity_registrations").insert({
+    const { data, error } = await supabase.from("activity_registrations").insert({
       session_id: selectedSession.id,
       user_id: user.id,
-    });
+    }).select("id").single();
 
     if (error) {
       toast({
@@ -98,6 +98,21 @@ const ActivitesPage = () => {
     } else {
       toast({ title: "Inscription confirmée ! 🎉", description: "Vous recevrez un rappel avant la séance." });
       setMyRegistrations([...myRegistrations, selectedSession.id]);
+
+      // Send confirmation email to visitor
+      if (data?.id) {
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-registration-guest`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ registration_id: data.id }),
+          }
+        ).catch((err) => console.error("Error sending guest confirmation email:", err));
+      }
     }
 
     setIsRegistering(false);

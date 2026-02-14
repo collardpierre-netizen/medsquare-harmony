@@ -134,10 +134,10 @@ const ActiviteDetail = () => {
 
   const handleRegister = async (sessionId: string) => {
     if (!user) return;
-    const { error } = await supabase.from("activity_registrations").insert({
+    const { data, error } = await supabase.from("activity_registrations").insert({
       session_id: sessionId,
       user_id: user.id,
-    });
+    }).select("id").single();
 
     if (error) {
       toast({
@@ -153,6 +153,21 @@ const ActiviteDetail = () => {
         description: "Vous recevrez un rappel avant la séance.",
       });
       setMyRegistrations((prev) => [...prev, sessionId]);
+
+      // Send confirmation email to visitor
+      if (data?.id) {
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-registration-guest`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ registration_id: data.id }),
+          }
+        ).catch((err) => console.error("Error sending guest confirmation email:", err));
+      }
     }
   };
 
