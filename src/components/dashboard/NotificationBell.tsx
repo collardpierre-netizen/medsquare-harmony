@@ -119,6 +119,19 @@ const NotificationBell = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
+  const archiveAll = async () => {
+    const ids = activeNotifications.map((n) => n.id);
+    if (ids.length === 0) return;
+    await supabase
+      .from("notifications")
+      .update({ is_archived: true, is_read: true })
+      .in("id", ids);
+    setNotifications((prev) =>
+      prev.map((n) => (ids.includes(n.id) ? { ...n, is_archived: true, is_read: true } : n))
+    );
+    setFilter("archived");
+  };
+
   const archiveNotification = async (id: string) => {
     await supabase
       .from("notifications")
@@ -171,17 +184,30 @@ const NotificationBell = () => {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h4 className="font-display font-semibold text-sm">Notifications</h4>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-muted-foreground"
-              onClick={markAllAsRead}
-            >
-              <CheckCheck className="h-3.5 w-3.5 mr-1" />
-              Tout lire
-            </Button>
-          )}
+          <div className="flex gap-1">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground"
+                onClick={markAllAsRead}
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Tout lire
+              </Button>
+            )}
+            {activeNotifications.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground"
+                onClick={archiveAll}
+              >
+                <Archive className="h-3.5 w-3.5 mr-1" />
+                Tout archiver
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filter buttons */}
