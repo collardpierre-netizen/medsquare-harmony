@@ -6,16 +6,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ImagePlus, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_SETTINGS,
   SiteSettings,
   FeatureItem,
   TestimonialItem,
+  HeroImageItem,
   saveSiteSettings,
 } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
+import ImageUpload from "@/components/dashboard/ImageUpload";
 
 const ICON_OPTIONS = ["Heart", "Users", "Shield", "Clock", "Star", "Zap", "Award", "Smile", "ThumbsUp", "CheckCircle"];
 
@@ -54,8 +56,47 @@ const AdminSiteSettings = () => {
     setSaving(null);
   };
 
-  const updateHero = (field: string, value: string) =>
+  const updateHero = (field: string, value: any) =>
     setSettings((s) => ({ ...s, hero: { ...s.hero, [field]: value } }));
+
+  const addHeroImage = (url: string) => {
+    setSettings((s) => ({
+      ...s,
+      hero: {
+        ...s.hero,
+        images: [...(s.hero.images || []), { url, alt: "Image hero" }],
+      },
+    }));
+  };
+
+  const removeHeroImage = async (idx: number) => {
+    const img = settings.hero.images?.[idx];
+    if (img?.url) {
+      const marker = "/storage/v1/object/public/site-assets/";
+      const pathIdx = img.url.indexOf(marker);
+      if (pathIdx >= 0) {
+        const path = img.url.slice(pathIdx + marker.length);
+        await supabase.storage.from("site-assets").remove([path]);
+      }
+    }
+    setSettings((s) => ({
+      ...s,
+      hero: {
+        ...s.hero,
+        images: (s.hero.images || []).filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  const updateHeroImageAlt = (idx: number, alt: string) => {
+    setSettings((s) => ({
+      ...s,
+      hero: {
+        ...s.hero,
+        images: (s.hero.images || []).map((img, i) => (i === idx ? { ...img, alt } : img)),
+      },
+    }));
+  };
 
   const updateWhy = (field: string, value: string) =>
     setSettings((s) => ({ ...s, why: { ...s.why, [field]: value } }));
@@ -169,6 +210,53 @@ const AdminSiteSettings = () => {
                     <Input value={settings.hero.ctaSecondary} onChange={(e) => updateHero("ctaSecondary", e.target.value)} />
                   </div>
                 </div>
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Images du carrousel</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {(settings.hero.images || []).length} image(s) — sans images, les images par défaut sont utilisées
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {(settings.hero.images || []).map((img, idx) => (
+                      <div key={idx} className="relative group border border-border rounded-lg overflow-hidden">
+                        <img src={img.url} alt={img.alt} className="w-full h-28 object-cover" />
+                        <div className="p-2">
+                          <Input
+                            value={img.alt}
+                            onChange={(e) => updateHeroImageAlt(idx, e.target.value)}
+                            placeholder="Texte alternatif"
+                            className="text-xs h-7"
+                          />
+                        </div>
+                        <button
+                          onClick={() => removeHeroImage(idx)}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Add new image */}
+                    <ImageUpload
+                      bucket="site-assets"
+                      folder="hero"
+                      currentUrl={null}
+                      onUpload={(url) => addHeroImage(url)}
+                      shape="rounded"
+                      className="w-full h-28"
+                      placeholder={
+                        <div className="flex flex-col items-center gap-1 p-4 h-28 justify-center">
+                          <ImagePlus className="h-6 w-6 text-muted-foreground/40" />
+                          <span className="text-[10px] text-muted-foreground/60">Ajouter une image</span>
+                        </div>
+                      }
+                    />
+                  </div>
+                </div>
+
                 <Button onClick={() => save("hero")} disabled={saving === "hero"}>
                   {saving === "hero" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Sauvegarder
