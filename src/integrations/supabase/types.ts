@@ -355,6 +355,8 @@ export type Database = {
           hourly_rate: number | null
           id: string
           is_available: boolean
+          min_monthly_hours: number | null
+          min_monthly_price: number | null
           name: string
           photos: string[] | null
           pricing: Json | null
@@ -371,6 +373,8 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
+          min_monthly_hours?: number | null
+          min_monthly_price?: number | null
           name: string
           photos?: string[] | null
           pricing?: Json | null
@@ -387,6 +391,8 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           is_available?: boolean
+          min_monthly_hours?: number | null
+          min_monthly_price?: number | null
           name?: string
           photos?: string[] | null
           pricing?: Json | null
