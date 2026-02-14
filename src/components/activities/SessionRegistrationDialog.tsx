@@ -112,6 +112,16 @@ const SessionRegistrationDialog = ({
     }
   };
 
+  const notifyGuest = async (registrationId: string) => {
+    try {
+      await supabase.functions.invoke("notify-registration-guest", {
+        body: { registration_id: registrationId },
+      });
+    } catch {
+      // Silent fail - notification is best-effort
+    }
+  };
+
   const handleRegister = async () => {
     if (!user) {
       navigate("/login");
@@ -137,7 +147,10 @@ const SessionRegistrationDialog = ({
       setRegistrationCount((c) => c + 1);
       toast({ title: "Inscription confirmée !", description: `Vous êtes inscrit à ${activity?.title}.` });
       onRegistrationChange?.();
-      notifyPractitioner(data?.id);
+      if (data?.id) {
+        notifyPractitioner(data.id);
+        notifyGuest(data.id);
+      }
     }
     setIsLoading(false);
   };
@@ -175,7 +188,10 @@ const SessionRegistrationDialog = ({
       setShowGuestForm(false);
       toast({ title: "Inscription confirmée !", description: `Vous êtes inscrit à ${activity?.title}.` });
       onRegistrationChange?.();
-      notifyPractitioner(data?.id);
+      if (data?.id) {
+        notifyPractitioner(data.id);
+        notifyGuest(data.id);
+      }
     }
     setIsLoading(false);
   };

@@ -3,5 +3,8 @@ project_id = "ngzxkcuxrktgqnadidai"
 [functions.notify-registration]
 verify_jwt = false
 
+[functions.notify-registration-guest]
+verify_jwt = false
+
 [functions.notify-booking-status]
 verify_jwt = false
