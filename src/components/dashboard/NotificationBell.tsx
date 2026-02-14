@@ -27,8 +27,27 @@ const NotificationBell = () => {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<"all" | "bookings" | "activities" | "registrations">("all");
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const getNotificationType = (title: string): "bookings" | "activities" | "registrations" => {
+    if (title.includes("réservation") || title.includes("Réservation")) return "bookings";
+    if (title.includes("séance") || title.includes("Séance")) return "activities";
+    if (title.includes("inscription") || title.includes("Inscription")) return "registrations";
+    return "bookings"; // default
+  };
+
+  const filteredNotifications = filter === "all"
+    ? notifications
+    : notifications.filter((n) => getNotificationType(n.title) === filter);
+
+  const filterCounts = {
+    all: notifications.length,
+    bookings: notifications.filter((n) => getNotificationType(n.title) === "bookings").length,
+    activities: notifications.filter((n) => getNotificationType(n.title) === "activities").length,
+    registrations: notifications.filter((n) => getNotificationType(n.title) === "registrations").length,
+  };
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -138,17 +157,43 @@ const NotificationBell = () => {
           )}
         </div>
 
+        {/* Filter buttons */}
+        <div className="flex gap-1 px-4 py-2 border-b border-border bg-muted/30">
+          {(["all", "bookings", "activities", "registrations"] as const).map((f) => (
+            <Button
+              key={f}
+              variant={filter === f ? "default" : "outline"}
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => setFilter(f)}
+            >
+              <span className="text-xs">
+                {f === "all"
+                  ? "Tous"
+                  : f === "bookings"
+                  ? "Réservations"
+                  : f === "activities"
+                  ? "Séances"
+                  : "Inscriptions"}
+              </span>
+              {filterCounts[f] > 0 && (
+                <span className="ml-1 text-[10px] opacity-75">({filterCounts[f]})</span>
+              )}
+            </Button>
+          ))}
+        </div>
+
         {/* List */}
         <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
             <div className="py-8 text-center">
               <Bell className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">
-                Aucune notification
+                {filter === "all" ? "Aucune notification" : "Aucune notification de ce type"}
               </p>
             </div>
           ) : (
-            notifications.map((notif) => (
+            filteredNotifications.map((notif) => (
               <div
                 key={notif.id}
                 className={cn(
