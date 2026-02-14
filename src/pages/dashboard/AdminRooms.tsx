@@ -72,6 +72,8 @@ const AdminRooms = () => {
     photos: [] as string[],
     pricing: [] as PricingItem[],
     credits_info: "",
+    min_monthly_price: "",
+    min_monthly_hours: "",
   });
 
   const fetchRooms = async () => {
@@ -105,6 +107,8 @@ const AdminRooms = () => {
       equipment: "", floor: "", surface_area: "", is_available: true, photos: [],
       pricing: [...defaultPricing],
       credits_info: defaultCreditsInfo,
+      min_monthly_price: "",
+      min_monthly_hours: "",
     });
     setShowDialog(true);
   };
@@ -159,6 +163,8 @@ const AdminRooms = () => {
       photos: room.photos || [],
       pricing: (room.pricing as PricingItem[]) || [],
       credits_info: room.credits_info || "",
+      min_monthly_price: (room as any).min_monthly_price != null ? String((room as any).min_monthly_price) : "",
+      min_monthly_hours: (room as any).min_monthly_hours != null ? String((room as any).min_monthly_hours) : "",
     });
     setShowDialog(true);
   };
@@ -199,6 +205,8 @@ const AdminRooms = () => {
       photos: form.photos,
       pricing: form.pricing.filter((p) => p.label.trim()),
       credits_info: form.credits_info,
+      min_monthly_price: form.min_monthly_price ? parseFloat(form.min_monthly_price) : null,
+      min_monthly_hours: form.min_monthly_hours ? parseFloat(form.min_monthly_hours) : null,
     };
 
     if (editingRoom) {
@@ -403,6 +411,33 @@ const AdminRooms = () => {
                   className="mt-1.5"
                   min="0"
                   step="0.5"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Forfait mensuel min (€)</Label>
+                <Input
+                  type="number"
+                  value={form.min_monthly_price}
+                  onChange={(e) => setForm({ ...form, min_monthly_price: e.target.value })}
+                  className="mt-1.5"
+                  min="0"
+                  step="1"
+                  placeholder="Ex: 158"
+                />
+              </div>
+              <div>
+                <Label>Heures/mois minimum</Label>
+                <Input
+                  type="number"
+                  value={form.min_monthly_hours}
+                  onChange={(e) => setForm({ ...form, min_monthly_hours: e.target.value })}
+                  className="mt-1.5"
+                  min="0"
+                  step="0.5"
+                  placeholder="Ex: 4"
                 />
               </div>
             </div>
