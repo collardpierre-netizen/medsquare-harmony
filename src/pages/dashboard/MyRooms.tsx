@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { addDays, startOfDay, startOfWeek, format, isSameDay, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus, BarChart3 } from "lucide-react";
+import { MapPin, Clock, Users, ChevronLeft, ChevronRight, CalendarPlus, BarChart3, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -264,6 +264,31 @@ const MyRooms = () => {
 
   const isToday = isSameDay(selectedDate, new Date());
 
+  const exportWeeklyCSV = () => {
+    const weekEnd = addDays(currentWeekStart, 6);
+    const header = "Salle;Heures occupées;Heures totales;Taux d'occupation (%)";
+    const rows = rooms.map((room) => {
+      const stats = weeklyOccupancy[room.id];
+      const occupied = stats?.occupied ?? 0;
+      const total = stats?.total ?? 0;
+      const pct = total > 0 ? Math.round((occupied / total) * 100) : 0;
+      return `${room.name};${occupied};${total};${pct}`;
+    });
+    const csv = [
+      `Occupation hebdomadaire — ${format(currentWeekStart, "dd/MM/yyyy")} au ${format(weekEnd, "dd/MM/yyyy")}`,
+      "",
+      header,
+      ...rows,
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `occupation_${format(currentWeekStart, "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -329,7 +354,16 @@ const MyRooms = () => {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm">Occupation de la semaine</CardTitle>
+                <CardTitle className="text-sm flex-1">Occupation de la semaine</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  onClick={exportWeeklyCSV}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export CSV
+                </Button>
               </div>
               <CardDescription className="text-xs">
                 Semaine du {format(currentWeekStart, "d MMM", { locale: fr })} au{" "}
