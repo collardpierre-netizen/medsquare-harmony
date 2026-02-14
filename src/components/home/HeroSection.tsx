@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import heroImage2 from "@/assets/hero-gallery-2.jpg";
 import heroImage3 from "@/assets/hero-gallery-3.jpg";
 import heroImage4 from "@/assets/hero-gallery-4.jpg";
 
-const images = [
+const defaultImages = [
   { src: heroImage1, alt: "Intérieur du centre Medsquare" },
   { src: heroImage2, alt: "Accueil chaleureux du centre" },
   { src: heroImage3, alt: "Salle de consultation moderne" },
@@ -23,9 +23,20 @@ const HeroSection = () => {
   const { settings } = useSiteSettings();
   const hero = settings.hero;
 
+  const images = useMemo(() => {
+    if (hero.images && hero.images.length > 0) {
+      return hero.images.map((img) => ({ src: img.url, alt: img.alt }));
+    }
+    return defaultImages;
+  }, [hero.images]);
+
   const next = useCallback(() => {
     setCurrent((prev) => (prev + 1) % images.length);
-  }, []);
+  }, [images.length]);
+
+  useEffect(() => {
+    setCurrent(0);
+  }, [images]);
 
   useEffect(() => {
     const timer = setInterval(next, INTERVAL);

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface HeroImageItem {
+  url: string;
+  alt: string;
+}
+
 export interface HeroSettings {
   badge: string;
   title: string;
@@ -8,6 +13,7 @@ export interface HeroSettings {
   subtitle: string;
   ctaPrimary: string;
   ctaSecondary: string;
+  images?: HeroImageItem[];
 }
 
 export interface FeatureItem {
