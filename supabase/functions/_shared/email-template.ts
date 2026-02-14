@@ -54,7 +54,7 @@ export function medsquareEmail({
 
         <!-- Header with logo -->
         <tr>
-          <td style="background:#ffffff;padding:28px 32px;text-align:center;">
+          <td style="background:#ffffff;padding:28px 32px 20px;text-align:center;border-bottom:2px solid ${SAGE};">
             <img src="${LOGO_URL}" alt="Medsquare" width="160" style="display:inline-block;max-width:160px;height:auto;" />
           </td>
         </tr>
