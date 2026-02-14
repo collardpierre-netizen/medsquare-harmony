@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, subWeeks, subMonths, startOfWeek, startOfMonth, format, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -87,11 +87,10 @@ const AdminAnalytics = () => {
   });
 
   // Compute chart data
-  const chartData = useMemo(() => {
-    if (!rooms || !bookings || !sessions || !registrations) return [];
+  const { chartData, roomOccupancyData } = useMemo(() => {
+    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [] };
 
-    return periods.map(({ start, end, label }) => {
-      // Revenue: sum hourly_rate × hours for confirmed bookings in period
+    const chartData = periods.map(({ start, end, label }) => {
       let revenue = 0;
       const periodBookings = bookings.filter(
         (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
@@ -102,7 +101,6 @@ const AdminAnalytics = () => {
         revenue += (room?.hourly_rate || 0) * hours;
       }
 
-      // Occupancy: total occupied slots / total available slots across all rooms
       let totalSlots = 0;
       let occupiedSlots = 0;
       const days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
@@ -142,7 +140,6 @@ const AdminAnalytics = () => {
       }
       const occupancy = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
 
-      // Registrations count in period (match via session start_time in period)
       const periodSessionIds = new Set(
         sessions
           .filter((s) => new Date(s.start_time) >= start && new Date(s.start_time) < end)
@@ -150,7 +147,6 @@ const AdminAnalytics = () => {
       );
       const regCount = registrations.filter((r) => periodSessionIds.has(r.session_id)).length;
 
-      // Active practitioners
       const activePractitioners = new Set(
         periodBookings.map((b) => b.practitioner_id)
       ).size;
@@ -163,6 +159,50 @@ const AdminAnalytics = () => {
         practitioners: activePractitioners,
       };
     });
+
+    // Per-room occupancy data
+    const roomOccupancyData = periods.map(({ start, end, label }) => {
+      const row: Record<string, string | number> = { period: label };
+      const days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
+
+      for (const room of rooms) {
+        let total = 0;
+        let occupied = 0;
+        for (let d = 0; d < days; d++) {
+          const day = addDays(start, d);
+          const { start: oS, end: oE } = getOpeningHours(day);
+          total += oE - oS;
+          for (let h = oS; h < oE; h++) {
+            const slotStart = new Date(day);
+            slotStart.setHours(h, 0, 0, 0);
+            const slotEnd = new Date(day);
+            slotEnd.setHours(h + 1, 0, 0, 0);
+            const has =
+              bookings.some(
+                (b) =>
+                  b.room_id === room.id &&
+                  new Date(b.start_time) >= start &&
+                  new Date(b.start_time) < end &&
+                  new Date(b.start_time) < slotEnd &&
+                  new Date(b.end_time) > slotStart
+              ) ||
+              sessions.some(
+                (s) =>
+                  s.room_id === room.id &&
+                  new Date(s.start_time) >= start &&
+                  new Date(s.start_time) < end &&
+                  new Date(s.start_time) < slotEnd &&
+                  new Date(s.end_time) > slotStart
+              );
+            if (has) occupied++;
+          }
+        }
+        row[room.name] = total > 0 ? Math.round((occupied / total) * 100) : 0;
+      }
+      return row;
+    });
+
+    return { chartData, roomOccupancyData };
   }, [periods, rooms, bookings, sessions, registrations]);
 
   // Current period summary (last period)
@@ -215,6 +255,14 @@ const AdminAnalytics = () => {
   const practitionersChartConfig = {
     practitioners: { label: "Praticiens actifs", color: "hsl(var(--chart-4))" },
   };
+  const roomOccupancyChartConfig = rooms
+    ? Object.fromEntries(
+        rooms.map((room, i) => [
+          room.name,
+          { label: room.name, color: `hsl(var(--chart-${(i % 5) + 1}))` },
+        ])
+      )
+    : {};
 
   return (
     <DashboardLayout>
@@ -357,6 +405,39 @@ const AdminAnalytics = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Per-room occupancy chart */}
+        {rooms && rooms.length > 0 && roomOccupancyData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                Occupation par salle
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Taux d'occupation (%) individuel par salle et par période
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={roomOccupancyChartConfig} className="h-[260px] w-full">
+                <BarChart data={roomOccupancyData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
+                  {rooms.map((room, i) => (
+                    <Bar
+                      key={room.id}
+                      dataKey={room.name}
+                      fill={`hsl(var(--chart-${(i % 5) + 1}))`}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
