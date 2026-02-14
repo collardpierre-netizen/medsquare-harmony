@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, MapPin, User, Users, LogIn, CheckCircle, XCircle } from "lucide-react";
+import { Clock, MapPin, User, Users, LogIn, CheckCircle, XCircle, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -49,17 +51,20 @@ const SessionRegistrationDialog = ({
   const [registrationCount, setRegistrationCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "" });
 
   useEffect(() => {
     if (!open || !session) {
       setChecking(false);
       return;
     }
+    setShowGuestForm(false);
+    setGuestForm({ name: "", email: "", phone: "" });
 
     const checkRegistration = async () => {
       setChecking(true);
 
-      // Get registration count
       const { count } = await supabase
         .from("activity_registrations")
         .select("id", { count: "exact", head: true })
@@ -68,7 +73,6 @@ const SessionRegistrationDialog = ({
 
       setRegistrationCount(count || 0);
 
-      // Check if current user is registered
       if (user) {
         const { data } = await supabase
           .from("activity_registrations")
@@ -98,6 +102,16 @@ const SessionRegistrationDialog = ({
   const isFull = maxP ? registrationCount >= maxP : false;
   const isPast = start < new Date();
 
+  const notifyPractitioner = async (registrationId?: string) => {
+    try {
+      await supabase.functions.invoke("notify-registration", {
+        body: { session_id: session.id, registration_id: registrationId },
+      });
+    } catch {
+      // Silent fail - notification is best-effort
+    }
+  };
+
   const handleRegister = async () => {
     if (!user) {
       navigate("/login");
@@ -105,10 +119,10 @@ const SessionRegistrationDialog = ({
     }
 
     setIsLoading(true);
-    const { error } = await supabase.from("activity_registrations").insert({
+    const { data, error } = await supabase.from("activity_registrations").insert({
       session_id: session.id,
       user_id: user.id,
-    });
+    }).select("id").single();
 
     if (error) {
       toast({
@@ -123,6 +137,45 @@ const SessionRegistrationDialog = ({
       setRegistrationCount((c) => c + 1);
       toast({ title: "Inscription confirmée !", description: `Vous êtes inscrit à ${activity?.title}.` });
       onRegistrationChange?.();
+      notifyPractitioner(data?.id);
+    }
+    setIsLoading(false);
+  };
+
+  const handleGuestRegister = async () => {
+    if (!guestForm.name.trim() || !guestForm.email.trim()) {
+      toast({ variant: "destructive", title: "Champs requis", description: "Veuillez renseigner votre nom et email." });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(guestForm.email.trim())) {
+      toast({ variant: "destructive", title: "Email invalide", description: "Veuillez entrer une adresse email valide." });
+      return;
+    }
+
+    setIsLoading(true);
+    const { data, error } = await supabase.from("activity_registrations").insert({
+      session_id: session.id,
+      user_id: null,
+      guest_name: guestForm.name.trim(),
+      guest_email: guestForm.email.trim(),
+      guest_phone: guestForm.phone.trim() || null,
+    } as any).select("id").single();
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de s'inscrire. Veuillez réessayer.",
+      });
+    } else {
+      setRegistrationCount((c) => c + 1);
+      setShowGuestForm(false);
+      toast({ title: "Inscription confirmée !", description: `Vous êtes inscrit à ${activity?.title}.` });
+      onRegistrationChange?.();
+      notifyPractitioner(data?.id);
     }
     setIsLoading(false);
   };
@@ -215,40 +268,113 @@ const SessionRegistrationDialog = ({
 
           {/* Action buttons */}
           {!isPast && (
-            <div className="pt-2">
-              {!user ? (
-                <Button className="w-full" onClick={() => navigate("/login")}>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Se connecter pour s'inscrire
-                </Button>
-              ) : isRegistered ? (
-                <div className="space-y-2">
-                  <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                    <p className="text-sm font-medium text-primary">Vous êtes inscrit</p>
+            <div className="pt-2 space-y-3">
+              {user ? (
+                // Authenticated user flow
+                isRegistered ? (
+                  <div className="space-y-2">
+                    <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <p className="text-sm font-medium text-primary">Vous êtes inscrit</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleUnregister}
+                      disabled={isLoading}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      {isLoading ? "Annulation..." : "Se désinscrire"}
+                    </Button>
                   </div>
+                ) : isFull ? (
+                  <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
+                    <p className="text-sm font-medium text-destructive">Séance complète</p>
+                  </div>
+                ) : (
                   <Button
-                    variant="outline"
                     className="w-full"
-                    onClick={handleUnregister}
+                    onClick={handleRegister}
                     disabled={isLoading}
                   >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    {isLoading ? "Annulation..." : "Se désinscrire"}
+                    {isLoading ? "Inscription..." : "S'inscrire à cette séance"}
                   </Button>
-                </div>
-              ) : isFull ? (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
-                  <p className="text-sm font-medium text-destructive">Séance complète</p>
-                </div>
+                )
               ) : (
-                <Button
-                  className="w-full"
-                  onClick={handleRegister}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Inscription..." : "S'inscrire à cette séance"}
-                </Button>
+                // Non-authenticated visitor flow
+                isFull ? (
+                  <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
+                    <p className="text-sm font-medium text-destructive">Séance complète</p>
+                  </div>
+                ) : showGuestForm ? (
+                  <div className="space-y-3 border border-border rounded-lg p-4">
+                    <div>
+                      <Label htmlFor="guest_name" className="text-xs">Nom complet *</Label>
+                      <Input
+                        id="guest_name"
+                        value={guestForm.name}
+                        onChange={(e) => setGuestForm({ ...guestForm, name: e.target.value })}
+                        placeholder="Jean Dupont"
+                        className="mt-1"
+                        maxLength={100}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="guest_email" className="text-xs">Email *</Label>
+                      <Input
+                        id="guest_email"
+                        type="email"
+                        value={guestForm.email}
+                        onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                        placeholder="jean@exemple.com"
+                        className="mt-1"
+                        maxLength={255}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="guest_phone" className="text-xs">Téléphone (optionnel)</Label>
+                      <Input
+                        id="guest_phone"
+                        value={guestForm.phone}
+                        onChange={(e) => setGuestForm({ ...guestForm, phone: e.target.value })}
+                        placeholder="+32 ..."
+                        className="mt-1"
+                        maxLength={20}
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowGuestForm(false)}
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={handleGuestRegister}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Inscription..." : "Confirmer"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button className="w-full" onClick={() => setShowGuestForm(true)}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      S'inscrire sans compte
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate("/login")}
+                    >
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Se connecter pour s'inscrire
+                    </Button>
+                  </div>
+                )
               )}
             </div>
           )}

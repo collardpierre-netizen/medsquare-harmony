@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, User } from "lucide-react";
+import { Save, User, Mail } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -23,6 +23,7 @@ const Profile = () => {
     specialty: profile?.specialty || "",
     bio: profile?.bio || "",
     phone: profile?.phone || "",
+    contact_email: (profile as any)?.contact_email || "",
   });
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
@@ -52,6 +53,7 @@ const Profile = () => {
         specialty: profile.specialty || "",
         bio: profile.bio || "",
         phone: profile.phone || "",
+        contact_email: (profile as any)?.contact_email || "",
       });
     }
   }, [profile]);
@@ -69,8 +71,9 @@ const Profile = () => {
         specialty: form.specialty,
         bio: form.bio,
         phone: form.phone,
+        contact_email: form.contact_email || null,
         schedule: schedule as any,
-      })
+      } as any)
       .eq("id", profile.id);
 
     if (error) {
@@ -180,6 +183,27 @@ const Profile = () => {
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="+32 ..."
                   className="mt-1.5"
+                />
+               </div>
+
+              {/* Contact email for activity registrations */}
+              <div className="rounded-lg border border-border bg-accent/30 p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <Label htmlFor="contact_email" className="font-medium">Email de notification</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Les inscriptions à vos activités seront envoyées à cette adresse. 
+                  Laissez vide pour gérer les inscriptions uniquement via le dashboard.
+                </p>
+                <Input
+                  id="contact_email"
+                  type="email"
+                  value={form.contact_email}
+                  onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+                  placeholder="mon-email@exemple.com"
+                  className="mt-1"
+                  maxLength={255}
                 />
               </div>
 
