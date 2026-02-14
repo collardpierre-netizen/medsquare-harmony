@@ -24,6 +24,7 @@ import MyRooms from "./pages/dashboard/MyRooms";
 import AdminPractitioners from "./pages/dashboard/AdminPractitioners";
 import AdminRooms from "./pages/dashboard/AdminRooms";
 import AdminBookings from "./pages/dashboard/AdminBookings";
+import MyRegistrations from "./pages/dashboard/MyRegistrations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/dashboard/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
             <Route path="/dashboard/rooms" element={<ProtectedRoute><MyRooms /></ProtectedRoute>} />
             <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+            <Route path="/dashboard/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />
