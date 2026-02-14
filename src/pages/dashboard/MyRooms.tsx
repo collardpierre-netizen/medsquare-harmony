@@ -289,6 +289,8 @@ const MyRooms = () => {
 
       const trend = weeks.map(({ start, end, label }) => {
         const row: Record<string, string | number> = { week: label };
+        let globalTotal = 0;
+        let globalOccupied = 0;
         for (const room of rooms) {
           let total = 0;
           let occupied = 0;
@@ -310,7 +312,10 @@ const MyRooms = () => {
             }
           }
           row[room.name] = total > 0 ? Math.round((occupied / total) * 100) : 0;
+          globalTotal += total;
+          globalOccupied += occupied;
         }
+        row["Moyenne"] = globalTotal > 0 ? Math.round((globalOccupied / globalTotal) * 100) : 0;
         return row;
       });
 
@@ -484,15 +489,21 @@ const MyRooms = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <ChartContainer
-                config={Object.fromEntries(
-                  rooms.map((room, i) => [
-                    room.name,
-                    {
-                      label: room.name,
-                      color: `hsl(var(--chart-${(i % 5) + 1}))`,
-                    },
-                  ])
-                )}
+                config={{
+                  ...Object.fromEntries(
+                    rooms.map((room, i) => [
+                      room.name,
+                      {
+                        label: room.name,
+                        color: `hsl(var(--chart-${(i % 5) + 1}))`,
+                      },
+                    ])
+                  ),
+                  Moyenne: {
+                    label: "Moyenne globale",
+                    color: "hsl(var(--muted-foreground))",
+                  },
+                }}
                 className="h-[220px] w-full"
               >
                 <LineChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -513,6 +524,15 @@ const MyRooms = () => {
                       activeDot={{ r: 6 }}
                     />
                   ))}
+                  <Line
+                    type="monotone"
+                    dataKey="Moyenne"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
                 </LineChart>
               </ChartContainer>
             </CardContent>
