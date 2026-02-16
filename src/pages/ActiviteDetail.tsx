@@ -156,17 +156,9 @@ const ActiviteDetail = () => {
 
       // Send confirmation email to visitor
       if (data?.id) {
-        fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-registration-guest`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({ registration_id: data.id }),
-          }
-        ).catch((err) => console.error("Error sending guest confirmation email:", err));
+        supabase.functions.invoke("notify-registration-guest", {
+          body: { registration_id: data.id },
+        }).catch((err) => console.error("Error sending guest confirmation email:", err));
       }
     }
   };

@@ -48,21 +48,9 @@ const AdminBookings = () => {
 
       // Send email notification
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-booking-status`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              booking_id: id,
-              new_status: status,
-            }),
-          }
-        );
-        const result = await response.json();
+        const { data: result } = await supabase.functions.invoke("notify-booking-status", {
+          body: { booking_id: id, new_status: status },
+        });
         if (result.sent) {
           console.log("Email notification sent");
         } else if (result.skipped) {
