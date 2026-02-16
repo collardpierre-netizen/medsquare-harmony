@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, Loader2, ImagePlus, GripVertical } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ImagePlus, GripVertical, Video } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_SETTINGS,
@@ -23,18 +23,24 @@ const ICON_OPTIONS = ["Heart", "Users", "Shield", "Clock", "Star", "Zap", "Award
 
 const AdminSiteSettings = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [centreVideoUrl, setCentreVideoUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchAll = async () => {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["hero", "why", "testimonials", "contact"]);
+        .in("key", ["hero", "why", "testimonials", "contact", "centre_video"]);
       if (data && data.length > 0) {
         const merged = { ...DEFAULT_SETTINGS };
         for (const row of data) {
+          if (row.key === "centre_video") {
+            const val = row.value as any;
+            if (val?.url) setCentreVideoUrl(val.url);
+            continue;
+          }
           const k = row.key as keyof SiteSettings;
           if (k in merged) merged[k] = { ...merged[k], ...(row.value as any) };
         }
@@ -42,7 +48,7 @@ const AdminSiteSettings = () => {
       }
       setLoading(false);
     };
-    fetch();
+    fetchAll();
   }, []);
 
   const save = async (section: keyof SiteSettings) => {
@@ -50,6 +56,19 @@ const AdminSiteSettings = () => {
     try {
       await saveSiteSettings(section, settings[section]);
       toast.success("Section sauvegardée !");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde.");
+    }
+    setSaving(null);
+  };
+
+  const saveCentreVideo = async () => {
+    setSaving("centre_video");
+    try {
+      await supabase
+        .from("settings")
+        .upsert({ key: "centre_video", value: { url: centreVideoUrl }, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      toast.success("URL vidéo sauvegardée !");
     } catch {
       toast.error("Erreur lors de la sauvegarde.");
     }
@@ -168,11 +187,12 @@ const AdminSiteSettings = () => {
         </div>
 
         <Tabs defaultValue="hero" className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="why">Valeurs</TabsTrigger>
             <TabsTrigger value="testimonials">Témoignages</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
+            <TabsTrigger value="centre">Centre</TabsTrigger>
           </TabsList>
 
           {/* HERO */}
@@ -418,6 +438,43 @@ const AdminSiteSettings = () => {
                 </div>
                 <Button onClick={() => save("contact")} disabled={saving === "contact"}>
                   {saving === "contact" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Sauvegarder
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* CENTRE */}
+          <TabsContent value="centre">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Page Centre — Vidéo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>URL de la vidéo (lien embed YouTube, Vimeo…)</Label>
+                  <Input
+                    value={centreVideoUrl}
+                    onChange={(e) => setCentreVideoUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/embed/..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Utilisez l'URL d'intégration (embed). Ex : https://www.youtube.com/embed/VIDEO_ID
+                  </p>
+                </div>
+                {centreVideoUrl && (
+                  <div className="relative w-full rounded-lg overflow-hidden border border-border" style={{ paddingBottom: "56.25%" }}>
+                    <iframe
+                      src={centreVideoUrl}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Aperçu vidéo"
+                    />
+                  </div>
+                )}
+                <Button onClick={saveCentreVideo} disabled={saving === "centre_video"}>
+                  {saving === "centre_video" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Sauvegarder
                 </Button>
               </CardContent>
