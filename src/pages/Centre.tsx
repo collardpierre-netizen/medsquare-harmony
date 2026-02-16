@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Heart, Target, Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const values = [
   {
@@ -40,6 +42,22 @@ const galleryImages = [
 ];
 
 const Centre = () => {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchVideo = async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "centre_video")
+        .maybeSingle();
+      if (data?.value && typeof data.value === "object" && "url" in (data.value as any)) {
+        setVideoUrl((data.value as any).url);
+      }
+    };
+    fetchVideo();
+  }, []);
+
   return (
     <Layout>
       {/* Hero */}
@@ -126,6 +144,26 @@ const Centre = () => {
           </div>
         </div>
       </section>
+
+      {/* Vidéo */}
+      {videoUrl && (
+        <section className="py-20 md:py-28">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="relative w-full rounded-xl overflow-hidden shadow-md" style={{ paddingBottom: "56.25%" }}>
+                <iframe
+                  src={videoUrl}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                  title="Vidéo de présentation"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Localisation */}
       <section className="py-20 md:py-28">
