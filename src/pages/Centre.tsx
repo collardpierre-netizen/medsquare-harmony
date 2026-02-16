@@ -51,8 +51,11 @@ const Centre = () => {
         .select("value")
         .eq("key", "centre_video")
         .maybeSingle();
-      if (data?.value && typeof data.value === "object" && "url" in (data.value as any)) {
-        setVideoUrl((data.value as any).url);
+      if (data?.value && typeof data.value === "object" && !Array.isArray(data.value)) {
+        const val = data.value as Record<string, unknown>;
+        if (val.url && typeof val.url === "string") {
+          setVideoUrl(val.url);
+        }
       }
     };
     fetchVideo();
