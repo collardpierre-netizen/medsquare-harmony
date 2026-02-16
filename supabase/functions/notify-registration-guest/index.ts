@@ -7,26 +7,43 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { registration_id } = await req.json();
-
-    if (!registration_id) {
-      return new Response(JSON.stringify({ error: "registration_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Auth check - this function requires authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Input validation
+    const text = await req.text();
+    if (text.length > 1024) {
+      return new Response(JSON.stringify({ error: "Request too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { registration_id } = JSON.parse(text);
+
+    if (!registration_id || typeof registration_id !== "string" || !UUID_REGEX.test(registration_id)) {
+      return new Response(JSON.stringify({ error: "Valid registration_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get registration details
     const { data: registration, error: regError } = await supabase
       .from("activity_registrations")
       .select("user_id, guest_name, guest_email, session_id")
@@ -34,13 +51,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (regError || !registration) {
-      return new Response(
-        JSON.stringify({ error: "Registration not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Determine recipient email
     let recipientEmail = registration.guest_email;
     let recipientName = registration.guest_name || "Participant";
 
@@ -58,39 +71,24 @@ Deno.serve(async (req) => {
     }
 
     if (!recipientEmail) {
-      return new Response(
-        JSON.stringify({ skipped: true, reason: "No email found for recipient" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ skipped: true, reason: "No email found for recipient" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Get session and activity details
     const { data: session, error: sessionError } = await supabase
       .from("activity_sessions")
-      .select(
-        "*, activities(title, description), rooms(name)"
-      )
+      .select("*, activities(title, description), rooms(name)")
       .eq("id", registration.session_id)
       .single();
 
     if (sessionError || !session) {
-      return new Response(
-        JSON.stringify({ error: "Session not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Session not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const startDate = new Date(session.start_time);
     const endDate = new Date(session.end_time);
-    const formattedDate = startDate.toLocaleDateString("fr-BE", {
-      weekday: "long", day: "numeric", month: "long", year: "numeric",
-    });
-    const formattedTimeStart = startDate.toLocaleTimeString("fr-BE", {
-      hour: "2-digit", minute: "2-digit",
-    });
-    const formattedTimeEnd = endDate.toLocaleTimeString("fr-BE", {
-      hour: "2-digit", minute: "2-digit",
-    });
+    const formattedDate = startDate.toLocaleDateString("fr-BE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const formattedTimeStart = startDate.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
+    const formattedTimeEnd = endDate.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
 
     const activityTitle = session.activities?.title || "Activité";
     const activityDescription = session.activities?.description || "";
@@ -132,19 +130,12 @@ Deno.serve(async (req) => {
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
-      console.log(`[notify-registration-guest] Would email ${recipientEmail} confirmation for ${activityTitle}`);
-      return new Response(
-        JSON.stringify({ skipped: true, reason: "RESEND_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ skipped: true, reason: "RESEND_API_KEY not configured" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: "Medsquare <notifications@medsquare.be>",
         to: [recipientEmail],
@@ -155,15 +146,9 @@ Deno.serve(async (req) => {
 
     const emailResult = await emailRes.json();
 
-    return new Response(
-      JSON.stringify({ sent: true, email: recipientEmail, result: emailResult }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ sent: true, result: emailResult }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     console.error("notify-registration-guest error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

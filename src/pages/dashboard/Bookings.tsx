@@ -281,17 +281,9 @@ const Bookings = () => {
             .maybeSingle();
 
           if (created) {
-            fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-new-booking`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                },
-                body: JSON.stringify({ booking_id: created.id }),
-              }
-            ).catch((err) => console.error("Error sending new booking email:", err));
+            supabase.functions.invoke("notify-new-booking", {
+              body: { booking_id: created.id },
+            }).catch((err) => console.error("Error sending new booking email:", err));
           }
         } catch (err) {
           console.error("Error finding created booking:", err);
