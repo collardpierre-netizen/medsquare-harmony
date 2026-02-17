@@ -70,6 +70,27 @@ const PatientBookingDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "" });
 
+  const [practitionerSchedule, setPractitionerSchedule] = useState<DaySchedule[]>([]);
+  const [practitionerBreak, setPractitionerBreak] = useState(15);
+
+  // Fetch practitioner schedule once on open
+  useEffect(() => {
+    if (!open) return;
+    const fetchSchedule = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("schedule, break_minutes")
+        .eq("id", practitionerId)
+        .single();
+      const schedule: DaySchedule[] = profile?.schedule
+        ? (typeof profile.schedule === "string" ? JSON.parse(profile.schedule) : profile.schedule)
+        : [];
+      setPractitionerSchedule(schedule);
+      setPractitionerBreak((profile as any)?.break_minutes ?? 15);
+    };
+    fetchSchedule();
+  }, [open, practitionerId]);
+
   // Reset on open
   useEffect(() => {
     if (open) {
@@ -82,11 +103,15 @@ const PatientBookingDialog = ({
     }
   }, [open, activities]);
 
-  // Generate available dates (next 14 days)
+  // Generate available dates (next 14 days, filtered by schedule days)
   const generateDates = () => {
+    const scheduleDays = new Set(practitionerSchedule.map((s) => DAYS_MAP[s.day]));
     const dates: string[] = [];
     for (let i = 1; i <= 14; i++) {
-      dates.push(format(addDays(new Date(), i), "yyyy-MM-dd"));
+      const d = addDays(new Date(), i);
+      if (scheduleDays.has(d.getDay())) {
+        dates.push(format(d, "yyyy-MM-dd"));
+      }
     }
     return dates;
   };
@@ -99,17 +124,8 @@ const PatientBookingDialog = ({
     const date = new Date(dateStr);
     const dayIndex = date.getDay();
 
-    // Get practitioner schedule & break_minutes
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("schedule, break_minutes")
-      .eq("id", practitionerId)
-      .single();
-
-    const schedule: DaySchedule[] = profile?.schedule
-      ? (typeof profile.schedule === "string" ? JSON.parse(profile.schedule) : profile.schedule)
-      : [];
-    const breakMin = (profile as any)?.break_minutes ?? 15;
+    const schedule = practitionerSchedule;
+    const breakMin = practitionerBreak;
 
     // Find schedule entries for this day
     const dayName = Object.entries(DAYS_MAP).find(([, v]) => v === dayIndex)?.[0];
