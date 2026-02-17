@@ -32,17 +32,31 @@ Deno.serve(async (req) => {
     });
     if (!isAdmin) throw new Error("Admin access required");
 
-    const { email, first_name, last_name } = await req.json();
-    if (!email) throw new Error("Email is required");
+    const { email, first_name, last_name, resend_user_id } = await req.json();
+
+    let targetEmail = email;
+    let targetFirstName = first_name || "";
+    let targetLastName = last_name || "";
+
+    // If resending, look up the user's email from auth
+    if (resend_user_id) {
+      const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(resend_user_id);
+      if (userError || !userData?.user) throw new Error("Utilisateur introuvable");
+      targetEmail = userData.user.email;
+      targetFirstName = userData.user.user_metadata?.first_name || targetFirstName;
+      targetLastName = userData.user.user_metadata?.last_name || targetLastName;
+    }
+
+    if (!targetEmail) throw new Error("Email is required");
 
     // Generate invite link
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "invite",
-      email,
+      email: targetEmail,
       options: {
         data: {
-          first_name: first_name || "",
-          last_name: last_name || "",
+          first_name: targetFirstName,
+          last_name: targetLastName,
         },
       },
     });
@@ -61,7 +75,7 @@ Deno.serve(async (req) => {
         title: "Bienvenue chez Medsquare !",
         preheader: "Vous avez été invité(e) à rejoindre Medsquare",
         content: `
-          <p>Bonjour <strong>${first_name || ""} ${last_name || ""}</strong>,</p>
+          <p>Bonjour <strong>${targetFirstName} ${targetLastName}</strong>,</p>
           <p>Vous avez été invité(e) à rejoindre la plateforme <strong>Medsquare</strong> en tant que praticien(ne).</p>
           <p>Cliquez sur le bouton ci-dessous pour activer votre compte et compléter votre profil :</p>
         `,
@@ -78,7 +92,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: "Medsquare <noreply@updates.medsquare.be>",
-          to: [email],
+          to: [targetEmail],
           subject: "Bienvenue chez Medsquare — Activez votre compte",
           html: htmlBody,
         }),
