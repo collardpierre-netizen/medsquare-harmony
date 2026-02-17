@@ -180,7 +180,7 @@ const Centre = () => {
             </div>
             <div className="rounded-xl overflow-hidden shadow-md">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2544.0!2d3.745!3d50.595!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c3!2sRue%20de%20la%20Procession%2025%2C%207822%20Meslin-l%27%C3%89v%C3%AAque!5e0!3m2!1sfr!2sbe!4v1700000000000!5m2!1sfr!2sbe"
+                src="https://www.google.com/maps?q=Rue+de+la+Procession+25,+7822+Meslin-l%27%C3%89v%C3%AAque,+Belgium&output=embed"
                 width="100%"
                 height="400"
                 style={{ border: 0 }}
