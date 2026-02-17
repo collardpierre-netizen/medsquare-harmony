@@ -83,15 +83,15 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <Phone className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>+32 2 123 45 67</span>
+                <span>+32 498 64 41 30</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <Mail className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>contact@medsquare.be</span>
+                <span>medsquare7822@gmail.com</span>
               </li>
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>Avenue Louise 123, 1050 Bruxelles</span>
+                <span>25 rue de la Procession, 7822 Meslin-l'Évêque</span>
               </li>
             </ul>
           </div>
@@ -102,15 +102,11 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-background/70">
               <li className="flex justify-between">
                 <span>Lun - Ven</span>
-                <span>8h00 - 19h00</span>
+                <span>08h00 - 22h00</span>
               </li>
               <li className="flex justify-between">
-                <span>Samedi</span>
-                <span>9h00 - 14h00</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Dimanche</span>
-                <span>Fermé</span>
+                <span>Sam - Dim</span>
+                <span>09h00 - 21h00</span>
               </li>
             </ul>
           </div>
