@@ -85,7 +85,7 @@ export function medsquareEmail({
               ${footer || "Cet email a été envoyé automatiquement par Medsquare."}
             </p>
             <p style="margin:0;color:${TEXT_MUTED};font-size:12px;text-align:center;">
-              Centre pluridisciplinaire de santé — Bruxelles
+              Centre pluridisciplinaire de santé — 25 rue de la Procession, 7822 Meslin-l'Évêque
             </p>
           </td>
         </tr>

@@ -27,6 +27,8 @@ import AdminBookings from "./pages/dashboard/AdminBookings";
 import MyRegistrations from "./pages/dashboard/MyRegistrations";
 import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
 import AdminSiteSettings from "./pages/dashboard/AdminSiteSettings";
+import DailyExport from "./pages/dashboard/DailyExport";
+import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,8 @@ const App = () => (
             <Route path="/dashboard/rooms" element={<ProtectedRoute><MyRooms /></ProtectedRoute>} />
             <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
             <Route path="/dashboard/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
+            <Route path="/dashboard/export" element={<ProtectedRoute><DailyExport /></ProtectedRoute>} />
+            <Route path="/dashboard/guide" element={<ProtectedRoute><PractitionerGuide /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />

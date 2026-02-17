@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Save, User, Mail, BellRing } from "lucide-react";
+import { Save, User, Mail, BellRing, Coffee } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -25,6 +25,7 @@ const Profile = () => {
     bio: profile?.bio || "",
     phone: profile?.phone || "",
     contact_email: (profile as any)?.contact_email || "",
+    break_minutes: (profile as any)?.break_minutes ?? 15,
   });
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
@@ -74,6 +75,7 @@ const Profile = () => {
         bio: profile.bio || "",
         phone: profile.phone || "",
         contact_email: (profile as any)?.contact_email || "",
+        break_minutes: (profile as any)?.break_minutes ?? 15,
       });
     }
   }, [profile]);
@@ -92,6 +94,7 @@ const Profile = () => {
         bio: form.bio,
         phone: form.phone,
         contact_email: form.contact_email || null,
+        break_minutes: form.break_minutes,
         schedule: schedule as any,
         notification_preferences: notifPrefs as any,
       } as any)
@@ -207,7 +210,27 @@ const Profile = () => {
                 />
                </div>
 
-              {/* Contact email for activity registrations */}
+              {/* Break minutes */}
+              <div className="rounded-lg border border-border bg-accent/30 p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Coffee className="h-4 w-4 text-primary" />
+                  <Label htmlFor="break_minutes" className="font-medium">Pause entre RDV (minutes)</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Temps de battement entre deux rendez-vous pour vous préparer.
+                </p>
+                <Input
+                  id="break_minutes"
+                  type="number"
+                  min={0}
+                  max={60}
+                  value={form.break_minutes}
+                  onChange={(e) => setForm({ ...form, break_minutes: parseInt(e.target.value) || 0 })}
+                  className="mt-1 w-32"
+                />
+              </div>
+
+
               <div className="rounded-lg border border-border bg-accent/30 p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-primary" />
