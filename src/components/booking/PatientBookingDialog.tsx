@@ -48,6 +48,7 @@ interface AvailableSlot {
 
 const DAYS_MAP: Record<string, number> = {
   lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6, dimanche: 0,
+  monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sunday: 0,
 };
 
 const PatientBookingDialog = ({
@@ -127,9 +128,8 @@ const PatientBookingDialog = ({
     const schedule = practitionerSchedule;
     const breakMin = practitionerBreak;
 
-    // Find schedule entries for this day
-    const dayName = Object.entries(DAYS_MAP).find(([, v]) => v === dayIndex)?.[0];
-    const daySlots = schedule.filter((s) => s.day === dayName);
+    // Find schedule entries for this day (match by day number, supports both FR and EN names)
+    const daySlots = schedule.filter((s) => DAYS_MAP[s.day] === dayIndex);
 
     if (daySlots.length === 0) {
       setAvailableSlots([]);
