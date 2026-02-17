@@ -251,7 +251,7 @@ const PraticienDetail = () => {
               practitioner={practitioner}
               scheduleSlots={scheduleSlots}
             />
-            {activities.length > 0 && (
+            {activities.some((a) => a.booking_enabled) && (
               <Button className="w-full mt-4" onClick={() => setShowBooking(true)}>
                 <CalendarPlus className="h-4 w-4 mr-2" />
                 Prendre rendez-vous
@@ -274,7 +274,7 @@ const PraticienDetail = () => {
             <Link to="/contact">
               <Button size="sm">Contacter</Button>
             </Link>
-            {activities.length > 0 && (
+            {activities.some((a) => a.booking_enabled) && (
               <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>
                 <CalendarPlus className="h-4 w-4 mr-1" />
                 Réserver
@@ -289,7 +289,7 @@ const PraticienDetail = () => {
             onOpenChange={setShowBooking}
             practitionerId={practitioner.id}
             practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
-            activities={activities.map((a) => ({
+            activities={activities.filter((a) => a.booking_enabled).map((a) => ({
               id: a.id,
               title: a.title,
               duration_minutes: a.duration_minutes,
