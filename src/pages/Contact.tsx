@@ -61,6 +61,16 @@ const faqs: { question: string; answer: ReactNode }[] = [
       </>
     ),
   },
+  {
+    question: "Quels sont les horaires d'ouverture et y a-t-il un parking ?",
+    answer: (
+      <>
+        Le centre est ouvert du <strong>lundi au vendredi de 08h00 à 22h00</strong> et le{" "}
+        <strong>week-end de 09h00 à 21h00</strong>. Un parking gratuit est disponible devant le centre pour les patients et visiteurs. Vous pouvez nous retrouver au{" "}
+        <Link to="/centre" className="text-primary hover:underline font-medium">25 rue de la Procession, 7822 Meslin-l'Évêque</Link>.
+      </>
+    ),
+  },
 ];
 
 const Contact = () => {
