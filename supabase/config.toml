@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.notify-new-booking]
 verify_jwt = false
+
+[functions.invite-practitioner]
+verify_jwt = false

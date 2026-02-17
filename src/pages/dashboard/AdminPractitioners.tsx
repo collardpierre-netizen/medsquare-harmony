@@ -1,19 +1,30 @@
 import { useEffect, useState } from "react";
-import { Users, Ban, CheckCircle } from "lucide-react";
+import { Users, Ban, CheckCircle, Plus, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const AdminPractitioners = () => {
   const { toast } = useToast();
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [form, setForm] = useState({ email: "", first_name: "", last_name: "" });
 
   const fetchPractitioners = async () => {
-    // Fetch profiles and roles separately, then merge
     const [{ data: profiles }, { data: roles }] = await Promise.all([
       supabase.from("profiles").select("*").order("last_name"),
       supabase.from("user_roles").select("user_id, role"),
@@ -53,6 +64,30 @@ const AdminPractitioners = () => {
     }
   };
 
+  const handleInvite = async () => {
+    if (!form.email) {
+      toast({ title: "L'email est requis", variant: "destructive" });
+      return;
+    }
+    setInviting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("invite-practitioner", {
+        body: form,
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({ title: "Invitation envoyée !", description: `Un email a été envoyé à ${form.email}` });
+      setForm({ email: "", first_name: "", last_name: "" });
+      setOpen(false);
+      // Refresh after a short delay to let the trigger create the profile
+      setTimeout(() => fetchPractitioners(), 2000);
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible d'envoyer l'invitation", variant: "destructive" });
+    }
+    setInviting(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -63,6 +98,62 @@ const AdminPractitioners = () => {
               Gérez les profils et les accès des praticiens.
             </p>
           </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Inviter un praticien
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Inviter un nouveau praticien</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Le praticien recevra un email pour activer son compte et compléter son profil.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">Email *</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    placeholder="praticien@exemple.com"
+                    value={form.email}
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-first">Prénom</Label>
+                    <Input
+                      id="invite-first"
+                      placeholder="Jean"
+                      value={form.first_name}
+                      onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-last">Nom</Label>
+                    <Input
+                      id="invite-last"
+                      placeholder="Dupont"
+                      value={form.last_name}
+                      onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleInvite} disabled={inviting} className="w-full">
+                  {inviting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Mail className="h-4 w-4 mr-2" />
+                  )}
+                  Envoyer l'invitation
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
