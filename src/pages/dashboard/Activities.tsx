@@ -385,11 +385,27 @@ const Activities = () => {
                       </div>
 
                       <div className="flex sm:flex-col items-center gap-2">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={activity.is_active}
-                            onCheckedChange={() => toggleActive(activity)}
-                          />
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={activity.is_active}
+                              onCheckedChange={() => toggleActive(activity)}
+                            />
+                            <span className="text-[10px] text-muted-foreground">Actif</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={activity.booking_enabled}
+                              onCheckedChange={async () => {
+                                await supabase
+                                  .from("activities")
+                                  .update({ booking_enabled: !activity.booking_enabled })
+                                  .eq("id", activity.id);
+                                fetchActivities();
+                              }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">Résa en ligne</span>
+                          </div>
                         </div>
                         <Button
                           variant="outline"
