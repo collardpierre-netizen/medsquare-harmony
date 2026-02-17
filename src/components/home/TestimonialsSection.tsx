@@ -6,6 +6,7 @@ const TestimonialsSection = () => {
   const { settings } = useSiteSettings();
   const t = settings.testimonials;
 
+  if (!t.visible) return null;
   return (
     <section className="py-20 md:py-28">
       <div className="container mx-auto px-4">

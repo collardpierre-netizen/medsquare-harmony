@@ -38,6 +38,7 @@ export interface TestimonialItem {
 export interface TestimonialsSettings {
   badge: string;
   title: string;
+  visible: boolean;
   items: TestimonialItem[];
 }
 
@@ -78,6 +79,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   testimonials: {
     badge: "Témoignages",
     title: "Ce que disent nos patients",
+    visible: true,
     items: [
       { text: "Un accueil chaleureux et des praticiens à l'écoute. Je recommande vivement Medsquare à tous ceux qui cherchent un suivi médical de qualité.", author: "Marie D.", role: "Patiente depuis 2023" },
       { text: "Les locaux sont magnifiques et le personnel très professionnel. On se sent vraiment en confiance dès le premier rendez-vous.", author: "Jean-Pierre L.", role: "Patient depuis 2022" },
