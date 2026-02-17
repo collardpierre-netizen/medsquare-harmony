@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 const faqs = [
   {
     question: "Comment prendre rendez-vous ?",
-    answer: "Vous pouvez nous contacter par téléphone au +32 2 123 45 67 ou via le formulaire de contact ci-dessus. Nous vous répondrons dans les plus brefs délais.",
+    answer: "Vous pouvez nous contacter par téléphone au +32 498 64 41 30 ou via le formulaire de contact ci-dessus. Nous vous répondrons dans les plus brefs délais.",
   },
   {
     question: "Acceptez-vous les nouveaux patients ?",
@@ -36,7 +36,7 @@ const faqs = [
   },
   {
     question: "Est-il possible de consulter en urgence ?",
-    answer: "Nous faisons notre possible pour accueillir les urgences. Appelez-nous directement au +32 2 123 45 67 pour vérifier les disponibilités.",
+    answer: "Nous faisons notre possible pour accueillir les urgences. Appelez-nous directement au +32 498 64 41 30 pour vérifier les disponibilités.",
   },
   {
     question: "Êtes-vous conventionné ?",
@@ -174,7 +174,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm">Téléphone</h4>
-                    <p className="text-muted-foreground text-sm">+32 2 123 45 67</p>
+                    <p className="text-muted-foreground text-sm">+32 498 64 41 30</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -183,7 +183,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm">Email</h4>
-                    <p className="text-muted-foreground text-sm">contact@medsquare.be</p>
+                    <p className="text-muted-foreground text-sm">medsquare7822@gmail.com</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -192,7 +192,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm">Adresse</h4>
-                    <p className="text-muted-foreground text-sm">Avenue Louise 123, 1050 Bruxelles</p>
+                    <p className="text-muted-foreground text-sm">25 rue de la Procession, 7822 Meslin-l'Évêque</p>
                   </div>
                 </div>
               </div>
@@ -200,7 +200,7 @@ const Contact = () => {
               {/* Map */}
               <div className="rounded-xl overflow-hidden">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2520.041988087025!2d4.356!3d50.832!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c3c4852b2e0f9d%3A0x1e4f5a7b7c8d9e0f!2sAvenue%20Louise%2C%201050%20Bruxelles!5e0!3m2!1sfr!2sbe!4v1700000000000!5m2!1sfr!2sbe"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2544.0!2d3.745!3d50.595!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c3!2sRue%20de%20la%20Procession%2025%2C%207822%20Meslin-l%27%C3%89v%C3%AAque!5e0!3m2!1sfr!2sbe!4v1700000000000!5m2!1sfr!2sbe"
                   width="100%"
                   height="250"
                   style={{ border: 0 }}

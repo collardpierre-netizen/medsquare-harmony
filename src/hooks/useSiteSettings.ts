@@ -87,8 +87,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   contact: {
     title: "Une question ? Contactez-nous.",
     subtitle: "Notre équipe est à votre disposition pour répondre à toutes vos questions.",
-    phone: "+32 2 123 45 67",
-    email: "contact@medsquare.be",
+    phone: "+32 498 64 41 30",
+    email: "medsquare7822@gmail.com",
   },
 };
 
