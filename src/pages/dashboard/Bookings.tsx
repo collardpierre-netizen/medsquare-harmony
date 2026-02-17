@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
-import { MapPin, CalendarDays, LayoutGrid } from "lucide-react";
+import { MapPin, CalendarDays, LayoutGrid, User, Building2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,10 +20,12 @@ import NewBookingDialog from "@/components/dashboard/bookings/NewBookingDialog";
 import CancelBookingDialog from "@/components/dashboard/bookings/CancelBookingDialog";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import ActivityDetailDialog from "@/components/dashboard/bookings/ActivityDetailDialog";
+import MyPlanningView from "@/components/dashboard/bookings/MyPlanningView";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
+type PlanningMode = "my-planning" | "by-room";
 
 const Bookings = () => {
   const { profile, isAdmin } = useAuth();
@@ -50,6 +52,7 @@ const Bookings = () => {
   const [activitySessions, setActivitySessions] = useState<ActivitySessionSlot[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<ActivitySessionSlot | null>(null);
   const [showActivityDetail, setShowActivityDetail] = useState(false);
+  const [planningMode, setPlanningMode] = useState<PlanningMode>("my-planning");
 
   // Fetch rooms
   useEffect(() => {
@@ -428,91 +431,136 @@ const Bookings = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header with room selector and view toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="font-display text-xl font-bold">Réserver une salle</h2>
-            <p className="text-muted-foreground text-sm mt-0.5">
-              Consultez les disponibilités et réservez un créneau.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* View toggle */}
-            <div className="flex items-center bg-muted rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("week")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                  viewMode === "week"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                Semaine
-              </button>
-              <button
-                onClick={() => setViewMode("day")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                  viewMode === "day"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <CalendarDays className="h-3.5 w-3.5" />
-                Jour
-              </button>
-            </div>
-
-            <div className="h-6 w-px bg-border" />
-
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Choisir une salle" />
-              </SelectTrigger>
-              <SelectContent>
-                {rooms.map((room: any) => (
-                  <SelectItem key={room.id} value={room.id}>
-                    {room.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Planning mode toggle */}
+        <div className="flex items-center bg-muted rounded-lg p-1 w-fit">
+          <button
+            onClick={() => setPlanningMode("my-planning")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all",
+              planningMode === "my-planning"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <User className="h-4 w-4" />
+            Mon Planning
+          </button>
+          <button
+            onClick={() => setPlanningMode("by-room")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all",
+              planningMode === "by-room"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Building2 className="h-4 w-4" />
+            Par salle
+          </button>
         </div>
 
-        {/* Date picker */}
-        <WeekDatePicker
-          weekStart={weekStart}
-          selectedDate={selectedDate}
-          onWeekChange={setWeekStart}
-          onDateSelect={(day) => {
-            setSelectedDate(day);
-          }}
-        />
-
-        {/* View content */}
-        {viewMode === "week" ? (
-          <WeeklyOverview
-            weekStart={weekStart}
-            selectedRoom={selectedRoom}
-            rooms={rooms}
-            onSlotClick={handleDayClickFromWeek}
-            onActivityClick={handleActivityClick}
-            onBookingClick={handleBookingClick}
-          />
+        {planningMode === "my-planning" ? (
+          <>
+            {/* Date picker */}
+            <WeekDatePicker
+              weekStart={weekStart}
+              selectedDate={selectedDate}
+              onWeekChange={setWeekStart}
+              onDateSelect={(day) => setSelectedDate(day)}
+            />
+            <MyPlanningView
+              weekStart={weekStart}
+              profileId={profile?.id || ""}
+              isAdmin={isAdmin}
+              rooms={rooms}
+              onBookingClick={handleBookingClick}
+              onActivityClick={handleActivityClick}
+            />
+          </>
         ) : (
-          <TimeSlotsGrid
-            selectedDate={selectedDate}
-            bookings={bookings}
-            activitySessions={activitySessions}
-            rooms={rooms}
-            onSlotClick={handleSlotClick}
-            onBookingClick={handleBookingClick}
-            onActivityClick={handleActivityClick}
-          />
+          <>
+            {/* Header with room selector and view toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="font-display text-xl font-bold">Réserver une salle</h2>
+                <p className="text-muted-foreground text-sm mt-0.5">
+                  Consultez les disponibilités et réservez un créneau.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-muted rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode("week")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                      viewMode === "week"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    Semaine
+                  </button>
+                  <button
+                    onClick={() => setViewMode("day")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                      viewMode === "day"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    Jour
+                  </button>
+                </div>
+                <div className="h-6 w-px bg-border" />
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Choisir une salle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rooms.map((room: any) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        {room.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Date picker */}
+            <WeekDatePicker
+              weekStart={weekStart}
+              selectedDate={selectedDate}
+              onWeekChange={setWeekStart}
+              onDateSelect={(day) => setSelectedDate(day)}
+            />
+
+            {/* View content */}
+            {viewMode === "week" ? (
+              <WeeklyOverview
+                weekStart={weekStart}
+                selectedRoom={selectedRoom}
+                rooms={rooms}
+                onSlotClick={handleDayClickFromWeek}
+                onActivityClick={handleActivityClick}
+                onBookingClick={handleBookingClick}
+              />
+            ) : (
+              <TimeSlotsGrid
+                selectedDate={selectedDate}
+                bookings={bookings}
+                activitySessions={activitySessions}
+                rooms={rooms}
+                onSlotClick={handleSlotClick}
+                onBookingClick={handleBookingClick}
+                onActivityClick={handleActivityClick}
+              />
+            )}
+          </>
         )}
       </div>
 
