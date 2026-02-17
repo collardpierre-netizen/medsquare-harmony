@@ -54,6 +54,7 @@ interface Activity {
   is_free: boolean;
   price: number | null;
   location: string | null;
+  booking_enabled: boolean;
   profiles: {
     id: string;
     first_name: string;
@@ -92,7 +93,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, profiles(id, first_name, last_name, specialty, avatar_url)"
+          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, profiles(id, first_name, last_name, specialty, avatar_url)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -322,6 +323,7 @@ const ActiviteDetail = () => {
             <Separator className="mb-8" />
 
             {/* Sessions */}
+            {activity.booking_enabled && (
             <div className="mb-8">
               <h2 className="font-display text-xl font-semibold mb-4">
                 Prochaines séances
@@ -334,6 +336,7 @@ const ActiviteDetail = () => {
                 onUnregister={handleUnregister}
               />
             </div>
+            )}
           </motion.div>
 
           {/* Right sidebar — practitioner card */}
@@ -390,6 +393,7 @@ const ActiviteDetail = () => {
               <Separator className="my-5" />
 
               <div className="space-y-3 text-sm">
+                {activity.booking_enabled && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
                   <span className="font-medium">
@@ -397,6 +401,7 @@ const ActiviteDetail = () => {
                     à venir
                   </span>
                 </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
                   <span>{activity.duration_minutes} minutes par séance</span>
@@ -409,7 +414,7 @@ const ActiviteDetail = () => {
                 )}
               </div>
 
-              {!user && sessions.length > 0 && (
+              {activity.booking_enabled && !user && sessions.length > 0 && (
                 <>
                   <Separator className="my-5" />
                   <p className="text-xs text-muted-foreground">
