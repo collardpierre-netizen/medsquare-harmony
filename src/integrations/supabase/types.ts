@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       activities: {
         Row: {
+          booking_enabled: boolean
           category: string
           created_at: string
           description: string | null
@@ -34,6 +35,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_enabled?: boolean
           category?: string
           created_at?: string
           description?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_enabled?: boolean
           category?: string
           created_at?: string
           description?: string | null
@@ -297,6 +300,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          break_minutes: number
           contact_email: string | null
           created_at: string
           first_name: string
@@ -313,6 +317,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          break_minutes?: number
           contact_email?: string | null
           created_at?: string
           first_name?: string
@@ -329,6 +334,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          break_minutes?: number
           contact_email?: string | null
           created_at?: string
           first_name?: string

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, User, MapPin, Award } from "lucide-react";
+import { ArrowLeft, User, MapPin, Award, CalendarPlus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfoSidebar";
 import PractitionerActivities from "@/components/practitioners/PractitionerActivities";
+import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 
 interface DaySchedule {
   day: string;
@@ -36,6 +37,9 @@ interface ActivityWithSessions {
   duration_minutes: number;
   max_participants: number | null;
   photo_url?: string | null;
+  is_free: boolean;
+  price: number | null;
+  booking_enabled: boolean;
   activity_sessions: {
     id: string;
     start_time: string;
@@ -52,6 +56,7 @@ const PraticienDetail = () => {
   const [activities, setActivities] = useState<ActivityWithSessions[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,7 +89,7 @@ const PraticienDetail = () => {
 
       const { data: acts } = await supabase
         .from("activities")
-        .select("id, title, category, description, duration_minutes, max_participants, photo_url, activity_sessions(id, start_time, end_time, rooms(name))")
+        .select("id, title, category, description, duration_minutes, max_participants, photo_url, is_free, price, booking_enabled, activity_sessions(id, start_time, end_time, rooms(name))")
         .eq("practitioner_id", profile.id)
         .eq("is_active", true)
         .order("title");
@@ -246,6 +251,12 @@ const PraticienDetail = () => {
               practitioner={practitioner}
               scheduleSlots={scheduleSlots}
             />
+            {activities.length > 0 && (
+              <Button className="w-full mt-4" onClick={() => setShowBooking(true)}>
+                <CalendarPlus className="h-4 w-4 mr-2" />
+                Prendre rendez-vous
+              </Button>
+            )}
           </motion.div>
         </div>
 
@@ -263,8 +274,32 @@ const PraticienDetail = () => {
             <Link to="/contact">
               <Button size="sm">Contacter</Button>
             </Link>
+            {activities.length > 0 && (
+              <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>
+                <CalendarPlus className="h-4 w-4 mr-1" />
+                Réserver
+              </Button>
+            )}
           </div>
         </div>
+
+        {practitioner && (
+          <PatientBookingDialog
+            open={showBooking}
+            onOpenChange={setShowBooking}
+            practitionerId={practitioner.id}
+            practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
+            activities={activities.map((a) => ({
+              id: a.id,
+              title: a.title,
+              duration_minutes: a.duration_minutes,
+              price: a.price,
+              is_free: a.is_free,
+              max_participants: a.max_participants,
+              category: a.category,
+            }))}
+          />
+        )}
       </div>
     </Layout>
   );
