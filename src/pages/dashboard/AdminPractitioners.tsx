@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, Ban, CheckCircle, Plus, Loader2, Mail } from "lucide-react";
+import { Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +22,7 @@ const AdminPractitioners = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", first_name: "", last_name: "" });
 
   const fetchPractitioners = async () => {
@@ -86,6 +87,28 @@ const AdminPractitioners = () => {
       toast({ title: "Erreur", description: err.message || "Impossible d'envoyer l'invitation", variant: "destructive" });
     }
     setInviting(false);
+  };
+
+  const handleResendInvite = async (practitioner: any) => {
+    setResendingId(practitioner.id);
+    try {
+      const res = await supabase.functions.invoke("invite-practitioner", {
+        body: { resend_user_id: practitioner.user_id },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({
+        title: "Invitation renvoyée !",
+        description: `Un nouvel email a été envoyé à ${practitioner.first_name} ${practitioner.last_name}.`,
+      });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de renvoyer l'invitation", variant: "destructive" });
+    }
+    setResendingId(null);
+  };
+
+  const isAccountPending = (p: any) => {
+    return p.created_at === p.updated_at && !p.contact_email && !p.specialty;
   };
 
   return (
@@ -195,6 +218,22 @@ const AdminPractitioners = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isAccountPending(p) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs gap-1.5"
+                          disabled={resendingId === p.id}
+                          onClick={() => handleResendInvite(p)}
+                        >
+                          {resendingId === p.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                          Renvoyer
+                        </Button>
+                      )}
                       <Badge
                         variant="secondary"
                         className={
