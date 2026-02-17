@@ -24,6 +24,7 @@ const ICON_OPTIONS = ["Heart", "Users", "Shield", "Clock", "Star", "Zap", "Award
 const AdminSiteSettings = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
   const [centreVideoUrl, setCentreVideoUrl] = useState("");
+  const [centreGallery, setCentreGallery] = useState<{ url: string; alt: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -32,13 +33,18 @@ const AdminSiteSettings = () => {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["hero", "why", "testimonials", "contact", "centre_video"]);
+        .in("key", ["hero", "why", "testimonials", "contact", "centre_video", "centre_gallery"]);
       if (data && data.length > 0) {
         const merged = { ...DEFAULT_SETTINGS };
         for (const row of data) {
           if (row.key === "centre_video") {
             const val = row.value as any;
             if (val?.url) setCentreVideoUrl(val.url);
+            continue;
+          }
+          if (row.key === "centre_gallery") {
+            const val = row.value as any;
+            if (val?.images) setCentreGallery(val.images);
             continue;
           }
           const k = row.key as keyof SiteSettings;
@@ -73,6 +79,40 @@ const AdminSiteSettings = () => {
       toast.error("Erreur lors de la sauvegarde.");
     }
     setSaving(null);
+  };
+
+  const saveCentreGallery = async () => {
+    setSaving("centre_gallery");
+    try {
+      await supabase
+        .from("settings")
+        .upsert({ key: "centre_gallery", value: { images: centreGallery }, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      toast.success("Galerie sauvegardée !");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde.");
+    }
+    setSaving(null);
+  };
+
+  const addCentreGalleryImage = (url: string) => {
+    setCentreGallery((prev) => [...prev, { url, alt: "Photo du centre" }]);
+  };
+
+  const removeCentreGalleryImage = async (idx: number) => {
+    const img = centreGallery[idx];
+    if (img?.url) {
+      const marker = "/storage/v1/object/public/site-assets/";
+      const pathIdx = img.url.indexOf(marker);
+      if (pathIdx >= 0) {
+        const path = img.url.slice(pathIdx + marker.length);
+        await supabase.storage.from("site-assets").remove([path]);
+      }
+    }
+    setCentreGallery((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateCentreGalleryAlt = (idx: number, alt: string) => {
+    setCentreGallery((prev) => prev.map((img, i) => (i === idx ? { ...img, alt } : img)));
   };
 
   const updateHero = (field: string, value: any) =>
@@ -475,6 +515,59 @@ const AdminSiteSettings = () => {
                 )}
                 <Button onClick={saveCentreVideo} disabled={saving === "centre_video"}>
                   {saving === "centre_video" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Sauvegarder
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Page Centre — Galerie photos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Gérez les photos de la section "Nos espaces" sur la page Le Centre. Sans images, les photos par défaut seront affichées.
+                </p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {centreGallery.map((img, idx) => (
+                    <div key={idx} className="relative group border border-border rounded-lg overflow-hidden">
+                      <img src={img.url} alt={img.alt} className="w-full h-28 object-cover" />
+                      <div className="p-2">
+                        <Input
+                          value={img.alt}
+                          onChange={(e) => updateCentreGalleryAlt(idx, e.target.value)}
+                          placeholder="Texte alternatif"
+                          className="text-xs h-7"
+                        />
+                      </div>
+                      <button
+                        onClick={() => removeCentreGalleryImage(idx)}
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <ImageUpload
+                    bucket="site-assets"
+                    folder="centre"
+                    currentUrl={null}
+                    onUpload={(url) => addCentreGalleryImage(url)}
+                    shape="rounded"
+                    className="w-full h-28"
+                    placeholder={
+                      <div className="flex flex-col items-center gap-1 p-4 h-28 justify-center">
+                        <ImagePlus className="h-6 w-6 text-muted-foreground/40" />
+                        <span className="text-[10px] text-muted-foreground/60">Ajouter une photo</span>
+                      </div>
+                    }
+                  />
+                </div>
+
+                <Button onClick={saveCentreGallery} disabled={saving === "centre_gallery"}>
+                  {saving === "centre_gallery" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Sauvegarder
                 </Button>
               </CardContent>

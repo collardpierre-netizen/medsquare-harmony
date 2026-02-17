@@ -22,43 +22,50 @@ const values = [
   },
 ];
 
-const galleryImages = [
+const DEFAULT_GALLERY = [
   {
-    src: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&h=400&fit=crop",
+    url: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&h=400&fit=crop",
     alt: "Salle d'attente Medsquare",
   },
   {
-    src: "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=600&h=400&fit=crop",
+    url: "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=600&h=400&fit=crop",
     alt: "Bureau de consultation",
   },
   {
-    src: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&h=400&fit=crop",
+    url: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&h=400&fit=crop",
     alt: "Couloir du centre",
   },
   {
-    src: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop",
+    url: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop",
     alt: "Espace de soins",
   },
 ];
 
 const Centre = () => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [galleryImages, setGalleryImages] = useState(DEFAULT_GALLERY);
 
   useEffect(() => {
-    const fetchVideo = async () => {
+    const fetchSettings = async () => {
       const { data } = await supabase
         .from("settings")
-        .select("value")
-        .eq("key", "centre_video")
-        .maybeSingle();
-      if (data?.value && typeof data.value === "object" && !Array.isArray(data.value)) {
-        const val = data.value as Record<string, unknown>;
-        if (val.url && typeof val.url === "string") {
-          setVideoUrl(val.url);
+        .select("key, value")
+        .in("key", ["centre_video", "centre_gallery"]);
+      if (data) {
+        for (const row of data) {
+          if (row.key === "centre_video") {
+            const val = row.value as Record<string, unknown>;
+            if (val?.url && typeof val.url === "string") setVideoUrl(val.url);
+          }
+          if (row.key === "centre_gallery") {
+            const val = row.value as Record<string, unknown>;
+            const images = val?.images as { url: string; alt: string }[] | undefined;
+            if (images && images.length > 0) setGalleryImages(images);
+          }
         }
       }
     };
-    fetchVideo();
+    fetchSettings();
   }, []);
 
   return (
@@ -137,7 +144,7 @@ const Centre = () => {
                 className="overflow-hidden rounded-xl"
               >
                 <img
-                  src={img.src}
+                  src={img.url}
                   alt={img.alt}
                   className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
                   loading="lazy"
