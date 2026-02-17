@@ -34,9 +34,15 @@ const DailyExport = () => {
     if (!profile) return;
     setLoading(true);
 
-    const date = new Date(selectedDate);
-    const dayStart = startOfDay(date).toISOString();
-    const dayEnd = addDays(startOfDay(date), 1).toISOString();
+    try {
+      const date = new Date(selectedDate + "T00:00:00");
+      if (isNaN(date.getTime())) {
+        toast({ variant: "destructive", title: "Date invalide" });
+        setLoading(false);
+        return;
+      }
+      const dayStart = startOfDay(date).toISOString();
+      const dayEnd = addDays(startOfDay(date), 1).toISOString();
 
     // Fetch bookings
     const { data: bookings } = await supabase
@@ -82,7 +88,11 @@ const DailyExport = () => {
     ].sort((a, b) => a.start_time.localeCompare(b.start_time));
 
     setAppointments(allAppts);
-    setLoading(false);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erreur lors du chargement" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exportCSV = () => {
