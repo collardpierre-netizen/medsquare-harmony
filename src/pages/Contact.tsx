@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Send } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -21,26 +22,44 @@ import {
 } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 
-const faqs = [
+const faqs: { question: string; answer: ReactNode }[] = [
   {
     question: "Comment prendre rendez-vous ?",
-    answer: "Vous pouvez nous contacter par téléphone au +32 498 64 41 30 ou via le formulaire de contact ci-dessus. Nous vous répondrons dans les plus brefs délais.",
+    answer: (
+      <>
+        Pour réserver un espace en tant que professionnel de santé, contactez-nous directement au{" "}
+        <strong>+32 498 64 41 30</strong> ou via le formulaire ci-dessus. Pour les patients souhaitant prendre rendez-vous pour une consultation, veuillez vous adresser directement au praticien de votre choix via{" "}
+        <Link to="/praticiens" className="text-primary hover:underline font-medium">notre page Praticiens</Link>.
+      </>
+    ),
   },
   {
     question: "Acceptez-vous les nouveaux patients ?",
-    answer: "Oui, nous accueillons de nouveaux patients. N'hésitez pas à nous contacter pour connaître les disponibilités de nos praticiens.",
+    answer: (
+      <>
+        Chaque praticien gère ses propres consultations et disponibilités. Nous vous invitons à contacter directement le praticien de votre choix via{" "}
+        <Link to="/praticiens" className="text-primary hover:underline font-medium">notre page Praticiens</Link>.
+      </>
+    ),
   },
   {
     question: "Quels sont vos tarifs ?",
-    answer: "Nos tarifs varient selon la spécialité et le type de consultation. Nous vous invitons à nous contacter pour obtenir des informations détaillées.",
+    answer: (
+      <>
+        Les tarifs de consultation varient selon chaque praticien. Retrouvez les informations et coordonnées de chacun d'eux sur{" "}
+        <Link to="/praticiens" className="text-primary hover:underline font-medium">notre page Praticiens</Link>. Pour les tarifs de location d'espaces, contactez-nous directement.
+      </>
+    ),
   },
   {
-    question: "Est-il possible de consulter en urgence ?",
-    answer: "Nous faisons notre possible pour accueillir les urgences. Appelez-nous directement au +32 498 64 41 30 pour vérifier les disponibilités.",
-  },
-  {
-    question: "Êtes-vous conventionné ?",
-    answer: "Nos praticiens sont conventionnés. Les remboursements dépendent de votre mutuelle et du type de consultation.",
+    question: "Peut-on louer une salle pour un événement ?",
+    answer: (
+      <>
+        Oui ! Nos espaces sont disponibles à la location pour des séminaires, formations, ateliers de groupe ou tout autre événement professionnel. Contactez-nous au{" "}
+        <strong>+32 498 64 41 30</strong> ou via le formulaire ci-dessus pour connaître les disponibilités et tarifs. Découvrez nos espaces sur{" "}
+        <Link to="/espaces" className="text-primary hover:underline font-medium">notre page Espaces</Link>.
+      </>
+    ),
   },
 ];
 
