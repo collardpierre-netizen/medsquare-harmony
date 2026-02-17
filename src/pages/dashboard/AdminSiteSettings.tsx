@@ -181,7 +181,7 @@ const AdminSiteSettings = () => {
       why: { ...s.why, features: s.why.features.filter((_, i) => i !== idx) },
     }));
 
-  const updateTestimonials = (field: string, value: string) =>
+  const updateTestimonials = (field: string, value: string | boolean) =>
     setSettings((s) => ({ ...s, testimonials: { ...s.testimonials, [field]: value } }));
 
   const updateTestimonial = (idx: number, field: keyof TestimonialItem, value: string) =>
@@ -397,8 +397,18 @@ const AdminSiteSettings = () => {
           {/* TESTIMONIALS */}
           <TabsContent value="testimonials">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Témoignages</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="testimonials-visible" className="text-sm text-muted-foreground">Afficher</Label>
+                  <input
+                    id="testimonials-visible"
+                    type="checkbox"
+                    checked={settings.testimonials.visible !== false}
+                    onChange={(e) => updateTestimonials("visible", e.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
