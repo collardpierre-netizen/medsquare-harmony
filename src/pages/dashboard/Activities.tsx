@@ -51,6 +51,7 @@ interface ActivityForm {
   photos: string[];
   is_free: boolean;
   price: number | null;
+  booking_enabled: boolean;
 }
 
 const emptyForm: ActivityForm = {
@@ -64,6 +65,7 @@ const emptyForm: ActivityForm = {
   photos: [],
   is_free: true,
   price: null,
+  booking_enabled: false,
 };
 
 const Activities = () => {
@@ -171,6 +173,7 @@ const Activities = () => {
       photos: activity.photos || [],
       is_free: activity.is_free ?? true,
       price: activity.price ?? null,
+      booking_enabled: activity.booking_enabled ?? false,
     });
     setShowDialog(true);
   };
@@ -339,6 +342,11 @@ const Activities = () => {
                           <Badge variant={activity.is_free ? "secondary" : "default"} className="text-[10px]">
                             {activity.is_free ? "Gratuit" : `${activity.price ?? "—"} €`}
                           </Badge>
+                          {activity.booking_enabled && (
+                            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                              Réservation en ligne
+                            </Badge>
+                          )}
                           {(activity.photos?.length || 0) > 0 && (
                             <span className="flex items-center gap-1">
                               <ImageIcon className="h-3.5 w-3.5" />
@@ -483,6 +491,21 @@ const Activities = () => {
                 </div>
               )}
             </div>
+
+            {/* Online booking toggle */}
+            <div className="rounded-xl border border-border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm">Réservation en ligne activée</Label>
+                  <p className="text-xs text-muted-foreground">Les patients pourront réserver un créneau directement depuis votre page</p>
+                </div>
+                <Switch
+                  checked={form.booking_enabled}
+                  onCheckedChange={(checked) => setForm({ ...form, booking_enabled: checked })}
+                />
+              </div>
+            </div>
+
             <div>
               <Label>Titre</Label>
               <Input
