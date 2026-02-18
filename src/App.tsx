@@ -30,6 +30,7 @@ import AdminSiteSettings from "./pages/dashboard/AdminSiteSettings";
 import DailyExport from "./pages/dashboard/DailyExport";
 import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import NotFound from "./pages/NotFound";
+import GuestRegistration from "./pages/GuestRegistration";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/espaces/:id" element={<EspaceDetail />} />
             <Route path="/activites" element={<Activites />} />
             <Route path="/activites/:id" element={<ActiviteDetail />} />
+            <Route path="/mon-inscription" element={<GuestRegistration />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
 

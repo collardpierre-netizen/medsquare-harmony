@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     const { data: registration, error: regError } = await supabase
       .from("activity_registrations")
-      .select("user_id, guest_name, guest_email, session_id")
+      .select("user_id, guest_name, guest_email, session_id, cancellation_token")
       .eq("id", registration_id)
       .single();
 
@@ -94,6 +94,11 @@ Deno.serve(async (req) => {
     const activityDescription = session.activities?.description || "";
     const roomName = session.rooms?.name || "À déterminer";
 
+    const siteUrl = "https://medsquare-harmony.lovable.app";
+    const cancellationUrl = registration.cancellation_token
+      ? `${siteUrl}/mon-inscription?token=${registration.cancellation_token}`
+      : null;
+
     const content = `
       <p>Bonjour <strong>${recipientName}</strong>,</p>
       <p>Votre inscription a été confirmée ! 🎉</p>
@@ -119,7 +124,17 @@ Deno.serve(async (req) => {
         <p style="margin:8px 0 0;color:#555;font-size:13px;">Rendez-vous 10 minutes avant le début de la séance.</p>
       </div>
 
+      ${cancellationUrl ? `
+      <div style="margin:20px 0;padding:16px;background:#F9FAFB;border-radius:10px;border:1px solid #E5E7EB;">
+        <p style="margin:0 0 8px;font-weight:700;color:#374151;font-size:13px;">Besoin d'annuler ?</p>
+        <p style="margin:0 0 12px;color:#555;font-size:13px;line-height:1.5;">Si vous ne pouvez pas venir, merci de libérer votre place via le lien ci-dessous :</p>
+        <a href="${cancellationUrl}" style="display:inline-block;padding:10px 20px;background:#ffffff;color:#024D30;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;border:2px solid #024D30;">
+          Gérer mon inscription
+        </a>
+      </div>
+      ` : `
       <p style="margin-top:24px;font-size:13px;color:#888;">Si vous devez annuler, veuillez nous prévenir à l'avance pour libérer votre place aux autres participants.</p>
+      `}
     `;
 
     const html = medsquareEmail({
