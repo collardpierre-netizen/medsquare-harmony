@@ -6,13 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, Loader2, ImagePlus, GripVertical, Video } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ImagePlus, Video } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_SETTINGS,
   SiteSettings,
   FeatureItem,
   TestimonialItem,
+  FaqItem,
   HeroImageItem,
   saveSiteSettings,
 } from "@/hooks/useSiteSettings";
@@ -33,7 +34,7 @@ const AdminSiteSettings = () => {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["hero", "why", "testimonials", "contact", "centre_video", "centre_gallery"]);
+        .in("key", ["hero", "why", "testimonials", "contact", "faq", "centre_video", "centre_gallery"]);
       if (data && data.length > 0) {
         const merged = { ...DEFAULT_SETTINGS };
         for (const row of data) {
@@ -208,6 +209,30 @@ const AdminSiteSettings = () => {
   const updateContact = (field: string, value: string) =>
     setSettings((s) => ({ ...s, contact: { ...s.contact, [field]: value } }));
 
+  const updateFaq = (field: string, value: string | boolean) =>
+    setSettings((s) => ({ ...s, faq: { ...s.faq, [field]: value } }));
+
+  const updateFaqItem = (idx: number, field: keyof FaqItem, value: string) =>
+    setSettings((s) => ({
+      ...s,
+      faq: {
+        ...s.faq,
+        items: s.faq.items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
+      },
+    }));
+
+  const addFaqItem = () =>
+    setSettings((s) => ({
+      ...s,
+      faq: { ...s.faq, items: [...s.faq.items, { question: "", answer: "" }] },
+    }));
+
+  const removeFaqItem = (idx: number) =>
+    setSettings((s) => ({
+      ...s,
+      faq: { ...s.faq, items: s.faq.items.filter((_, i) => i !== idx) },
+    }));
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -227,10 +252,11 @@ const AdminSiteSettings = () => {
         </div>
 
         <Tabs defaultValue="hero" className="space-y-4">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="why">Valeurs</TabsTrigger>
             <TabsTrigger value="testimonials">Témoignages</TabsTrigger>
+            <TabsTrigger value="faq">FAQ</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
             <TabsTrigger value="centre">Centre</TabsTrigger>
           </TabsList>
@@ -455,6 +481,67 @@ const AdminSiteSettings = () => {
 
                 <Button onClick={() => save("testimonials")} disabled={saving === "testimonials"}>
                   {saving === "testimonials" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Sauvegarder
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* FAQ */}
+          <TabsContent value="faq">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">FAQ</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="faq-visible" className="text-sm text-muted-foreground">Afficher</Label>
+                  <input
+                    id="faq-visible"
+                    type="checkbox"
+                    checked={settings.faq.visible !== false}
+                    onChange={(e) => updateFaq("visible", e.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Badge</Label>
+                  <Input value={settings.faq.badge} onChange={(e) => updateFaq("badge", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Titre</Label>
+                  <Input value={settings.faq.title} onChange={(e) => updateFaq("title", e.target.value)} />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Questions</Label>
+                    <Button variant="outline" size="sm" onClick={addFaqItem}>
+                      <Plus className="h-4 w-4 mr-1" /> Ajouter
+                    </Button>
+                  </div>
+                  {settings.faq.items.map((item, idx) => (
+                    <div key={idx} className="border border-border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Question {idx + 1}</span>
+                        <Button variant="ghost" size="sm" onClick={() => removeFaqItem(idx)} className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Question</Label>
+                        <Input value={item.question} onChange={(e) => updateFaqItem(idx, "question", e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Réponse</Label>
+                        <Textarea value={item.answer} onChange={(e) => updateFaqItem(idx, "answer", e.target.value)} rows={3} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Button onClick={() => save("faq")} disabled={saving === "faq"}>
+                  {saving === "faq" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Sauvegarder
                 </Button>
               </CardContent>

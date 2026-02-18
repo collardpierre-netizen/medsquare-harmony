@@ -4,6 +4,7 @@ import WhyMedsquare from "@/components/home/WhyMedsquare";
 import PractitionersPreview from "@/components/home/PractitionersPreview";
 import SpacesPreview from "@/components/home/SpacesPreview";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
+import FaqSection from "@/components/home/FaqSection";
 import ContactBand from "@/components/home/ContactBand";
 
 const Index = () => {
@@ -14,9 +15,11 @@ const Index = () => {
       <PractitionersPreview />
       <SpacesPreview />
       <TestimonialsSection />
+      <FaqSection />
       <ContactBand />
     </Layout>
   );
 };
 
 export default Index;
+
