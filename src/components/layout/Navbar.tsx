@@ -65,33 +65,41 @@ const Navbar = () => {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-background border-b border-border">
-          <ul className="flex flex-col p-4 gap-1">
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  to={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "block px-4 py-3 rounded-md text-sm font-medium transition-colors",
-                    location.pathname === link.href
-                      ? "text-primary bg-accent"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                  )}
-                >
-                  {link.label}
+        <>
+          {/* Overlay to close menu */}
+          <div
+            className="fixed inset-0 top-16 bg-foreground/20 z-40 md:hidden cursor-pointer"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="md:hidden bg-background border-b border-border relative z-50 shadow-lg">
+            <ul className="flex flex-col px-4 py-2">
+              {navLinks.map((link) => (
+                <li key={link.href} className="border-b border-border/50 last:border-0">
+                  <Link
+                    to={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "block px-3 py-3.5 text-sm font-medium transition-colors",
+                      location.pathname === link.href
+                        ? "text-primary"
+                        : "text-foreground hover:text-primary"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+              <li className="py-3">
+                <Link to="/login" onClick={() => setIsOpen(false)}>
+                  <Button variant="outline" className="w-full" size="sm">
+                    Espace praticien
+                  </Button>
                 </Link>
               </li>
-            ))}
-            <li className="pt-2">
-              <Link to="/login" onClick={() => setIsOpen(false)}>
-                <Button variant="outline" className="w-full" size="sm">
-                  Espace praticien
-                </Button>
-              </Link>
-            </li>
-          </ul>
-        </div>
+            </ul>
+          </div>
+        </>
       )}
     </header>
   );
