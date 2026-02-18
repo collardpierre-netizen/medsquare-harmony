@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
-import { addDays, format, startOfDay, isBefore, isSameDay, isWeekend } from "date-fns";
+import { addDays, format, startOfDay, isBefore, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface WeeklyOverviewProps {
   weekStart: Date;
@@ -19,11 +20,21 @@ interface WeeklyOverviewProps {
 const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivityClick, onBookingClick }: WeeklyOverviewProps) => {
   const [weekBookings, setWeekBookings] = useState<Booking[]>([]);
   const [weekActivities, setWeekActivities] = useState<ActivitySessionSlot[]>([]);
+  const isMobile = useIsMobile();
 
-  const weekDays = useMemo(
+  const allWeekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart]
   );
+
+  // On mobile, hide past days to save space (keep today + future)
+  const weekDays = useMemo(() => {
+    if (!isMobile) return allWeekDays;
+    const today = startOfDay(new Date());
+    const future = allWeekDays.filter((d) => !isBefore(startOfDay(d), today));
+    // Always show at least today (or the closest future day)
+    return future.length > 0 ? future : allWeekDays.slice(-1);
+  }, [allWeekDays, isMobile]);
 
   const allHours = useMemo(() => {
     return Array.from({ length: 14 }, (_, i) => i + 8);
@@ -119,33 +130,36 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="font-display text-base">
             Planning hebdomadaire — {roomName}
           </CardTitle>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-accent border border-border" />
-              Libre
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-primary/20 border border-primary/30" />
-              Réservé
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-orange-500/20 border border-orange-500/30" />
-              Activité
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-muted border border-border opacity-50" />
-              Fermé / Passé
+          <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+            {isMobile && allWeekDays.length !== weekDays.length && (
+              <span className="text-[10px] text-muted-foreground/70 italic">
+                {allWeekDays.length - weekDays.length} jour{allWeekDays.length - weekDays.length > 1 ? "s" : ""} passé{allWeekDays.length - weekDays.length > 1 ? "s" : ""} masqué{allWeekDays.length - weekDays.length > 1 ? "s" : ""}
+              </span>
+            )}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-accent border border-border" />
+                Libre
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-primary/20 border border-primary/30" />
+                Réservé
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-orange-500/20 border border-orange-500/30" />
+                Activité
+              </div>
             </div>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[640px]">
+          <table className="w-full border-collapse" style={{ minWidth: `${weekDays.length * 90 + 64}px` }}>
             <thead>
               <tr>
                 <th className="text-left text-xs font-semibold text-muted-foreground p-2 w-16 sticky left-0 bg-card">
