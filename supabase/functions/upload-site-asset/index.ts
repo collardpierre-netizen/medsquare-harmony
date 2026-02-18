@@ -57,9 +57,9 @@ Deno.serve(async (req) => {
       return json({ error: "Fichier ou dossier manquant" }, 400);
     }
 
-    const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+    const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
     if (file.size > MAX_SIZE) {
-      return json({ error: "Fichier trop volumineux (max 5 Mo)" }, 400);
+      return json({ error: "Fichier trop volumineux (max 20 Mo)" }, 400);
     }
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
