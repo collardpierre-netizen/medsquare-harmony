@@ -78,6 +78,7 @@ const Activities = () => {
   const [form, setForm] = useState<ActivityForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [confirmDisableBooking, setConfirmDisableBooking] = useState<any | null>(null);
 
   // Session scheduling
   const [showSessionDialog, setShowSessionDialog] = useState(false);
@@ -397,11 +398,17 @@ const Activities = () => {
                             <Switch
                               checked={activity.booking_enabled}
                               onCheckedChange={async () => {
-                                await supabase
-                                  .from("activities")
-                                  .update({ booking_enabled: !activity.booking_enabled })
-                                  .eq("id", activity.id);
-                                fetchActivities();
+                                if (activity.booking_enabled) {
+                                  // Désactivation → demander confirmation
+                                  setConfirmDisableBooking(activity);
+                                } else {
+                                  // Activation → immédiate
+                                  await supabase
+                                    .from("activities")
+                                    .update({ booking_enabled: true })
+                                    .eq("id", activity.id);
+                                  fetchActivities();
+                                }
                               }}
                             />
                             <span className="text-[10px] text-muted-foreground">Résa en ligne</span>
@@ -653,6 +660,47 @@ const Activities = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm disable booking dialog */}
+      <Dialog open={!!confirmDisableBooking} onOpenChange={() => setConfirmDisableBooking(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display">Désactiver la réservation en ligne ?</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Les visiteurs ne pourront plus s'inscrire en ligne à{" "}
+              <span className="font-semibold text-foreground">
+                {confirmDisableBooking?.title}
+              </span>
+              .
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Les inscriptions existantes ne seront pas affectées.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDisableBooking(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                await supabase
+                  .from("activities")
+                  .update({ booking_enabled: false })
+                  .eq("id", confirmDisableBooking.id);
+                setConfirmDisableBooking(null);
+                fetchActivities();
+                toast({ title: "Réservation en ligne désactivée" });
+              }}
+            >
+              Désactiver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
   );
 };
