@@ -154,12 +154,16 @@ const Praticiens = () => {
                       <h3 className="font-display text-base font-semibold group-hover:text-primary transition-colors">
                         {practitioner.first_name} {practitioner.last_name}
                       </h3>
-                      {practitioner.specialty && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Award className="h-3.5 w-3.5 text-primary" />
-                          {practitioner.specialty}
-                        </p>
-                      )}
+                      <p className="text-sm flex items-center gap-1 mt-0.5">
+                        {practitioner.specialty ? (
+                          <>
+                            <Award className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="text-primary font-medium">{practitioner.specialty}</span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground/60 italic">Spécialité non renseignée</span>
+                        )}
+                      </p>
                       {practitioner.bio && (
                         <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
                           {practitioner.bio}
