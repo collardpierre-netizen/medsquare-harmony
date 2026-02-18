@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
 import ImageUpload from "@/components/dashboard/ImageUpload";
+import SiteAssetUpload from "@/components/dashboard/SiteAssetUpload";
 
 const ICON_OPTIONS = ["Heart", "Users", "Shield", "Clock", "Star", "Zap", "Award", "Smile", "ThumbsUp", "CheckCircle"];
 
@@ -326,19 +327,15 @@ const AdminSiteSettings = () => {
                     ))}
 
                     {/* Add new image */}
-                    <ImageUpload
-                      bucket="site-assets"
+                    <SiteAssetUpload
                       folder="hero"
                       currentUrl={null}
-                      onUpload={(url) => addHeroImage(url)}
-                      shape="rounded"
-                      className="w-full h-28"
-                      placeholder={
-                        <div className="flex flex-col items-center gap-1 p-4 h-28 justify-center">
-                          <ImagePlus className="h-6 w-6 text-muted-foreground/40" />
-                          <span className="text-[10px] text-muted-foreground/60">Ajouter une image</span>
-                        </div>
-                      }
+                      className="w-24 h-24"
+                      onUpload={(url) => {
+                        const images = [...(settings.hero.images || [])];
+                        images.push({ url, alt: "" });
+                        setSettings((s) => ({ ...s, hero: { ...s.hero, images } }));
+                      }}
                     />
                   </div>
                 </div>
@@ -647,19 +644,13 @@ const AdminSiteSettings = () => {
                     </div>
                   ))}
 
-                  <ImageUpload
-                    bucket="site-assets"
+                  <SiteAssetUpload
                     folder="centre"
                     currentUrl={null}
-                    onUpload={(url) => addCentreGalleryImage(url)}
-                    shape="rounded"
-                    className="w-full h-28"
-                    placeholder={
-                      <div className="flex flex-col items-center gap-1 p-4 h-28 justify-center">
-                        <ImagePlus className="h-6 w-6 text-muted-foreground/40" />
-                        <span className="text-[10px] text-muted-foreground/60">Ajouter une photo</span>
-                      </div>
-                    }
+                    className="w-36 h-36"
+                    onUpload={(url) => {
+                      setCentreGallery((prev) => [...prev, { url, alt: "" }]);
+                    }}
                   />
                 </div>
 
