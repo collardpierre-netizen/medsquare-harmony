@@ -84,6 +84,7 @@ export type Database = {
       }
       activity_registrations: {
         Row: {
+          cancellation_token: string
           created_at: string
           guest_email: string | null
           guest_name: string | null
@@ -94,6 +95,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          cancellation_token?: string
           created_at?: string
           guest_email?: string | null
           guest_name?: string | null
@@ -104,6 +106,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          cancellation_token?: string
           created_at?: string
           guest_email?: string | null
           guest_name?: string | null
