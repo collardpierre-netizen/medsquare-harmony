@@ -19,6 +19,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -79,6 +89,7 @@ const Activities = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [rooms, setRooms] = useState<any[]>([]);
   const [confirmDisableBooking, setConfirmDisableBooking] = useState<any | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
 
   // Session scheduling
   const [showSessionDialog, setShowSessionDialog] = useState(false);
@@ -183,6 +194,7 @@ const Activities = () => {
     const { error } = await supabase.from("activities").delete().eq("id", id);
     if (!error) {
       toast({ title: "Activité supprimée" });
+      setConfirmDelete(null);
       fetchActivities();
     }
   };
@@ -431,7 +443,7 @@ const Activities = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(activity.id)}
+                          onClick={() => setConfirmDelete(activity)}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
@@ -701,6 +713,27 @@ const Activities = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Supprimer cette activité ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'activité <strong>« {confirmDelete?.title} »</strong> sera définitivement supprimée,
+              ainsi que toutes ses séances planifiées. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmDelete && handleDelete(confirmDelete.id)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
