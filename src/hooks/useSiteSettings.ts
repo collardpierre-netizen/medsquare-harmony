@@ -49,11 +49,24 @@ export interface ContactSettings {
   email: string;
 }
 
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+export interface FaqSettings {
+  badge: string;
+  title: string;
+  visible: boolean;
+  items: FaqItem[];
+}
+
 export interface SiteSettings {
   hero: HeroSettings;
   why: WhySettings;
   testimonials: TestimonialsSettings;
   contact: ContactSettings;
+  faq: FaqSettings;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -92,6 +105,17 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     phone: "+32 498 64 41 30",
     email: "medsquare7822@gmail.com",
   },
+  faq: {
+    badge: "FAQ",
+    title: "Questions fréquentes",
+    visible: true,
+    items: [
+      { question: "Comment prendre rendez-vous ?", answer: "Vous pouvez prendre rendez-vous directement en contactant le praticien par téléphone ou email via notre page Contact." },
+      { question: "Quels sont les modes de paiement acceptés ?", answer: "Nos praticiens acceptent les paiements en espèces, par carte bancaire et par virement. Les conditions varient selon le praticien." },
+      { question: "Les consultations sont-elles remboursées ?", answer: "Le remboursement dépend de votre mutualité et du type de praticien consulté. Renseignez-vous auprès de votre praticien lors de la prise de rendez-vous." },
+      { question: "Le centre est-il accessible aux personnes à mobilité réduite ?", answer: "Oui, notre centre est entièrement accessible aux personnes à mobilité réduite, avec un ascenseur et des places de parking dédiées." },
+    ],
+  },
 };
 
 export function useSiteSettings() {
@@ -103,7 +127,7 @@ export function useSiteSettings() {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["hero", "why", "testimonials", "contact"]);
+        .in("key", ["hero", "why", "testimonials", "contact", "faq"]);
 
       if (data && data.length > 0) {
         const merged = { ...DEFAULT_SETTINGS };
