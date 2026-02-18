@@ -89,7 +89,7 @@ const ActivityDetailSessions = ({
               ) : (
                 <Button
                   size="sm"
-                  disabled={isFull || !isAuthenticated}
+                  disabled={isFull}
                   onClick={() => onRegister(session.id)}
                 >
                   {isFull ? "Complet" : "S'inscrire"}

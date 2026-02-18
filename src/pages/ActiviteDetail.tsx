@@ -5,10 +5,11 @@ import {
   ArrowLeft,
   Clock,
   Users,
+  Tag,
+  MapPin,
   User,
   Award,
   Calendar,
-  MapPin,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import ActivityDetailSessions from "@/components/activities/ActivityDetailSessions";
+import SessionRegistrationDialog from "@/components/activities/SessionRegistrationDialog";
 
 const STOCK_PHOTOS: Record<string, string> = {
   yoga: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=600&fit=crop",
@@ -85,6 +87,8 @@ const ActiviteDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+  const [showRegDialog, setShowRegDialog] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -134,6 +138,24 @@ const ActiviteDetail = () => {
   }, [id, user]);
 
   const handleRegister = async (sessionId: string) => {
+    // Open SessionRegistrationDialog for both connected and guest users
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    setSelectedSession({
+      ...session,
+      activities: {
+        title: activity?.title,
+        category: activity?.category,
+        description: activity?.description,
+        is_free: activity?.is_free,
+        price: activity?.price,
+        profiles: activity?.profiles,
+      },
+    });
+    setShowRegDialog(true);
+  };
+
+  const handleRegisterDirect = async (sessionId: string) => {
     if (!user) return;
     const { data, error } = await supabase.from("activity_registrations").insert({
       session_id: sessionId,
@@ -334,6 +356,20 @@ const ActiviteDetail = () => {
                 isAuthenticated={!!user}
                 onRegister={handleRegister}
                 onUnregister={handleUnregister}
+              />
+
+              <SessionRegistrationDialog
+                open={showRegDialog}
+                onOpenChange={(open) => {
+                  setShowRegDialog(open);
+                  if (!open) setSelectedSession(null);
+                }}
+                session={selectedSession}
+                onRegistrationChange={() => {
+                  if (selectedSession) {
+                    setMyRegistrations((prev) => [...prev, selectedSession.id]);
+                  }
+                }}
               />
             </div>
             )}
