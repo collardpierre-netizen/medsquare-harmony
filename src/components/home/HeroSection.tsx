@@ -10,10 +10,10 @@ import heroImage3 from "@/assets/hero-gallery-3.jpg";
 import heroImage4 from "@/assets/hero-gallery-4.jpg";
 
 const defaultImages = [
-  { src: heroImage1, alt: "Intérieur du centre Medsquare" },
-  { src: heroImage2, alt: "Accueil chaleureux du centre" },
-  { src: heroImage3, alt: "Salle de consultation moderne" },
-  { src: heroImage4, alt: "Espace yoga et bien-être" },
+  { src: heroImage1, alt: "Intérieur du centre Medsquare", specialty: "" },
+  { src: heroImage2, alt: "Accueil chaleureux du centre", specialty: "" },
+  { src: heroImage3, alt: "Salle de consultation moderne", specialty: "" },
+  { src: heroImage4, alt: "Espace yoga et bien-être", specialty: "" },
 ];
 
 const INTERVAL = 6000;
@@ -25,7 +25,7 @@ const HeroSection = () => {
 
   const images = useMemo(() => {
     if (hero.images && hero.images.length > 0) {
-      return hero.images.map((img) => ({ src: img.url, alt: img.alt }));
+      return hero.images.map((img) => ({ src: img.url, alt: img.alt, specialty: img.specialty || "" }));
     }
     return defaultImages;
   }, [hero.images]);
@@ -86,6 +86,24 @@ const HeroSection = () => {
             </Link>
           </motion.div>
         </div>
+      </div>
+
+      {/* Specialty pills */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex flex-wrap justify-center gap-2 px-4 max-w-3xl">
+        <AnimatePresence mode="wait">
+          {images[current].specialty && (
+            <motion.span
+              key={`specialty-${current}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-4 py-1.5 text-sm font-medium text-white shadow-lg"
+            >
+              {images[current].specialty}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
