@@ -459,7 +459,7 @@ const Activities = () => {
 
       {/* Activity create/edit dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
               {editingId ? "Modifier l'activité" : "Nouvelle activité"}
