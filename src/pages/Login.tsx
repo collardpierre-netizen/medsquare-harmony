@@ -211,6 +211,17 @@ const Login = () => {
                 </Button>
               </form>
 
+              {!isSignUp && (
+                <div className="mt-3 text-center">
+                  <Link
+                    to="/forgot-password"
+                    className="text-muted-foreground text-sm hover:text-primary transition-colors"
+                  >
+                    Mot de passe oublié ?
+                  </Link>
+                </div>
+              )}
+
               <div className="mt-4 text-center">
                 <button
                   type="button"
