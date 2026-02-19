@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Session {
   id: string;
@@ -10,7 +11,7 @@ interface Session {
   max_participants: number | null;
   status: string;
   rooms: { name: string } | null;
-  activity_registrations: { id: string; user_id: string }[];
+  activity_registrations: { id: string; user_id: string; status?: string }[];
 }
 
 interface Props {
@@ -42,9 +43,12 @@ const ActivityDetailSessions = ({
   return (
     <div className="space-y-3">
       {sessions.map((session) => {
-        const registrationCount = session.activity_registrations?.length || 0;
-        const maxP = session.max_participants || 10;
-        const isFull = registrationCount >= maxP;
+        const registered = session.activity_registrations?.filter((r) => (r.status || "registered") === "registered") || [];
+        const waitlisted = session.activity_registrations?.filter((r) => r.status === "waitlisted") || [];
+        const registrationCount = registered.length;
+        const maxP = session.max_participants;
+        const isFull = maxP ? registrationCount >= maxP : false;
+        const remaining = maxP ? Math.max(0, maxP - registrationCount) : null;
         const isRegistered = myRegistrations.includes(session.id);
 
         return (
@@ -69,10 +73,24 @@ const ActivityDetailSessions = ({
                     {session.rooms.name}
                   </span>
                 )}
-                <span className="flex items-center gap-1">
+                <span className={cn(
+                  "flex items-center gap-1 font-medium",
+                  isFull ? "text-destructive" : remaining !== null && remaining <= 3 ? "text-amber-600" : "text-muted-foreground"
+                )}>
                   <Users className="h-3 w-3" />
-                  {registrationCount}/{maxP}
+                  {registrationCount}/{maxP || "∞"}
+                  {remaining !== null && !isFull && (
+                    <span className="ml-0.5">
+                      ({remaining} place{remaining > 1 ? "s" : ""})
+                    </span>
+                  )}
+                  {isFull && <span className="ml-0.5">(complet)</span>}
                 </span>
+                {waitlisted.length > 0 && (
+                  <span className="text-amber-600 font-medium">
+                    +{waitlisted.length} en attente
+                  </span>
+                )}
               </div>
             </div>
 
@@ -86,13 +104,21 @@ const ActivityDetailSessions = ({
                 >
                   Annuler
                 </Button>
+              ) : isFull ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onRegister(session.id)}
+                  className="border-amber-500/50 text-amber-700 hover:bg-amber-50"
+                >
+                  Liste d'attente
+                </Button>
               ) : (
                 <Button
                   size="sm"
-                  disabled={isFull}
                   onClick={() => onRegister(session.id)}
                 >
-                  {isFull ? "Complet" : "S'inscrire"}
+                  S'inscrire
                 </Button>
               )}
             </div>
