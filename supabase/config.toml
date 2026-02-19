@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.invite-practitioner]
 verify_jwt = false
+
+[functions.notify-practitioner-signup]
+verify_jwt = false

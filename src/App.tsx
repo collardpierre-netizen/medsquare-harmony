@@ -15,7 +15,7 @@ import Activites from "./pages/Activites";
 import ActiviteDetail from "./pages/ActiviteDetail";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
-import Dashboard from "./pages/dashboard/Dashboard";
+import DashboardRouter from "./pages/dashboard/DashboardRouter";
 import Profile from "./pages/dashboard/Profile";
 import Bookings from "./pages/dashboard/Bookings";
 import Activities from "./pages/dashboard/Activities";
@@ -59,16 +59,18 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
 
-            {/* Protected practitioner pages */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            {/* Protected dashboard - routes to patient or practitioner based on role */}
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
             <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/dashboard/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-            <Route path="/dashboard/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
-            <Route path="/dashboard/rooms" element={<ProtectedRoute><MyRooms /></ProtectedRoute>} />
-            <Route path="/dashboard/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
             <Route path="/dashboard/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
-            <Route path="/dashboard/export" element={<ProtectedRoute><DailyExport /></ProtectedRoute>} />
-            <Route path="/dashboard/guide" element={<ProtectedRoute><PractitionerGuide /></ProtectedRoute>} />
+
+            {/* Protected practitioner-only pages */}
+            <Route path="/dashboard/bookings" element={<ProtectedRoute allowedRoles={["practitioner"]}><Bookings /></ProtectedRoute>} />
+            <Route path="/dashboard/activities" element={<ProtectedRoute allowedRoles={["practitioner"]}><Activities /></ProtectedRoute>} />
+            <Route path="/dashboard/rooms" element={<ProtectedRoute allowedRoles={["practitioner"]}><MyRooms /></ProtectedRoute>} />
+            <Route path="/dashboard/documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><Documents /></ProtectedRoute>} />
+            <Route path="/dashboard/export" element={<ProtectedRoute allowedRoles={["practitioner"]}><DailyExport /></ProtectedRoute>} />
+            <Route path="/dashboard/guide" element={<ProtectedRoute allowedRoles={["practitioner"]}><PractitionerGuide /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />

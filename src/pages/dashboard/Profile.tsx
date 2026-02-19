@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import SmartDashboardLayout from "@/components/dashboard/SmartDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -150,7 +150,7 @@ const Profile = () => {
   };
 
   return (
-    <DashboardLayout>
+    <SmartDashboardLayout>
       <div className="max-w-2xl space-y-6">
         <Card>
           <CardHeader>
@@ -358,7 +358,7 @@ const Profile = () => {
           </Button>
         </div>
       </div>
-    </DashboardLayout>
+    </SmartDashboardLayout>
   );
 };
 
