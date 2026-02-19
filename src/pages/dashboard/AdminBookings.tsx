@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,10 @@ const AdminBookings = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBooking, setEditBooking] = useState<any>(null);
 
   // Filters
   const [filterRoom, setFilterRoom] = useState<string>("__all__");
@@ -295,8 +300,16 @@ const AdminBookings = () => {
     ? computeBookingDates(newBooking.date)
     : [];
 
+  const handleEditBooking = (booking: any) => {
+    setEditBooking(booking);
+    setEditOpen(true);
+  };
+
   const BookingRow = ({ booking }: { booking: any }) => (
-    <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+    <div
+      className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
+      onClick={() => handleEditBooking(booking)}
+    >
       <div className="flex-1">
         <div className="flex items-center gap-3 mb-1 flex-wrap">
           <p className="font-medium text-sm">
@@ -306,6 +319,7 @@ const AdminBookings = () => {
           {booking.activities?.title && (
             <Badge variant="outline" className="text-xs">{booking.activities.title}</Badge>
           )}
+          <Pencil className="h-3 w-3 text-muted-foreground" />
         </div>
         <p className="text-xs text-muted-foreground">
           {booking.rooms?.name} •{" "}
@@ -318,7 +332,7 @@ const AdminBookings = () => {
         )}
       </div>
       {booking.status === "pending" && (
-        <div className="flex gap-2 ml-4">
+        <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
           <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
             <CheckCircle className="h-4 w-4 mr-1" />
             Confirmer
@@ -659,6 +673,15 @@ const AdminBookings = () => {
           </Card>
         )}
       </div>
+
+      <EditBookingDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        booking={editBooking}
+        rooms={rooms}
+        practitioners={practitioners}
+        onSaved={fetchBookings}
+      />
     </DashboardLayout>
   );
 };
