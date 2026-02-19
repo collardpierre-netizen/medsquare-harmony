@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
-  Linkedin, Twitter, Youtube, ArrowUp, ArrowDown,
+  Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -44,6 +44,7 @@ const AdminPractitioners = () => {
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [inviteSchedule, setInviteSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
   const [inviteForm, setInviteForm] = useState({
@@ -88,6 +89,11 @@ const AdminPractitioners = () => {
     fetchPractitioners();
   }, []);
 
+  // A practitioner is "pending validation" if they self-registered (role=practitioner, is_active=false)
+  // and are NOT an admin
+  const isPendingValidation = (p: any) =>
+    !p.is_active && p.roles.includes("practitioner") && !p.roles.includes("admin");
+
   const toggleActive = async (practitioner: any) => {
     const { error } = await supabase
       .from("profiles")
@@ -103,6 +109,33 @@ const AdminPractitioners = () => {
       });
       fetchPractitioners();
     }
+  };
+
+  const activateAccount = async (practitioner: any) => {
+    setActivatingId(practitioner.id);
+    try {
+      // Activate the profile
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active: true })
+        .eq("id", practitioner.id);
+
+      if (error) throw error;
+
+      // Send activation email (best-effort)
+      supabase.functions.invoke("notify-account-activated", {
+        body: { practitioner_user_id: practitioner.user_id },
+      }).catch(() => {});
+
+      toast({
+        title: "Compte activé ✅",
+        description: `${practitioner.first_name} ${practitioner.last_name} a été activé et notifié par email.`,
+      });
+      fetchPractitioners();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible d'activer le compte.", variant: "destructive" });
+    }
+    setActivatingId(null);
   };
 
   const movePractitioner = async (index: number, direction: "up" | "down") => {
@@ -566,6 +599,22 @@ const AdminPractitioners = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isPendingValidation(p) && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                          disabled={activatingId === p.id}
+                          onClick={() => activateAccount(p)}
+                        >
+                          {activatingId === p.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                          )}
+                          Activer le compte
+                        </Button>
+                      )}
                       {isAccountPending(p) && (
                         <Button
                           variant="outline"
@@ -596,10 +645,12 @@ const AdminPractitioners = () => {
                         className={
                           p.is_active
                             ? "bg-green-50 text-green-700 border-green-200"
+                            : isPendingValidation(p)
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
                             : "bg-muted text-muted-foreground border-border"
                         }
                       >
-                        {p.is_active ? "Visible en ligne" : "Masqué du site"}
+                        {p.is_active ? "Visible en ligne" : isPendingValidation(p) ? "En attente" : "Masqué du site"}
                       </Badge>
                       <Button
                         variant="ghost"
