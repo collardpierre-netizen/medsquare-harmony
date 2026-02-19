@@ -74,7 +74,10 @@ const AdminPractitioners = () => {
 
     if (!error) {
       toast({
-        title: practitioner.is_active ? "Praticien désactivé" : "Praticien activé",
+        title: practitioner.is_active ? "Praticien masqué du site" : "Praticien visible sur le site",
+        description: practitioner.is_active
+          ? "Le praticien n'apparaît plus sur les pages publiques."
+          : "Le praticien est à nouveau visible sur les pages publiques.",
       });
       fetchPractitioners();
     }
@@ -332,14 +335,15 @@ const AdminPractitioners = () => {
                         className={
                           p.is_active
                             ? "bg-green-50 text-green-700 border-green-200"
-                            : "bg-red-50 text-red-600 border-red-200"
+                            : "bg-muted text-muted-foreground border-border"
                         }
                       >
-                        {p.is_active ? "Actif" : "Inactif"}
+                        {p.is_active ? "Visible en ligne" : "Masqué du site"}
                       </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
+                        title={p.is_active ? "Masquer du site public" : "Afficher sur le site public"}
                         onClick={() => toggleActive(p)}
                       >
                         {p.is_active ? (
