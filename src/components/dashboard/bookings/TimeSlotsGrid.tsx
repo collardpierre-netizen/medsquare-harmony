@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { format, setHours, setMinutes, isAfter, isBefore, isSameDay, startOfDay } from "date-fns";
+import { format, isBefore, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Clock, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,72 +16,90 @@ interface TimeSlotsGridProps {
   onActivityClick?: (session: ActivitySessionSlot) => void;
 }
 
+// Get hour in Europe/Brussels timezone
+const getBrusselsHour = (date: Date): number =>
+  parseInt(
+    new Intl.DateTimeFormat("fr-BE", {
+      timeZone: "Europe/Brussels",
+      hour: "numeric",
+      hour12: false,
+    }).format(date),
+    10
+  );
+
+const getBrusselsMinute = (date: Date): number =>
+  parseInt(
+    new Intl.DateTimeFormat("fr-BE", {
+      timeZone: "Europe/Brussels",
+      minute: "numeric",
+    }).format(date),
+    10
+  );
+
+// Get Brussels offset in hours for a given date (handles DST)
+const getBrusselsOffsetHours = (date: Date): number => {
+  const utcHour = date.getUTCHours() + date.getUTCMinutes() / 60;
+  const brHour = getBrusselsHour(date) + date.getUTCMinutes() / 60;
+  let diff = brHour - utcHour;
+  if (diff < -12) diff += 24;
+  if (diff > 12) diff -= 24;
+  return diff;
+};
+
+// Build a UTC Date that corresponds to a given Brussels wall-clock time on a given day
+const brusselsSlotToUTC = (day: Date, hour: number, minute: number): Date => {
+  const offset = getBrusselsOffsetHours(day);
+  const d = new Date(day);
+  d.setUTCHours(hour - offset, minute, 0, 0);
+  return d;
+};
+
 const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, onSlotClick, onBookingClick, onActivityClick }: TimeSlotsGridProps) => {
   const isPastDate = isBefore(startOfDay(selectedDate), startOfDay(new Date()));
   const timeSlots = useMemo(() => generateTimeSlotsForDate(selectedDate, 30), [selectedDate]);
   const { start, end } = getOpeningHours(selectedDate);
 
   const isSlotBooked = (slot: Date) => {
-    const slotTime = setMinutes(
-      setHours(selectedDate, slot.getHours()),
-      slot.getMinutes()
-    );
+    const slotHour = slot.getHours();
+    const slotMinute = slot.getMinutes();
+    const slotUTC = brusselsSlotToUTC(selectedDate, slotHour, slotMinute);
+    const slotEndUTC = new Date(slotUTC.getTime() + 30 * 60 * 1000);
+
     return bookings.some((b) => {
-      const start = new Date(b.start_time);
-      const end = new Date(b.end_time);
-      return (
-        (isAfter(slotTime, start) ||
-          (isSameDay(slotTime, start) &&
-            slotTime.getHours() === start.getHours() &&
-            slotTime.getMinutes() === start.getMinutes())) &&
-        isBefore(slotTime, end)
-      );
+      const bStart = new Date(b.start_time);
+      const bEnd = new Date(b.end_time);
+      return bStart.getTime() < slotEndUTC.getTime() && bEnd.getTime() > slotUTC.getTime();
     });
   };
 
   const isSlotActivity = (slot: Date) => {
-    const slotTime = setMinutes(
-      setHours(selectedDate, slot.getHours()),
-      slot.getMinutes()
-    );
+    const slotHour = slot.getHours();
+    const slotMinute = slot.getMinutes();
+    const slotUTC = brusselsSlotToUTC(selectedDate, slotHour, slotMinute);
+    const slotEndUTC = new Date(slotUTC.getTime() + 30 * 60 * 1000);
+
     return activitySessions.some((a) => {
-      const start = new Date(a.start_time);
-      const end = new Date(a.end_time);
-      return (
-        (isAfter(slotTime, start) ||
-          (isSameDay(slotTime, start) &&
-            slotTime.getHours() === start.getHours() &&
-            slotTime.getMinutes() === start.getMinutes())) &&
-        isBefore(slotTime, end)
-      );
+      const aStart = new Date(a.start_time);
+      const aEnd = new Date(a.end_time);
+      return aStart.getTime() < slotEndUTC.getTime() && aEnd.getTime() > slotUTC.getTime();
     });
   };
 
   const getBookingAtSlot = (slot: Date) => {
-    const slotTime = setMinutes(
-      setHours(selectedDate, slot.getHours()),
-      slot.getMinutes()
-    );
+    const slotHour = slot.getHours();
+    const slotMinute = slot.getMinutes();
     return bookings.find((b) => {
       const start = new Date(b.start_time);
-      return (
-        start.getHours() === slotTime.getHours() &&
-        start.getMinutes() === slotTime.getMinutes()
-      );
+      return getBrusselsHour(start) === slotHour && getBrusselsMinute(start) === slotMinute;
     });
   };
 
   const getActivityAtSlot = (slot: Date) => {
-    const slotTime = setMinutes(
-      setHours(selectedDate, slot.getHours()),
-      slot.getMinutes()
-    );
+    const slotHour = slot.getHours();
+    const slotMinute = slot.getMinutes();
     return activitySessions.find((a) => {
       const start = new Date(a.start_time);
-      return (
-        start.getHours() === slotTime.getHours() &&
-        start.getMinutes() === slotTime.getMinutes()
-      );
+      return getBrusselsHour(start) === slotHour && getBrusselsMinute(start) === slotMinute;
     });
   };
 
