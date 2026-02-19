@@ -23,7 +23,7 @@ const PractitionersPreview = () => {
         .from("profiles")
         .select("id, first_name, last_name, specialty, avatar_url")
         .eq("is_active", true)
-        .order("last_name")
+        .order("display_order" as any).order("last_name")
         .limit(4);
       setPractitioners(data || []);
       setLoading(false);

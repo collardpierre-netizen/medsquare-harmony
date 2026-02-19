@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
-  Linkedin, Twitter, Youtube,
+  Linkedin, Twitter, Youtube, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -64,7 +64,7 @@ const AdminPractitioners = () => {
 
   const fetchPractitioners = async () => {
     const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("*").order("last_name"),
+      supabase.from("profiles").select("*").order("display_order" as any).order("last_name"),
       supabase.from("user_roles").select("user_id, role"),
     ]);
 
@@ -103,6 +103,19 @@ const AdminPractitioners = () => {
       });
       fetchPractitioners();
     }
+  };
+
+  const movePractitioner = async (index: number, direction: "up" | "down") => {
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= practitioners.length) return;
+    const a = practitioners[index];
+    const b = practitioners[swapIndex];
+    // Swap display_order values
+    await Promise.all([
+      supabase.from("profiles").update({ display_order: b.display_order ?? swapIndex } as any).eq("id", a.id),
+      supabase.from("profiles").update({ display_order: a.display_order ?? index } as any).eq("id", b.id),
+    ]);
+    fetchPractitioners();
   };
 
   // ---- Invite ----
@@ -501,12 +514,33 @@ const AdminPractitioners = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {practitioners.map((p: any) => (
+              {practitioners.map((p: any, index: number) => (
                   <div
                     key={p.id}
                     className="flex items-center justify-between p-4 rounded-lg border border-border"
                   >
                     <div className="flex items-center gap-3">
+                      {/* Order arrows */}
+                      <div className="flex flex-col gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={index === 0}
+                          onClick={() => movePractitioner(index, "up")}
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={index === practitioners.length - 1}
+                          onClick={() => movePractitioner(index, "down")}
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-display font-bold text-primary text-sm overflow-hidden shrink-0">
                         {p.avatar_url ? (
                           <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />

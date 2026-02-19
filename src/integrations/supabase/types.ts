@@ -316,6 +316,7 @@ export type Database = {
           break_minutes: number
           contact_email: string | null
           created_at: string
+          display_order: number
           first_name: string
           id: string
           is_active: boolean
@@ -334,6 +335,7 @@ export type Database = {
           break_minutes?: number
           contact_email?: string | null
           created_at?: string
+          display_order?: number
           first_name?: string
           id?: string
           is_active?: boolean
@@ -352,6 +354,7 @@ export type Database = {
           break_minutes?: number
           contact_email?: string | null
           created_at?: string
+          display_order?: number
           first_name?: string
           id?: string
           is_active?: boolean
