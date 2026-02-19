@@ -71,7 +71,7 @@ const PractitionerInfoSidebar = ({ practitioner, scheduleSlots }: PractitionerIn
         <>
           <Separator className="my-5" />
           <div>
-            <p className="text-sm font-semibold mb-3">Retrouvez-moi sur</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Retrouvez-moi</p>
             <div className="flex flex-wrap gap-2">
               {activeSocials.map(({ key, icon: Icon, label }) => (
                 <a
@@ -80,10 +80,9 @@ const PractitionerInfoSidebar = ({ practitioner, scheduleSlots }: PractitionerIn
                   target="_blank"
                   rel="noopener noreferrer"
                   title={label}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors"
+                  className="h-9 w-9 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary flex items-center justify-center text-muted-foreground transition-colors"
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
+                  <Icon className="h-4 w-4" />
                 </a>
               ))}
             </div>
