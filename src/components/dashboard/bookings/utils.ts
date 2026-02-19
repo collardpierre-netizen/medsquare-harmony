@@ -8,6 +8,7 @@ export interface Booking {
   end_time: string;
   status: string;
   notes: string | null;
+  recurrence_group_id: string | null;
   profiles?: {
     first_name: string;
     last_name: string;

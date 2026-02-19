@@ -315,6 +315,7 @@ const AdminBookings = () => {
     }
     const dates = computeBookingDates(date);
     setCreating(true);
+    const groupId = dates.length > 1 ? crypto.randomUUID() : null;
     const rows = dates.map((d) => {
       const dateStr = format(d, "yyyy-MM-dd");
       return {
@@ -325,6 +326,7 @@ const AdminBookings = () => {
         notes: notes || null,
         status,
         ...(activity_id ? { activity_id } : {}),
+        ...(groupId ? { recurrence_group_id: groupId } : {}),
       };
     });
     const { error } = await supabase.from("bookings").insert(rows);

@@ -168,6 +168,7 @@ const Bookings = () => {
     const count = recurrence === "weekly" ? recurrenceWeeks : 1;
     const insertRows: any[] = [];
     const bookingsToCreate: Array<{ startTime: Date; endTime: Date; week: number }> = [];
+    const groupId = count > 1 ? crypto.randomUUID() : null;
 
     for (let i = 0; i < count; i++) {
       const baseDate = addWeeks(selectedDate, i);
@@ -176,12 +177,10 @@ const Bookings = () => {
       let endTime: Date;
 
       if (bookingType === "full_day") {
-        // Full day: use opening hours for that specific day
         const dayHours = getOpeningHours(baseDate);
         startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
         endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
       } else {
-        // Hourly
         startTime = setMinutes(
           setHours(new Date(baseDate), selectedSlot.getHours()),
           selectedSlot.getMinutes()
@@ -196,6 +195,7 @@ const Bookings = () => {
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         notes: notes || null,
+        ...(groupId ? { recurrence_group_id: groupId } : {}),
       });
     }
 
