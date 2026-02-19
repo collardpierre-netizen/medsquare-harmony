@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 import SiteAssetUpload from "@/components/dashboard/SiteAssetUpload";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ICON_OPTIONS = ["Heart", "Users", "Shield", "Clock", "Star", "Zap", "Award", "Smile", "ThumbsUp", "CheckCircle"];
 
@@ -41,6 +42,7 @@ const AdminSiteSettings = () => {
   const [medsquareSocials, setMedsquareSocials] = useState({
     facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "", website: "",
   });
+  const [practitionerSpecialties, setPractitionerSpecialties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -85,6 +87,21 @@ const AdminSiteSettings = () => {
         }
         setSettings(merged);
       }
+
+      // Fetch practitioner specialties
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("specialty")
+        .eq("is_active", true);
+      if (profiles) {
+        const specs = [...new Set(
+          profiles
+            .map((p) => p.specialty?.trim())
+            .filter(Boolean) as string[]
+        )].sort();
+        setPractitionerSpecialties(specs);
+      }
+
       setLoading(false);
     };
     fetchAll();
@@ -386,12 +403,20 @@ const AdminSiteSettings = () => {
                             placeholder="Texte alternatif"
                             className="text-xs h-7"
                           />
-                          <Input
+                          <Select
                             value={img.specialty || ""}
-                            onChange={(e) => updateHeroImageSpecialty(idx, e.target.value)}
-                            placeholder="Spécialité affichée (ex: Yoga)"
-                            className="text-xs h-7"
-                          />
+                            onValueChange={(v) => updateHeroImageSpecialty(idx, v === "__none__" ? "" : v)}
+                          >
+                            <SelectTrigger className="text-xs h-7">
+                              <SelectValue placeholder="Spécialité du praticien" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Aucune —</SelectItem>
+                              {practitionerSpecialties.map((spec) => (
+                                <SelectItem key={spec} value={spec}>{spec}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <button
                           onClick={() => removeHeroImage(idx)}
