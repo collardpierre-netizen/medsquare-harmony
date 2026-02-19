@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Save, User, Mail, BellRing, Coffee } from "lucide-react";
+import { Save, User, Mail, BellRing, Coffee, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -26,6 +26,15 @@ const Profile = () => {
     phone: profile?.phone || "",
     contact_email: (profile as any)?.contact_email || "",
     break_minutes: (profile as any)?.break_minutes ?? 15,
+  });
+
+  const [socialLinks, setSocialLinks] = useState({
+    website: "",
+    facebook: "",
+    instagram: "",
+    linkedin: "",
+    twitter: "",
+    youtube: "",
   });
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
@@ -77,6 +86,15 @@ const Profile = () => {
         contact_email: (profile as any)?.contact_email || "",
         break_minutes: (profile as any)?.break_minutes ?? 15,
       });
+      const sl = (profile as any)?.social_links || {};
+      setSocialLinks({
+        website: sl.website || "",
+        facebook: sl.facebook || "",
+        instagram: sl.instagram || "",
+        linkedin: sl.linkedin || "",
+        twitter: sl.twitter || "",
+        youtube: sl.youtube || "",
+      });
     }
   }, [profile]);
 
@@ -97,6 +115,7 @@ const Profile = () => {
         break_minutes: form.break_minutes,
         schedule: schedule as any,
         notification_preferences: notifPrefs as any,
+        social_links: socialLinks as any,
       } as any)
       .eq("id", profile.id);
 
@@ -261,6 +280,32 @@ const Profile = () => {
                   rows={5}
                   className="mt-1.5"
                 />
+              </div>
+
+              {/* Social links */}
+              <div className="rounded-lg border border-border bg-accent/30 p-4 space-y-3">
+                <p className="text-sm font-medium">Réseaux sociaux & site web</p>
+                <p className="text-xs text-muted-foreground">Ces liens apparaîtront sur votre fiche publique.</p>
+                {[
+                  { key: "website", label: "Site web", icon: Globe, placeholder: "https://mon-site.be" },
+                  { key: "facebook", label: "Facebook", icon: Facebook, placeholder: "https://facebook.com/..." },
+                  { key: "instagram", label: "Instagram", icon: Instagram, placeholder: "https://instagram.com/..." },
+                  { key: "linkedin", label: "LinkedIn", icon: Linkedin, placeholder: "https://linkedin.com/in/..." },
+                  { key: "twitter", label: "Twitter / X", icon: Twitter, placeholder: "https://twitter.com/..." },
+                  { key: "youtube", label: "YouTube", icon: Youtube, placeholder: "https://youtube.com/@..." },
+                ].map(({ key, label, icon: Icon, placeholder }) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1">
+                      <Input
+                        type="url"
+                        placeholder={placeholder}
+                        value={socialLinks[key as keyof typeof socialLinks]}
+                        onChange={(e) => setSocialLinks((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <Button type="submit" disabled={isLoading}>

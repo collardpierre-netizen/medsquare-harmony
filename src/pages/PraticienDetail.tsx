@@ -27,6 +27,7 @@ interface PractitionerProfile {
   avatar_url: string | null;
   phone: string | null;
   schedule: DaySchedule[] | null;
+  social_links: Record<string, string> | null;
 }
 
 interface ActivityWithSessions {
@@ -64,7 +65,7 @@ const PraticienDetail = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, specialty, bio, avatar_url, phone, schedule")
+        .select("id, first_name, last_name, specialty, bio, avatar_url, phone, schedule, social_links")
         .eq("id", id)
         .eq("is_active", true)
         .maybeSingle();
@@ -85,7 +86,11 @@ const PraticienDetail = () => {
         } catch { /* ignore */ }
       }
 
-      setPractitioner({ ...profile, schedule: parsedSchedule });
+      setPractitioner({
+        ...profile,
+        schedule: parsedSchedule,
+        social_links: (profile.social_links as Record<string, string> | null) || null,
+      });
 
       const { data: acts } = await supabase
         .from("activities")

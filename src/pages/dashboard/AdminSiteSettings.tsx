@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, Loader2, ImagePlus, Video } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ImagePlus, Video, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_SETTINGS,
@@ -27,6 +27,9 @@ const AdminSiteSettings = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
   const [centreVideoUrl, setCentreVideoUrl] = useState("");
   const [centreGallery, setCentreGallery] = useState<{ url: string; alt: string }[]>([]);
+  const [medsquareSocials, setMedsquareSocials] = useState({
+    facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "", website: "",
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -35,7 +38,7 @@ const AdminSiteSettings = () => {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["hero", "why", "testimonials", "contact", "faq", "centre_video", "centre_gallery"]);
+        .in("key", ["hero", "why", "testimonials", "contact", "faq", "centre_video", "centre_gallery", "medsquare_socials"]);
       if (data && data.length > 0) {
         const merged = { ...DEFAULT_SETTINGS };
         for (const row of data) {
@@ -47,6 +50,18 @@ const AdminSiteSettings = () => {
           if (row.key === "centre_gallery") {
             const val = row.value as any;
             if (val?.images) setCentreGallery(val.images);
+            continue;
+          }
+          if (row.key === "medsquare_socials") {
+            const val = row.value as any;
+            setMedsquareSocials({
+              facebook: val?.facebook || "",
+              instagram: val?.instagram || "",
+              linkedin: val?.linkedin || "",
+              twitter: val?.twitter || "",
+              youtube: val?.youtube || "",
+              website: val?.website || "",
+            });
             continue;
           }
           const k = row.key as keyof SiteSettings;
@@ -64,6 +79,19 @@ const AdminSiteSettings = () => {
     try {
       await saveSiteSettings(section, settings[section]);
       toast.success("Section sauvegardée !");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde.");
+    }
+    setSaving(null);
+  };
+
+  const saveMedsquareSocials = async () => {
+    setSaving("medsquare_socials");
+    try {
+      await supabase
+        .from("settings")
+        .upsert({ key: "medsquare_socials", value: medsquareSocials, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      toast.success("Réseaux sociaux sauvegardés !");
     } catch {
       toast.error("Erreur lors de la sauvegarde.");
     }
@@ -253,12 +281,13 @@ const AdminSiteSettings = () => {
         </div>
 
         <Tabs defaultValue="hero" className="space-y-4">
-          <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="why">Valeurs</TabsTrigger>
             <TabsTrigger value="testimonials">Témoignages</TabsTrigger>
             <TabsTrigger value="faq">FAQ</TabsTrigger>
             <TabsTrigger value="contact">Contact</TabsTrigger>
+            <TabsTrigger value="socials">Réseaux</TabsTrigger>
             <TabsTrigger value="centre">Centre</TabsTrigger>
           </TabsList>
 
@@ -578,22 +607,61 @@ const AdminSiteSettings = () => {
             </Card>
           </TabsContent>
 
+          {/* RÉSEAUX SOCIAUX MEDSQUARE */}
+          <TabsContent value="socials">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Réseaux sociaux Medsquare</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Ces liens apparaîtront dans le pied de page du site. Laissez vide pour masquer un réseau.
+                </p>
+                {[
+                  { key: "website", label: "Site web", icon: Globe, placeholder: "https://medsquare.be" },
+                  { key: "facebook", label: "Facebook", icon: Facebook, placeholder: "https://facebook.com/medsquare" },
+                  { key: "instagram", label: "Instagram", icon: Instagram, placeholder: "https://instagram.com/medsquare" },
+                  { key: "linkedin", label: "LinkedIn", icon: Linkedin, placeholder: "https://linkedin.com/company/medsquare" },
+                  { key: "twitter", label: "Twitter / X", icon: Twitter, placeholder: "https://twitter.com/medsquare" },
+                  { key: "youtube", label: "YouTube", icon: Youtube, placeholder: "https://youtube.com/@medsquare" },
+                ].map(({ key, label, icon: Icon, placeholder }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <Input
+                        type="url"
+                        placeholder={placeholder}
+                        value={medsquareSocials[key as keyof typeof medsquareSocials]}
+                        onChange={(e) => setMedsquareSocials((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Button onClick={saveMedsquareSocials} disabled={saving === "medsquare_socials"}>
+                  {saving === "medsquare_socials" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Sauvegarder
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* CENTRE */}
           <TabsContent value="centre">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Page Centre — Vidéo</CardTitle>
+                <CardTitle className="text-lg">Page Centre - Video</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>URL de la vidéo (lien embed YouTube, Vimeo…)</Label>
+                  <Label>URL de la video (lien embed YouTube, Vimeo)</Label>
                   <Input
                     value={centreVideoUrl}
                     onChange={(e) => setCentreVideoUrl(e.target.value)}
                     placeholder="https://www.youtube.com/embed/..."
                   />
                   <p className="text-xs text-muted-foreground">
-                    Utilisez l'URL d'intégration (embed). Ex : https://www.youtube.com/embed/VIDEO_ID
+                    Utilisez l'URL d'integration (embed). Ex : https://www.youtube.com/embed/VIDEO_ID
                   </p>
                 </div>
                 {centreVideoUrl && (
@@ -603,7 +671,7 @@ const AdminSiteSettings = () => {
                       className="absolute inset-0 w-full h-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                      title="Aperçu vidéo"
+                      title="Apercu video"
                     />
                   </div>
                 )}
@@ -616,11 +684,11 @@ const AdminSiteSettings = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Page Centre — Galerie photos</CardTitle>
+                <CardTitle className="text-lg">Page Centre - Galerie photos</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Gérez les photos de la section "Nos espaces" sur la page Le Centre. Sans images, les photos par défaut seront affichées.
+                  Gerez les photos de la section "Nos espaces" sur la page Le Centre. Sans images, les photos par defaut seront affichees.
                 </p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
