@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, isAfter, isBefore, parseISO } from "date-fns";
+import { format, addWeeks, isAfter, isBefore, parseISO, startOfWeek, addDays, isSameDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,16 +30,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { Progress } from "@/components/ui/progress";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   [0, 30].map((m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
 ).flat();
+
+type ViewMode = "list" | "practitioner" | "occupancy";
 
 const AdminBookings = () => {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Filters
+  const [filterRoom, setFilterRoom] = useState<string>("__all__");
+  const [filterPractitioner, setFilterPractitioner] = useState<string>("__all__");
 
   // New booking dialog state
   const [open, setOpen] = useState(false);
@@ -110,6 +119,74 @@ const AdminBookings = () => {
     fetchResources();
   }, []);
 
+  // Filtered bookings
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      if (filterRoom !== "__all__" && b.room_id !== filterRoom) return false;
+      if (filterPractitioner !== "__all__" && b.practitioner_id !== filterPractitioner) return false;
+      return true;
+    });
+  }, [bookings, filterRoom, filterPractitioner]);
+
+  // Grouped by practitioner
+  const groupedByPractitioner = useMemo(() => {
+    const groups: Record<string, { name: string; bookings: any[] }> = {};
+    filteredBookings.forEach((b) => {
+      const pid = b.practitioner_id;
+      if (!groups[pid]) {
+        groups[pid] = {
+          name: `${b.profiles?.first_name || ""} ${b.profiles?.last_name || ""}`.trim() || "Inconnu",
+          bookings: [],
+        };
+      }
+      groups[pid].bookings.push(b);
+    });
+    return Object.entries(groups).sort(([, a], [, b]) => a.name.localeCompare(b.name));
+  }, [filteredBookings]);
+
+  // Occupancy stats per room (based on current week)
+  const occupancyData = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+    // Total available hours per room this week
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number }> = {};
+
+    rooms.forEach((r) => {
+      let totalHours = 0;
+      weekDays.forEach((day) => {
+        const { start, end } = getOpeningHours(day);
+        totalHours += end - start;
+      });
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0 };
+    });
+
+    // Count booked hours this week
+    bookings.forEach((b) => {
+      if (b.status === "cancelled") return;
+      const start = new Date(b.start_time);
+      const end = new Date(b.end_time);
+      const bDay = startOfDay(start);
+      const isThisWeek = weekDays.some((d) => isSameDay(d, bDay));
+      if (!isThisWeek) return;
+
+      if (roomStats[b.room_id]) {
+        const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        roomStats[b.room_id].bookedHours += hours;
+        roomStats[b.room_id].bookingCount += 1;
+      }
+    });
+
+    return Object.entries(roomStats)
+      .map(([id, stats]) => ({
+        id,
+        ...stats,
+        occupancyPct: stats.totalHours > 0 ? Math.round((stats.bookedHours / stats.totalHours) * 100) : 0,
+      }))
+      .sort((a, b) => b.occupancyPct - a.occupancyPct);
+  }, [rooms, bookings]);
+
   const handlePractitionerChange = (practitionerId: string) => {
     setNewBooking((b) => ({ ...b, practitioner_id: practitionerId, activity_id: "" }));
     fetchPractitionerActivities(practitionerId);
@@ -131,11 +208,9 @@ const AdminBookings = () => {
     setPractitionerActivities([]);
   };
 
-  // Compute all booking dates based on recurrence
   const computeBookingDates = (startDateStr: string): Date[] => {
     const start = parseISO(startDateStr);
     if (!isRecurring || !recurrenceEndDate) return [start];
-
     const dates: Date[] = [];
     let current = start;
     while (!isAfter(current, recurrenceEndDate)) {
@@ -147,26 +222,21 @@ const AdminBookings = () => {
 
   const handleCreateBooking = async () => {
     const { practitioner_id, room_id, date, start_time, end_time, notes, status, activity_id } = newBooking;
-
     if (!practitioner_id || !room_id || !date || !start_time || !end_time) {
       toast({ title: "Champs requis manquants", description: "Praticien, salle, date et horaires sont obligatoires.", variant: "destructive" });
       return;
     }
-
     const testStart = new Date(`${date}T${start_time}:00`);
     const testEnd = new Date(`${date}T${end_time}:00`);
     if (testEnd <= testStart) {
       toast({ title: "Horaire invalide", description: "L'heure de fin doit être après l'heure de début.", variant: "destructive" });
       return;
     }
-
     if (isRecurring && !recurrenceEndDate) {
       toast({ title: "Date de fin requise", description: "Veuillez choisir une date de fin pour la récurrence.", variant: "destructive" });
       return;
     }
-
     const dates = computeBookingDates(date);
-
     setCreating(true);
     const rows = dates.map((d) => {
       const dateStr = format(d, "yyyy-MM-dd");
@@ -180,17 +250,11 @@ const AdminBookings = () => {
         ...(activity_id ? { activity_id } : {}),
       };
     });
-
     const { error } = await supabase.from("bookings").insert(rows);
-
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } else {
-      toast({
-        title: dates.length > 1
-          ? `${dates.length} réservations créées !`
-          : "Réservation créée !",
-      });
+      toast({ title: dates.length > 1 ? `${dates.length} réservations créées !` : "Réservation créée !" });
       resetDialog();
       setOpen(false);
       fetchBookings();
@@ -199,17 +263,10 @@ const AdminBookings = () => {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status })
-      .eq("id", id);
-
+    const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
     if (!error) {
-      toast({
-        title: status === "confirmed" ? "Réservation confirmée" : "Réservation annulée",
-      });
+      toast({ title: status === "confirmed" ? "Réservation confirmée" : "Réservation annulée" });
       fetchBookings();
-
       try {
         const { data: result } = await supabase.functions.invoke("notify-booking-status", {
           body: { booking_id: id, new_status: status },
@@ -234,15 +291,52 @@ const AdminBookings = () => {
     }
   };
 
-  // Compute preview of recurrence dates
   const previewDates = newBooking.date && isRecurring && recurrenceEndDate
     ? computeBookingDates(newBooking.date)
     : [];
 
+  const BookingRow = ({ booking }: { booking: any }) => (
+    <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-1 flex-wrap">
+          <p className="font-medium text-sm">
+            {booking.profiles?.first_name} {booking.profiles?.last_name}
+          </p>
+          {statusBadge(booking.status)}
+          {booking.activities?.title && (
+            <Badge variant="outline" className="text-xs">{booking.activities.title}</Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {booking.rooms?.name} •{" "}
+          {format(new Date(booking.start_time), "EEEE d MMMM • HH:mm", { locale: fr })}
+          {" — "}
+          {format(new Date(booking.end_time), "HH:mm")}
+        </p>
+        {booking.notes && (
+          <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
+        )}
+      </div>
+      {booking.status === "pending" && (
+        <div className="flex gap-2 ml-4">
+          <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Confirmer
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => updateStatus(booking.id, "cancelled")}>
+            <XCircle className="h-4 w-4 mr-1" />
+            Refuser
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-xl font-bold">Toutes les réservations</h2>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -266,20 +360,15 @@ const AdminBookings = () => {
                 <div className="space-y-2">
                   <Label>Praticien *</Label>
                   <Select value={newBooking.practitioner_id} onValueChange={handlePractitionerChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un praticien…" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un praticien…" /></SelectTrigger>
                     <SelectContent>
                       {practitioners.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.first_name} {p.last_name}
-                        </SelectItem>
+                        <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Activity (only if practitioner has activities) */}
                 {practitionerActivities.length > 0 && (
                   <div className="space-y-2">
                     <Label>Lier à une activité <span className="text-muted-foreground font-normal">(facultatif)</span></Label>
@@ -287,49 +376,34 @@ const AdminBookings = () => {
                       value={newBooking.activity_id}
                       onValueChange={(v) => setNewBooking((b) => ({ ...b, activity_id: v === "__none__" ? "" : v }))}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Aucune activité liée" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Aucune activité liée" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Aucune</SelectItem>
                         {practitionerActivities.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.title}
-                          </SelectItem>
+                          <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
 
-                {/* Room */}
                 <div className="space-y-2">
                   <Label>Espace / Salle *</Label>
                   <Select value={newBooking.room_id} onValueChange={(v) => setNewBooking((b) => ({ ...b, room_id: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une salle…" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Sélectionner une salle…" /></SelectTrigger>
                     <SelectContent>
                       {rooms.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Date */}
                 <div className="space-y-2">
                   <Label>Date de début *</Label>
-                  <Input
-                    type="date"
-                    value={newBooking.date}
-                    onChange={(e) => setNewBooking((b) => ({ ...b, date: e.target.value }))}
-                  />
+                  <Input type="date" value={newBooking.date} onChange={(e) => setNewBooking((b) => ({ ...b, date: e.target.value }))} />
                 </div>
 
-                {/* Times */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Heure de début *</Label>
@@ -351,7 +425,6 @@ const AdminBookings = () => {
                   </div>
                 </div>
 
-                {/* Recurrence */}
                 <div className="rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -363,20 +436,14 @@ const AdminBookings = () => {
                     </div>
                     <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
                   </div>
-
                   {isRecurring && (
                     <div className="space-y-2 pt-1">
                       <Label className="text-xs">Date de fin de récurrence *</Label>
                       <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn("w-full justify-start text-left font-normal", !recurrenceEndDate && "text-muted-foreground")}
-                          >
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !recurrenceEndDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {recurrenceEndDate
-                              ? format(recurrenceEndDate, "d MMMM yyyy", { locale: fr })
-                              : "Choisir une date de fin…"}
+                            {recurrenceEndDate ? format(recurrenceEndDate, "d MMMM yyyy", { locale: fr }) : "Choisir une date de fin…"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -390,7 +457,6 @@ const AdminBookings = () => {
                           />
                         </PopoverContent>
                       </Popover>
-
                       {previewDates.length > 0 && (
                         <p className="text-xs text-muted-foreground">
                           → {previewDates.length} réservation{previewDates.length > 1 ? "s" : ""} seront créées
@@ -403,7 +469,6 @@ const AdminBookings = () => {
                   )}
                 </div>
 
-                {/* Status */}
                 <div className="space-y-2">
                   <Label>Statut initial</Label>
                   <Select value={newBooking.status} onValueChange={(v) => setNewBooking((b) => ({ ...b, status: v }))}>
@@ -415,107 +480,184 @@ const AdminBookings = () => {
                   </Select>
                 </div>
 
-                {/* Notes */}
                 <div className="space-y-2">
                   <Label>Notes (facultatif)</Label>
-                  <Textarea
-                    placeholder="Informations complémentaires…"
-                    rows={2}
-                    value={newBooking.notes}
-                    onChange={(e) => setNewBooking((b) => ({ ...b, notes: e.target.value }))}
-                  />
+                  <Textarea placeholder="Informations complémentaires…" rows={2} value={newBooking.notes} onChange={(e) => setNewBooking((b) => ({ ...b, notes: e.target.value }))} />
                 </div>
 
                 <Button onClick={handleCreateBooking} disabled={creating} className="w-full">
                   {creating
                     ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Création en cours…</>
-                    : <><Plus className="h-4 w-4 mr-2" />
-                      {previewDates.length > 1
-                        ? `Créer ${previewDates.length} réservations`
-                        : "Créer la réservation"}
-                    </>
-                  }
+                    : <><Plus className="h-4 w-4 mr-2" />{previewDates.length > 1 ? `Créer ${previewDates.length} réservations` : "Créer la réservation"}</>}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
-          {(["all", "pending", "confirmed", "cancelled"] as const).map((f) => (
-            <Button
-              key={f}
-              variant={filter === f ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(f)}
+        {/* Status filters + View mode toggle */}
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="flex gap-2 flex-wrap">
+            {(["all", "pending", "confirmed", "cancelled"] as const).map((f) => (
+              <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)}>
+                {f === "all" ? "Toutes" : f === "pending" ? "En attente" : f === "confirmed" ? "Confirmées" : "Annulées"}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center bg-muted rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all", viewMode === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
             >
-              {f === "all" ? "Toutes" : f === "pending" ? "En attente" : f === "confirmed" ? "Confirmées" : "Annulées"}
-            </Button>
-          ))}
+              <List className="h-3.5 w-3.5" />
+              Liste
+            </button>
+            <button
+              onClick={() => setViewMode("practitioner")}
+              className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all", viewMode === "practitioner" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              <Users className="h-3.5 w-3.5" />
+              Par praticien
+            </button>
+            <button
+              onClick={() => setViewMode("occupancy")}
+              className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all", viewMode === "occupancy" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Occupation
+            </button>
+          </div>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              </div>
-            ) : bookings.length === 0 ? (
-              <div className="text-center py-12">
-                <CalendarCheck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">Aucune réservation trouvée.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {bookings.map((booking: any) => (
-                  <div
-                    key={booking.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <p className="font-medium text-sm">
-                          {booking.profiles?.first_name} {booking.profiles?.last_name}
-                        </p>
-                        {statusBadge(booking.status)}
-                        {booking.activities?.title && (
-                          <Badge variant="outline" className="text-xs">
-                            {booking.activities.title}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {booking.rooms?.name} •{" "}
-                        {format(new Date(booking.start_time), "EEEE d MMMM • HH:mm", { locale: fr })}
-                        {" — "}
-                        {format(new Date(booking.end_time), "HH:mm")}
-                      </p>
-                      {booking.notes && (
-                        <p className="text-xs text-muted-foreground mt-1 italic">
-                          "{booking.notes}"
-                        </p>
-                      )}
-                    </div>
-
-                    {booking.status === "pending" && (
-                      <div className="flex gap-2 ml-4">
-                        <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Confirmer
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => updateStatus(booking.id, "cancelled")}>
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Refuser
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+        {/* Room / Practitioner filters */}
+        <div className="flex gap-3 flex-wrap items-end">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Filtres :</span>
+          </div>
+          <div className="min-w-[180px]">
+            <Select value={filterRoom} onValueChange={setFilterRoom}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder="Toutes les salles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Toutes les salles</SelectItem>
+                {rooms.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-[200px]">
+            <Select value={filterPractitioner} onValueChange={setFilterPractitioner}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder="Tous les praticiens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Tous les praticiens</SelectItem>
+                {practitioners.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {(filterRoom !== "__all__" || filterPractitioner !== "__all__") && (
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); }}>
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+
+        {/* Content based on view mode */}
+        {viewMode === "occupancy" ? (
+          /* ─── Occupancy View ─── */
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-base">
+                Taux d'occupation par salle — semaine en cours
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {occupancyData.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Aucune salle configurée.</p>
+              ) : (
+                <div className="space-y-4">
+                  {occupancyData.map((room) => (
+                    <div key={room.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{room.name}</span>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>{room.bookingCount} réservation{room.bookingCount > 1 ? "s" : ""}</span>
+                          <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
+                          <Badge
+                            className={cn(
+                              "text-[10px] px-1.5 py-0",
+                              room.occupancyPct >= 70
+                                ? "bg-destructive/10 text-destructive border-destructive/20"
+                                : room.occupancyPct >= 40
+                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                : "bg-primary/10 text-primary border-primary/20"
+                            )}
+                          >
+                            {room.occupancyPct}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <Progress
+                        value={room.occupancyPct}
+                        className="h-2"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div className="text-center py-12">
+                  <CalendarCheck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">Aucune réservation trouvée.</p>
+                </div>
+              ) : viewMode === "practitioner" ? (
+                /* ─── Grouped by Practitioner ─── */
+                <div className="space-y-6">
+                  {groupedByPractitioner.map(([pid, group]) => (
+                    <div key={pid}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{group.name}</p>
+                          <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2 pl-10">
+                        {group.bookings.map((b: any) => (
+                          <BookingRow key={b.id} booking={b} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* ─── Default List ─── */
+                <div className="space-y-3">
+                  {filteredBookings.map((booking: any) => (
+                    <BookingRow key={booking.id} booking={booking} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
