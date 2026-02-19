@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, Loader2, ImagePlus, Video, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ImagePlus, Video, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube, Tv } from "lucide-react";
+import WidgetManager from "@/components/dashboard/WidgetManager";
 import { toast } from "sonner";
 import {
   DEFAULT_SETTINGS,
@@ -319,7 +320,7 @@ const AdminSiteSettings = () => {
         </div>
 
         <Tabs defaultValue="hero" className="space-y-4">
-        <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 w-full">
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="why">Valeurs</TabsTrigger>
             <TabsTrigger value="testimonials">Témoignages</TabsTrigger>
@@ -328,6 +329,7 @@ const AdminSiteSettings = () => {
             <TabsTrigger value="socials">Réseaux</TabsTrigger>
             <TabsTrigger value="centre">Centre</TabsTrigger>
             <TabsTrigger value="categories">Catégories</TabsTrigger>
+            <TabsTrigger value="widgets" className="flex items-center gap-1"><Tv className="h-3 w-3" />Widgets</TabsTrigger>
           </TabsList>
 
           {/* HERO */}
@@ -839,6 +841,10 @@ const AdminSiteSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          {/* WIDGETS */}
+          <TabsContent value="widgets">
+            <WidgetManager />
           </TabsContent>
         </Tabs>
       </div>

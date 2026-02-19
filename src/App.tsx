@@ -31,6 +31,7 @@ import DailyExport from "./pages/dashboard/DailyExport";
 import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import NotFound from "./pages/NotFound";
 import GuestRegistration from "./pages/GuestRegistration";
+import Widget from "./pages/Widget";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/activites" element={<Activites />} />
             <Route path="/activites/:id" element={<ActiviteDetail />} />
             <Route path="/mon-inscription" element={<GuestRegistration />} />
+            <Route path="/widget/:id" element={<Widget />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
 
