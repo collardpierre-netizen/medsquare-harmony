@@ -20,7 +20,7 @@ import ActivityCard from "@/components/activities/ActivityCard";
 import CategoryPills from "@/components/activities/CategoryPills";
 import PublicActivitySchedule from "@/components/activities/PublicActivitySchedule";
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { value: "all", label: "Toutes" },
   { value: "yoga", label: "Yoga" },
   { value: "pilates", label: "Pilates" },
@@ -38,6 +38,7 @@ const ActivitesPage = () => {
   const [activities, setActivities] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [myRegistrations, setMyRegistrations] = useState<string[]>([]);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [search, setSearch] = useState("");
@@ -47,13 +48,29 @@ const ActivitesPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: acts } = await supabase
-        .from("activities")
-        .select("*, profiles(id, first_name, last_name, specialty, avatar_url)")
-        .eq("is_active", true)
-        .order("title");
+      // Fetch categories from settings + distinct active categories
+      const [{ data: catSetting }, { data: acts }] = await Promise.all([
+        supabase.from("settings").select("value").eq("key", "activity_categories").maybeSingle(),
+        supabase.from("activities").select("*, profiles(id, first_name, last_name, specialty, avatar_url)").eq("is_active", true).order("title"),
+      ]);
 
       setActivities(acts || []);
+
+      // Build dynamic categories
+      const managedCats: { value: string; label: string }[] = catSetting?.value
+        ? (catSetting.value as any).categories || []
+        : DEFAULT_CATEGORIES.filter((c) => c.value !== "all");
+
+      // Get categories actually used by active activities
+      const usedCats = new Set((acts || []).map((a: any) => a.category));
+
+      // Filter to only show categories that have at least one activity, plus "Toutes"
+      const dynamicCats = [
+        { value: "all", label: "Toutes" },
+        ...managedCats.filter((c) => usedCats.has(c.value)),
+      ];
+
+      setCategories(dynamicCats.length > 1 ? dynamicCats : [{ value: "all", label: "Toutes" }]);
 
       const { data: sess } = await supabase
         .from("activity_sessions")
@@ -168,7 +185,7 @@ const ActivitesPage = () => {
             />
           </div>
           <CategoryPills
-            categories={CATEGORIES}
+            categories={categories}
             selected={selectedCategory}
             onSelect={setSelectedCategory}
           />
