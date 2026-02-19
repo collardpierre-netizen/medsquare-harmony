@@ -88,8 +88,8 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Specialty pills */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex flex-wrap justify-center gap-2 px-4 max-w-3xl">
+      {/* Specialty pills — positioned above dots, below CTA on mobile */}
+      <div className="absolute bottom-14 sm:bottom-20 right-4 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-10 flex flex-wrap justify-end sm:justify-center gap-2 max-w-[200px] sm:max-w-3xl">
         <AnimatePresence mode="wait">
           {images[current].specialty && (
             <motion.span
@@ -98,7 +98,7 @@ const HeroSection = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.4 }}
-              className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-4 py-1.5 text-sm font-medium text-white shadow-lg"
+              className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm font-medium text-white shadow-lg"
             >
               {images[current].specialty}
             </motion.span>
