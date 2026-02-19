@@ -27,6 +27,16 @@ const AdminSiteSettings = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
   const [centreVideoUrl, setCentreVideoUrl] = useState("");
   const [centreGallery, setCentreGallery] = useState<{ url: string; alt: string }[]>([]);
+  const [activityCategories, setActivityCategories] = useState<{ value: string; label: string }[]>([
+    { value: "yoga", label: "Yoga" },
+    { value: "pilates", label: "Pilates" },
+    { value: "meditation", label: "Méditation" },
+    { value: "fitness", label: "Fitness" },
+    { value: "danse", label: "Danse" },
+    { value: "sophrologie", label: "Sophrologie" },
+    { value: "nutrition", label: "Nutrition" },
+    { value: "autre", label: "Autre" },
+  ]);
   const [medsquareSocials, setMedsquareSocials] = useState({
     facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "", website: "",
   });
@@ -38,7 +48,7 @@ const AdminSiteSettings = () => {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["hero", "why", "testimonials", "contact", "faq", "centre_video", "centre_gallery", "medsquare_socials"]);
+        .in("key", ["hero", "why", "testimonials", "contact", "faq", "centre_video", "centre_gallery", "medsquare_socials", "activity_categories"]);
       if (data && data.length > 0) {
         const merged = { ...DEFAULT_SETTINGS };
         for (const row of data) {
@@ -62,6 +72,11 @@ const AdminSiteSettings = () => {
               youtube: val?.youtube || "",
               website: val?.website || "",
             });
+            continue;
+          }
+          if (row.key === "activity_categories") {
+            const val = row.value as any;
+            if (val?.categories) setActivityCategories(val.categories);
             continue;
           }
           const k = row.key as keyof SiteSettings;
@@ -118,6 +133,19 @@ const AdminSiteSettings = () => {
         .from("settings")
         .upsert({ key: "centre_gallery", value: { images: centreGallery }, updated_at: new Date().toISOString() }, { onConflict: "key" });
       toast.success("Galerie sauvegardée !");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde.");
+    }
+    setSaving(null);
+  };
+
+  const saveActivityCategories = async () => {
+    setSaving("activity_categories");
+    try {
+      await supabase
+        .from("settings")
+        .upsert({ key: "activity_categories", value: { categories: activityCategories }, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      toast.success("Catégories sauvegardées !");
     } catch {
       toast.error("Erreur lors de la sauvegarde.");
     }
@@ -291,7 +319,7 @@ const AdminSiteSettings = () => {
         </div>
 
         <Tabs defaultValue="hero" className="space-y-4">
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
             <TabsTrigger value="hero">Hero</TabsTrigger>
             <TabsTrigger value="why">Valeurs</TabsTrigger>
             <TabsTrigger value="testimonials">Témoignages</TabsTrigger>
@@ -299,6 +327,7 @@ const AdminSiteSettings = () => {
             <TabsTrigger value="contact">Contact</TabsTrigger>
             <TabsTrigger value="socials">Réseaux</TabsTrigger>
             <TabsTrigger value="centre">Centre</TabsTrigger>
+            <TabsTrigger value="categories">Catégories</TabsTrigger>
           </TabsList>
 
           {/* HERO */}
@@ -742,6 +771,72 @@ const AdminSiteSettings = () => {
                   {saving === "centre_gallery" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Sauvegarder
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* CATEGORIES */}
+          <TabsContent value="categories">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Catégories d'activités</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Gérez les catégories affichées sur la page Activités. Seules les catégories ayant au moins une activité active seront visibles.
+                </p>
+
+                <div className="space-y-3">
+                  {activityCategories.map((cat, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <Input
+                          value={cat.value}
+                          onChange={(e) => {
+                            const updated = [...activityCategories];
+                            updated[idx] = { ...updated[idx], value: e.target.value };
+                            setActivityCategories(updated);
+                          }}
+                          placeholder="Identifiant (ex: yoga)"
+                          className="text-sm h-9"
+                        />
+                        <Input
+                          value={cat.label}
+                          onChange={(e) => {
+                            const updated = [...activityCategories];
+                            updated[idx] = { ...updated[idx], label: e.target.value };
+                            setActivityCategories(updated);
+                          }}
+                          placeholder="Libellé affiché (ex: Yoga)"
+                          className="text-sm h-9"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActivityCategories(activityCategories.filter((_, i) => i !== idx))}
+                        className="text-destructive hover:text-destructive shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActivityCategories([...activityCategories, { value: "", label: "" }])}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Ajouter une catégorie
+                </Button>
+
+                <div className="pt-2">
+                  <Button onClick={saveActivityCategories} disabled={saving === "activity_categories"}>
+                    {saving === "activity_categories" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Sauvegarder
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
