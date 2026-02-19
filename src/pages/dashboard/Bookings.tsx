@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
-import { MapPin, CalendarDays, LayoutGrid, User, Building2 } from "lucide-react";
+import { MapPin, CalendarDays, LayoutGrid, User, Building2, Columns3 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,11 +21,12 @@ import CancelBookingDialog from "@/components/dashboard/bookings/CancelBookingDi
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import ActivityDetailDialog from "@/components/dashboard/bookings/ActivityDetailDialog";
 import MyPlanningView from "@/components/dashboard/bookings/MyPlanningView";
+import AllRoomsOverview from "@/components/dashboard/bookings/AllRoomsOverview";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
-type PlanningMode = "my-planning" | "by-room";
+type PlanningMode = "my-planning" | "by-room" | "all-rooms";
 
 const Bookings = () => {
   const { profile, isAdmin } = useAuth();
@@ -457,6 +458,18 @@ const Bookings = () => {
             <Building2 className="h-4 w-4" />
             Par salle
           </button>
+          <button
+            onClick={() => setPlanningMode("all-rooms")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all",
+              planningMode === "all-rooms"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Columns3 className="h-4 w-4" />
+            Toutes les salles
+          </button>
         </div>
 
         {planningMode === "my-planning" ? (
@@ -473,6 +486,27 @@ const Bookings = () => {
               profileId={profile?.id || ""}
               isAdmin={isAdmin}
               rooms={rooms}
+              onBookingClick={handleBookingClick}
+              onActivityClick={handleActivityClick}
+            />
+          </>
+        ) : planningMode === "all-rooms" ? (
+          <>
+            {/* Date picker */}
+            <WeekDatePicker
+              weekStart={weekStart}
+              selectedDate={selectedDate}
+              onWeekChange={setWeekStart}
+              onDateSelect={(day) => setSelectedDate(day)}
+            />
+            <AllRoomsOverview
+              selectedDate={selectedDate}
+              rooms={rooms}
+              onSlotClick={(day, roomId) => {
+                setSelectedRoom(roomId);
+                setSelectedSlot(day);
+                setShowNewBooking(true);
+              }}
               onBookingClick={handleBookingClick}
               onActivityClick={handleActivityClick}
             />
