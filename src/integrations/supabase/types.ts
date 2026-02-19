@@ -176,6 +176,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          activity_id: string | null
           created_at: string
           end_time: string
           id: string
@@ -187,6 +188,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activity_id?: string | null
           created_at?: string
           end_time: string
           id?: string
@@ -198,6 +200,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activity_id?: string | null
           created_at?: string
           end_time?: string
           id?: string
@@ -209,6 +212,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_practitioner_id_fkey"
             columns: ["practitioner_id"]
