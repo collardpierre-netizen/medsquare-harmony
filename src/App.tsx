@@ -15,6 +15,8 @@ import Activites from "./pages/Activites";
 import ActiviteDetail from "./pages/ActiviteDetail";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import DashboardRouter from "./pages/dashboard/DashboardRouter";
 import Profile from "./pages/dashboard/Profile";
 import Bookings from "./pages/dashboard/Bookings";
@@ -58,6 +60,8 @@ const App = () => (
             <Route path="/widget/:id" element={<Widget />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected dashboard - routes to patient or practitioner based on role */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
