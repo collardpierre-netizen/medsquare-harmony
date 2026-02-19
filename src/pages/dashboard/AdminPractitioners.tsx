@@ -520,8 +520,8 @@ const AdminPractitioners = () => {
                     className="flex items-center justify-between p-4 rounded-lg border border-border"
                   >
                     <div className="flex items-center gap-3">
-                      {/* Order arrows */}
-                      <div className="flex flex-col gap-0.5">
+                      {/* Order number + arrows */}
+                      <div className="flex flex-col items-center gap-0.5">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -531,6 +531,7 @@ const AdminPractitioners = () => {
                         >
                           <ArrowUp className="h-3.5 w-3.5" />
                         </Button>
+                        <span className="text-xs font-bold text-muted-foreground tabular-nums w-6 text-center">{index + 1}</span>
                         <Button
                           variant="ghost"
                           size="icon"
