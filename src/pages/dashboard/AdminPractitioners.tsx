@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
+  ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
+  Linkedin, Twitter, Youtube,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,26 +22,44 @@ import {
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ScheduleEditor, { DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
+import ImageUpload from "@/components/dashboard/ImageUpload";
 
 const DEFAULT_SCHEDULE: DaySchedule[] = [];
+
+const SOCIAL_FIELDS = [
+  { key: "website", label: "Site web", icon: Globe, placeholder: "https://mon-site.be" },
+  { key: "facebook", label: "Facebook", icon: Facebook, placeholder: "https://facebook.com/..." },
+  { key: "instagram", label: "Instagram", icon: Instagram, placeholder: "https://instagram.com/..." },
+  { key: "linkedin", label: "LinkedIn", icon: Linkedin, placeholder: "https://linkedin.com/in/..." },
+  { key: "twitter", label: "Twitter / X", icon: Twitter, placeholder: "https://twitter.com/..." },
+  { key: "youtube", label: "YouTube", icon: Youtube, placeholder: "https://youtube.com/@..." },
+];
 
 const AdminPractitioners = () => {
   const { toast } = useToast();
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Invite dialog
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
-  const [form, setForm] = useState({
-    email: "",
-    first_name: "",
-    last_name: "",
-    specialty: "",
-    bio: "",
-    phone: "",
-    contact_email: "",
+  const [inviteSchedule, setInviteSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
+  const [inviteForm, setInviteForm] = useState({
+    email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "",
+  });
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [showEditSocials, setShowEditSocials] = useState(false);
+  const [editSchedule, setEditSchedule] = useState<DaySchedule[]>([]);
+  const [editForm, setEditForm] = useState({
+    first_name: "", last_name: "", specialty: "", bio: "",
+    phone: "", contact_email: "", avatar_url: "",
+    social_links: { website: "", facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "" },
   });
 
   const fetchPractitioners = async () => {
@@ -83,14 +105,15 @@ const AdminPractitioners = () => {
     }
   };
 
-  const resetForm = () => {
-    setForm({ email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "" });
-    setSchedule(DEFAULT_SCHEDULE);
+  // ---- Invite ----
+  const resetInviteForm = () => {
+    setInviteForm({ email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "" });
+    setInviteSchedule(DEFAULT_SCHEDULE);
     setShowAdvanced(false);
   };
 
   const handleInvite = async () => {
-    if (!form.email) {
+    if (!inviteForm.email) {
       toast({ title: "L'email est requis", variant: "destructive" });
       return;
     }
@@ -98,20 +121,20 @@ const AdminPractitioners = () => {
     try {
       const res = await supabase.functions.invoke("invite-practitioner", {
         body: {
-          email: form.email,
-          first_name: form.first_name,
-          last_name: form.last_name,
-          specialty: form.specialty,
-          bio: form.bio,
-          phone: form.phone,
-          contact_email: form.contact_email || form.email,
-          schedule: schedule.length > 0 ? schedule : null,
+          email: inviteForm.email,
+          first_name: inviteForm.first_name,
+          last_name: inviteForm.last_name,
+          specialty: inviteForm.specialty,
+          bio: inviteForm.bio,
+          phone: inviteForm.phone,
+          contact_email: inviteForm.contact_email || inviteForm.email,
+          schedule: inviteSchedule.length > 0 ? inviteSchedule : null,
         },
       });
       if (res.error) throw res.error;
       if (res.data?.error) throw new Error(res.data.error);
-      toast({ title: "Invitation envoyée !", description: `Un email a été envoyé à ${form.email}` });
-      resetForm();
+      toast({ title: "Invitation envoyée !", description: `Un email a été envoyé à ${inviteForm.email}` });
+      resetInviteForm();
       setOpen(false);
       setTimeout(() => fetchPractitioners(), 2000);
     } catch (err: any) {
@@ -138,9 +161,80 @@ const AdminPractitioners = () => {
     setResendingId(null);
   };
 
-  const isAccountPending = (p: any) => {
-    return p.created_at === p.updated_at && !p.contact_email && !p.specialty;
+  // ---- Edit ----
+  const openEdit = (p: any) => {
+    setEditingId(p.id);
+    const sl = p.social_links || {};
+    setEditForm({
+      first_name: p.first_name || "",
+      last_name: p.last_name || "",
+      specialty: p.specialty || "",
+      bio: p.bio || "",
+      phone: p.phone || "",
+      contact_email: p.contact_email || "",
+      avatar_url: p.avatar_url || "",
+      social_links: {
+        website: sl.website || "",
+        facebook: sl.facebook || "",
+        instagram: sl.instagram || "",
+        linkedin: sl.linkedin || "",
+        twitter: sl.twitter || "",
+        youtube: sl.youtube || "",
+      },
+    });
+    try {
+      const raw = typeof p.schedule === "string" ? JSON.parse(p.schedule) : p.schedule;
+      setEditSchedule(Array.isArray(raw) ? raw : []);
+    } catch {
+      setEditSchedule([]);
+    }
+    setShowEditSocials(false);
+    setEditOpen(true);
   };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        specialty: editForm.specialty,
+        bio: editForm.bio,
+        phone: editForm.phone,
+        contact_email: editForm.contact_email || null,
+        avatar_url: editForm.avatar_url || null,
+        schedule: editSchedule as any,
+        social_links: editForm.social_links as any,
+      } as any)
+      .eq("id", editingId);
+
+    if (error) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
+    } else {
+      toast({ title: "Profil mis à jour", description: "Les modifications sont visibles sur le site." });
+      setEditOpen(false);
+      fetchPractitioners();
+    }
+    setSaving(false);
+  };
+
+  const handleEditAvatarUpload = async (url: string) => {
+    setEditForm((f) => ({ ...f, avatar_url: url }));
+    if (editingId) {
+      await supabase.from("profiles").update({ avatar_url: url } as any).eq("id", editingId);
+    }
+  };
+
+  const handleEditAvatarRemove = async () => {
+    setEditForm((f) => ({ ...f, avatar_url: "" }));
+    if (editingId) {
+      await supabase.from("profiles").update({ avatar_url: "" } as any).eq("id", editingId);
+    }
+  };
+
+  const isAccountPending = (p: any) => p.created_at === p.updated_at && !p.contact_email && !p.specialty;
 
   return (
     <DashboardLayout>
@@ -152,7 +246,9 @@ const AdminPractitioners = () => {
               Gérez les profils et les accès des praticiens.
             </p>
           </div>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+
+          {/* Invite dialog */}
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetInviteForm(); }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -167,8 +263,6 @@ const AdminPractitioners = () => {
                 <p className="text-sm text-muted-foreground">
                   Le praticien recevra un email pour activer son compte. Vous pouvez déjà pré-remplir son profil.
                 </p>
-
-                {/* Required */}
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="invite-email">Email *</Label>
@@ -176,33 +270,30 @@ const AdminPractitioners = () => {
                       id="invite-email"
                       type="email"
                       placeholder="praticien@exemple.com"
-                      value={form.email}
-                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="invite-first">Prénom</Label>
+                      <Label>Prénom</Label>
                       <Input
-                        id="invite-first"
                         placeholder="Jean"
-                        value={form.first_name}
-                        onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                        value={inviteForm.first_name}
+                        onChange={(e) => setInviteForm((f) => ({ ...f, first_name: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="invite-last">Nom</Label>
+                      <Label>Nom</Label>
                       <Input
-                        id="invite-last"
                         placeholder="Dupont"
-                        value={form.last_name}
-                        onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                        value={inviteForm.last_name}
+                        onChange={(e) => setInviteForm((f) => ({ ...f, last_name: e.target.value }))}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Advanced / optional */}
                 <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" size="sm" className="w-full justify-between">
@@ -212,68 +303,190 @@ const AdminPractitioners = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="invite-specialty">Spécialité</Label>
+                      <Label>Spécialité</Label>
                       <Input
-                        id="invite-specialty"
                         placeholder="Ostéopathe, Kinésithérapeute…"
-                        value={form.specialty}
-                        onChange={(e) => setForm((f) => ({ ...f, specialty: e.target.value }))}
+                        value={inviteForm.specialty}
+                        onChange={(e) => setInviteForm((f) => ({ ...f, specialty: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="invite-bio">Bio / Présentation</Label>
+                      <Label>Bio / Présentation</Label>
                       <Textarea
-                        id="invite-bio"
-                        placeholder="Présentation affichée sur la fiche publique du praticien…"
+                        placeholder="Présentation affichée sur la fiche publique…"
                         rows={3}
-                        value={form.bio}
-                        onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+                        value={inviteForm.bio}
+                        onChange={(e) => setInviteForm((f) => ({ ...f, bio: e.target.value }))}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="invite-phone">Téléphone</Label>
+                        <Label>Téléphone</Label>
                         <Input
-                          id="invite-phone"
                           placeholder="+32 470 000 000"
-                          value={form.phone}
-                          onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                          value={inviteForm.phone}
+                          onChange={(e) => setInviteForm((f) => ({ ...f, phone: e.target.value }))}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="invite-contact-email">Email de contact public</Label>
+                        <Label>Email de contact public</Label>
                         <Input
-                          id="invite-contact-email"
                           type="email"
                           placeholder="contact@praticien.be"
-                          value={form.contact_email}
-                          onChange={(e) => setForm((f) => ({ ...f, contact_email: e.target.value }))}
+                          value={inviteForm.contact_email}
+                          onChange={(e) => setInviteForm((f) => ({ ...f, contact_email: e.target.value }))}
                         />
                       </div>
                     </div>
-
                     <div className="space-y-2">
                       <Label>Planning hebdomadaire</Label>
                       <p className="text-xs text-muted-foreground">
                         Définissez les jours et horaires de présence par défaut du praticien.
                       </p>
-                      <ScheduleEditor schedule={schedule} onChange={setSchedule} />
+                      <ScheduleEditor schedule={inviteSchedule} onChange={setInviteSchedule} />
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
 
                 <Button onClick={handleInvite} disabled={inviting} className="w-full">
-                  {inviting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Mail className="h-4 w-4 mr-2" />
-                  )}
+                  {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
                   Envoyer l'invitation
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Edit dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Modifier le profil du praticien</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 pt-2">
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                <ImageUpload
+                  bucket="avatars"
+                  folder={editingId || "unknown"}
+                  currentUrl={editForm.avatar_url || null}
+                  onUpload={handleEditAvatarUpload}
+                  onRemove={handleEditAvatarRemove}
+                  shape="circle"
+                  className="h-20 w-20"
+                />
+                <div>
+                  <p className="text-sm font-medium">Photo de profil</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG ou WebP · max 5 Mo</p>
+                </div>
+              </div>
+
+              {/* Nom */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Prénom</Label>
+                  <Input
+                    value={editForm.first_name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nom</Label>
+                  <Input
+                    value={editForm.last_name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Spécialité */}
+              <div className="space-y-2">
+                <Label>Spécialité</Label>
+                <Input
+                  placeholder="Ostéopathe, Kinésithérapeute…"
+                  value={editForm.specialty}
+                  onChange={(e) => setEditForm((f) => ({ ...f, specialty: e.target.value }))}
+                />
+              </div>
+
+              {/* Bio */}
+              <div className="space-y-2">
+                <Label>Biographie</Label>
+                <Textarea
+                  rows={4}
+                  placeholder="Présentation publique du praticien…"
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm((f) => ({ ...f, bio: e.target.value }))}
+                />
+              </div>
+
+              {/* Contact */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Téléphone</Label>
+                  <Input
+                    placeholder="+32 470 000 000"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email de contact</Label>
+                  <Input
+                    type="email"
+                    placeholder="contact@praticien.be"
+                    value={editForm.contact_email}
+                    onChange={(e) => setEditForm((f) => ({ ...f, contact_email: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Réseaux sociaux */}
+              <Collapsible open={showEditSocials} onOpenChange={setShowEditSocials}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Réseaux sociaux & site web
+                    {showEditSocials ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  {SOCIAL_FIELDS.map(({ key, label, icon: Icon, placeholder }) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <Input
+                        type="url"
+                        placeholder={placeholder}
+                        value={editForm.social_links[key as keyof typeof editForm.social_links]}
+                        onChange={(e) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            social_links: { ...f.social_links, [key]: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Planning */}
+              <div className="space-y-2">
+                <Label>Planning hebdomadaire</Label>
+                <ScheduleEditor schedule={editSchedule} onChange={setEditSchedule} />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setEditOpen(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Sauvegarder
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Card>
           <CardContent className="pt-6">
@@ -294,8 +507,12 @@ const AdminPractitioners = () => {
                     className="flex items-center justify-between p-4 rounded-lg border border-border"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-display font-bold text-primary text-sm">
-                        {p.first_name?.[0]}{p.last_name?.[0]}
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-display font-bold text-primary text-sm overflow-hidden shrink-0">
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{p.first_name?.[0]}{p.last_name?.[0]}</span>
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -330,6 +547,15 @@ const AdminPractitioners = () => {
                           Renvoyer
                         </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEdit(p)}
+                        title="Modifier le profil"
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        Éditer
+                      </Button>
                       <Badge
                         variant="secondary"
                         className={
