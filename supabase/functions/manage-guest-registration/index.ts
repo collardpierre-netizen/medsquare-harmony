@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     if (req.method === "DELETE") {
       const { data: reg, error: fetchError } = await supabase
         .from("activity_registrations")
-        .select("id, status, cancellation_token")
+        .select("id, status, cancellation_token, session_id")
         .eq("cancellation_token", token)
         .single();
 
@@ -77,6 +77,22 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         return json({ error: "Impossible d'annuler l'inscription" }, 500);
+      }
+
+      // Trigger promotion email for waitlisted person (best-effort)
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        await fetch(`${supabaseUrl}/functions/v1/notify-waitlist-promoted`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ session_id: reg.session_id }),
+        });
+      } catch {
+        // Silent fail
       }
 
       return json({ cancelled: true });
