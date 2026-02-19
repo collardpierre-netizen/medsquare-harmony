@@ -73,7 +73,7 @@ interface Session {
   max_participants: number | null;
   status: string;
   rooms: { name: string } | null;
-  activity_registrations: { id: string; user_id: string }[];
+  activity_registrations: { id: string; user_id: string; status?: string }[];
 }
 
 const ActiviteDetail = () => {
@@ -114,7 +114,7 @@ const ActiviteDetail = () => {
       const { data: sess } = await supabase
         .from("activity_sessions")
         .select(
-          "id, start_time, end_time, max_participants, status, rooms(name), activity_registrations(id, user_id)"
+          "id, start_time, end_time, max_participants, status, rooms(name), activity_registrations(id, user_id, status)"
         )
         .eq("activity_id", id)
         .gte("start_time", new Date().toISOString())

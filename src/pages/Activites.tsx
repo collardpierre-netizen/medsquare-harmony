@@ -74,7 +74,7 @@ const ActivitesPage = () => {
 
       const { data: sess } = await supabase
         .from("activity_sessions")
-        .select("*, rooms(name), activity_registrations(id, user_id)")
+        .select("*, rooms(name), activity_registrations(id, user_id, status)")
         .gte("start_time", new Date().toISOString())
         .eq("status", "scheduled")
         .order("start_time");
@@ -236,8 +236,11 @@ const ActivitesPage = () => {
                         <div className="space-y-1.5 pl-1">
                           {actSessions.slice(0, 2).map((session: any) => {
                             const registered = myRegistrations.includes(session.id);
-                            const registrationCount = session.activity_registrations?.length || 0;
-                            const isFull = registrationCount >= (session.max_participants || 10);
+                            const regs = session.activity_registrations?.filter((r: any) => (r.status || "registered") === "registered") || [];
+                            const registrationCount = regs.length;
+                            const maxP = session.max_participants;
+                            const isFull = maxP ? registrationCount >= maxP : false;
+                            const remaining = maxP ? Math.max(0, maxP - registrationCount) : null;
 
                             return (
                               <div
@@ -246,8 +249,8 @@ const ActivitesPage = () => {
                               >
                                 <span className="text-muted-foreground truncate">
                                   {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
-                                  <span className="text-muted-foreground/60 ml-1">
-                                    ({registrationCount}/{session.max_participants || "∞"})
+                                  <span className={`ml-1 font-medium ${isFull ? "text-destructive" : remaining !== null && remaining <= 3 ? "text-amber-600" : "text-muted-foreground/60"}`}>
+                                    {isFull ? "(complet)" : remaining !== null ? `(${remaining} place${remaining > 1 ? "s" : ""})` : ""}
                                   </span>
                                 </span>
                                 {registered ? (
@@ -259,14 +262,14 @@ const ActivitesPage = () => {
                                   </button>
                                 ) : (
                                   <button
-                                    disabled={isFull || !user}
+                                    disabled={!user}
                                     onClick={() => {
                                       setSelectedSession({ ...session, activity });
                                       setShowConfirmDialog(true);
                                     }}
-                                    className="text-primary hover:underline font-medium shrink-0 disabled:opacity-40 disabled:no-underline"
+                                    className={`hover:underline font-medium shrink-0 disabled:opacity-40 disabled:no-underline ${isFull ? "text-amber-600" : "text-primary"}`}
                                   >
-                                    {isFull ? "Complet" : "S'inscrire"}
+                                    {isFull ? "Liste d'attente" : "S'inscrire"}
                                   </button>
                                 )}
                               </div>

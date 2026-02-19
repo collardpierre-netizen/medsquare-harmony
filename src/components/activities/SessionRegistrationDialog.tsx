@@ -100,6 +100,7 @@ const SessionRegistrationDialog = ({
   const activity = session.activities;
   const maxP = session.max_participants;
   const isFull = maxP ? registrationCount >= maxP : false;
+  const remaining = maxP ? Math.max(0, maxP - registrationCount) : null;
   const isPast = start < new Date();
 
   const notifyPractitioner = async (registrationId?: string) => {
@@ -129,10 +130,12 @@ const SessionRegistrationDialog = ({
     }
 
     setIsLoading(true);
+    const status = isFull ? "waitlisted" : "registered";
     const { data, error } = await supabase.from("activity_registrations").insert({
       session_id: session.id,
       user_id: user.id,
-    }).select("id").single();
+      status,
+    } as any).select("id").single();
 
     if (error) {
       toast({
@@ -144,8 +147,13 @@ const SessionRegistrationDialog = ({
       });
     } else {
       setIsRegistered(true);
-      setRegistrationCount((c) => c + 1);
-      toast({ title: "Inscription confirmée !", description: `Vous êtes inscrit à ${activity?.title}.` });
+      setRegistrationCount((c) => c + (isFull ? 0 : 1));
+      toast({
+        title: isFull ? "Liste d'attente confirmée ! 📋" : "Inscription confirmée ! 🎉",
+        description: isFull
+          ? `Vous êtes en liste d'attente pour ${activity?.title}. Vous serez notifié si une place se libère.`
+          : `Vous êtes inscrit à ${activity?.title}.`,
+      });
       onRegistrationChange?.();
       if (data?.id) {
         notifyPractitioner(data.id);
@@ -169,12 +177,14 @@ const SessionRegistrationDialog = ({
     }
 
     setIsLoading(true);
+    const status = isFull ? "waitlisted" : "registered";
     const { data, error } = await supabase.from("activity_registrations").insert({
       session_id: session.id,
       user_id: null,
       guest_name: guestForm.name.trim(),
       guest_email: guestForm.email.trim(),
       guest_phone: guestForm.phone.trim() || null,
+      status,
     } as any).select("id").single();
 
     if (error) {
@@ -184,9 +194,14 @@ const SessionRegistrationDialog = ({
         description: "Impossible de s'inscrire. Veuillez réessayer.",
       });
     } else {
-      setRegistrationCount((c) => c + 1);
+      setRegistrationCount((c) => c + (isFull ? 0 : 1));
       setShowGuestForm(false);
-      toast({ title: "Inscription confirmée !", description: `Vous êtes inscrit à ${activity?.title}.` });
+      toast({
+        title: isFull ? "Liste d'attente confirmée ! 📋" : "Inscription confirmée ! 🎉",
+        description: isFull
+          ? `Vous êtes en liste d'attente pour ${activity?.title}.`
+          : `Vous êtes inscrit à ${activity?.title}.`,
+      });
       onRegistrationChange?.();
       if (data?.id) {
         notifyPractitioner(data.id);
@@ -268,9 +283,21 @@ const SessionRegistrationDialog = ({
           {/* Capacity */}
           <div className="flex items-start gap-3">
             <Users className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-            <p className="text-sm">
-              {checking ? "..." : `${registrationCount}/${maxP || "∞"} inscrits`}
-            </p>
+            <div>
+              <p className="text-sm">
+                {checking ? "..." : `${registrationCount}/${maxP || "∞"} inscrits`}
+              </p>
+              {!checking && remaining !== null && !isFull && (
+                <p className={`text-xs font-medium ${remaining <= 3 ? "text-amber-600" : "text-muted-foreground"}`}>
+                  {remaining} place{remaining > 1 ? "s" : ""} restante{remaining > 1 ? "s" : ""}
+                </p>
+              )}
+              {!checking && isFull && (
+                <p className="text-xs font-medium text-amber-600">
+                  Complet — inscription en liste d'attente possible
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Price */}
@@ -304,9 +331,14 @@ const SessionRegistrationDialog = ({
                     </Button>
                   </div>
                 ) : isFull ? (
-                  <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
-                    <p className="text-sm font-medium text-destructive">Séance complète</p>
-                  </div>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={handleRegister}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Inscription..." : "📋 S'inscrire en liste d'attente"}
+                  </Button>
                 ) : (
                   <Button
                     className="w-full"
@@ -318,9 +350,19 @@ const SessionRegistrationDialog = ({
                 )
               ) : (
                 // Non-authenticated visitor flow
-                isFull ? (
-                  <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
-                    <p className="text-sm font-medium text-destructive">Séance complète</p>
+                isFull && !showGuestForm ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-center text-amber-700 font-medium">Séance complète — inscription en liste d'attente</p>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="outline" className="w-full" onClick={() => setShowGuestForm(true)}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Liste d'attente sans compte
+                      </Button>
+                      <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Se connecter
+                      </Button>
+                    </div>
                   </div>
                 ) : showGuestForm ? (
                   <div className="space-y-3 border border-border rounded-lg p-4">
