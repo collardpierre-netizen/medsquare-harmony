@@ -60,6 +60,8 @@ const EditBookingDialog = ({
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingGroup, setDeletingGroup] = useState(false);
+  const [groupCount, setGroupCount] = useState(0);
 
   const [roomId, setRoomId] = useState("");
   const [practitionerId, setPractitionerId] = useState("");
@@ -75,16 +77,7 @@ const EditBookingDialog = ({
     if (booking) {
       const start = new Date(booking.start_time);
       const end = new Date(booking.end_time);
-      // Format in Brussels timezone
-      const fmt = (d: Date, f: string) =>
-        new Intl.DateTimeFormat("fr-BE", {
-          timeZone: "Europe/Brussels",
-          ...(f === "date"
-            ? { year: "numeric", month: "2-digit", day: "2-digit" }
-            : { hour: "2-digit", minute: "2-digit", hour12: false }),
-        }).format(d);
 
-      // Parse Brussels date parts
       const parts = new Intl.DateTimeFormat("fr-BE", {
         timeZone: "Europe/Brussels",
         year: "numeric",
@@ -114,6 +107,17 @@ const EditBookingDialog = ({
       setPractitionerId(booking.practitioner_id);
       setStatus(booking.status);
       setNotes(booking.notes || "");
+
+      // Check if this booking belongs to a recurrence group
+      if (booking.recurrence_group_id) {
+        supabase
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .eq("recurrence_group_id", booking.recurrence_group_id)
+          .then(({ count }) => setGroupCount(count || 0));
+      } else {
+        setGroupCount(0);
+      }
     }
   }, [booking]);
 
@@ -154,6 +158,10 @@ const EditBookingDialog = ({
 
     // Create recurring copies if enabled
     if (recurrence && recurrenceWeeks >= 2) {
+      const groupId = booking.recurrence_group_id || crypto.randomUUID();
+      // Also tag the original booking with the group
+      await supabase.from("bookings").update({ recurrence_group_id: groupId }).eq("id", booking.id);
+
       const bookingsToInsert = [];
       for (let w = 1; w < recurrenceWeeks; w++) {
         const wStart = addWeeks(newStart, w);
@@ -165,6 +173,7 @@ const EditBookingDialog = ({
           end_time: wEnd.toISOString(),
           status,
           notes: notes || null,
+          recurrence_group_id: groupId,
         });
       }
       const { error: recError } = await supabase.from("bookings").insert(bookingsToInsert);
@@ -193,6 +202,23 @@ const EditBookingDialog = ({
       onSaved();
     }
     setDeleting(false);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!booking.recurrence_group_id) return;
+    setDeletingGroup(true);
+    const { error } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("recurrence_group_id", booking.recurrence_group_id);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `${groupCount} réservations récurrentes supprimées` });
+      onOpenChange(false);
+      onSaved();
+    }
+    setDeletingGroup(false);
   };
 
   return (
@@ -316,29 +342,57 @@ const EditBookingDialog = ({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="mr-auto" disabled={deleting}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                Supprimer
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer cette réservation ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Cette action est irréversible. La réservation sera définitivement supprimée.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+          <div className="flex gap-2 mr-auto flex-wrap">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={deleting}>
+                  <Trash2 className="h-4 w-4 mr-1" />
                   Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Supprimer cette réservation ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est irréversible. La réservation sera définitivement supprimée.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Supprimer
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {booking.recurrence_group_id && groupCount > 1 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" disabled={deletingGroup}>
+                    <Repeat className="h-4 w-4 mr-1" />
+                    Supprimer la série ({groupCount})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Supprimer toute la série récurrente ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action supprimera les <strong>{groupCount}</strong> réservations liées à cette récurrence. Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteGroup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      {deletingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                      Supprimer la série
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>

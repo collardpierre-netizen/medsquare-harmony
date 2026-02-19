@@ -182,6 +182,7 @@ export type Database = {
           id: string
           notes: string | null
           practitioner_id: string
+          recurrence_group_id: string | null
           room_id: string
           start_time: string
           status: string
@@ -194,6 +195,7 @@ export type Database = {
           id?: string
           notes?: string | null
           practitioner_id: string
+          recurrence_group_id?: string | null
           room_id: string
           start_time: string
           status?: string
@@ -206,6 +208,7 @@ export type Database = {
           id?: string
           notes?: string | null
           practitioner_id?: string
+          recurrence_group_id?: string | null
           room_id?: string
           start_time?: string
           status?: string
