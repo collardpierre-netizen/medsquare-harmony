@@ -142,21 +142,62 @@ const MyPlanningView = ({
     return result.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [bookings, activities, roomMap]);
 
+  // Get hour in Europe/Brussels timezone
+  const getBrusselsHour = (date: Date): number =>
+    parseInt(
+      new Intl.DateTimeFormat("fr-BE", {
+        timeZone: "Europe/Brussels",
+        hour: "numeric",
+        hour12: false,
+      }).format(date),
+      10
+    );
+
+  // Get Brussels calendar day as a plain Date (midnight local) for isSameDay comparison
+  const toBrusselsDay = (date: Date): Date => {
+    const parts = new Intl.DateTimeFormat("fr-BE", {
+      timeZone: "Europe/Brussels",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const y = parseInt(parts.find((p) => p.type === "year")!.value);
+    const m = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
+    const d = parseInt(parts.find((p) => p.type === "day")!.value);
+    return new Date(y, m, d);
+  };
+
+  // Get Brussels offset in hours for a given date (handles DST)
+  const getBrusselsOffsetHours = (date: Date): number => {
+    // Create a UTC date and a Brussels date string, compute difference
+    const utcHour = date.getUTCHours() + date.getUTCMinutes() / 60;
+    const brHour = getBrusselsHour(date) + date.getUTCMinutes() / 60;
+    let diff = brHour - utcHour;
+    if (diff < -12) diff += 24;
+    if (diff > 12) diff -= 24;
+    return diff;
+  };
+
   const getEventsForDayHour = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
     return events.filter((e) => {
       const start = new Date(e.startTime);
       const end = new Date(e.endTime);
-      if (!isSameDay(start, day) && !isSameDay(end, day)) return false;
-      const slotStart = new Date(day);
-      slotStart.setHours(hour, 0, 0, 0);
-      const slotEnd = new Date(day);
-      slotEnd.setHours(hour + 1, 0, 0, 0);
-      return start < slotEnd && end > slotStart;
+      if (!isSameDay(toBrusselsDay(start), dayBrussels) && !isSameDay(toBrusselsDay(end), dayBrussels)) return false;
+      // Convert slot boundaries to UTC milliseconds using Brussels offset
+      const offset = getBrusselsOffsetHours(day);
+      const slotStartUTC = new Date(dayBrussels);
+      slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
+      const slotEndUTC = new Date(dayBrussels);
+      slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
+      return start.getTime() < slotEndUTC.getTime() && end.getTime() > slotStartUTC.getTime();
     });
   };
 
-  const getEventsForDay = (day: Date) =>
-    events.filter((e) => isSameDay(new Date(e.startTime), day));
+  const getEventsForDay = (day: Date) => {
+    const dayBrussels = toBrusselsDay(day);
+    return events.filter((e) => isSameDay(toBrusselsDay(new Date(e.startTime)), dayBrussels));
+  };
 
   const handleEventClick = (event: UnifiedEvent) => {
     if (event.type === "booking" && onBookingClick) {
@@ -390,7 +431,7 @@ const MyPlanningView = ({
                             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {format(new Date(event.startTime), "HH:mm")} — {format(new Date(event.endTime), "HH:mm")}
+                                {new Intl.DateTimeFormat("fr-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }).format(new Date(event.startTime))} — {new Intl.DateTimeFormat("fr-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }).format(new Date(event.endTime))}
                               </span>
                               <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />

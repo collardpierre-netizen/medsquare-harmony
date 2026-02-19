@@ -73,50 +73,93 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
   }, [weekStart, selectedRoom]);
 
   const getBookingsForDay = (day: Date) => {
-    return weekBookings.filter((b) => isSameDay(new Date(b.start_time), day));
+    const dayBrussels = toBrusselsDay(day);
+    return weekBookings.filter((b) => isSameDay(toBrusselsDay(new Date(b.start_time)), dayBrussels));
   };
 
   const getActivitiesForDay = (day: Date) => {
-    return weekActivities.filter((a) => isSameDay(new Date(a.start_time), day));
+    const dayBrussels = toBrusselsDay(day);
+    return weekActivities.filter((a) => isSameDay(toBrusselsDay(new Date(a.start_time)), dayBrussels));
+  };
+
+  // Get hour in Europe/Brussels timezone
+  const getBrusselsHour = (date: Date): number =>
+    parseInt(
+      new Intl.DateTimeFormat("fr-BE", {
+        timeZone: "Europe/Brussels",
+        hour: "numeric",
+        hour12: false,
+      }).format(date),
+      10
+    );
+
+  // Get Brussels calendar day as a plain Date (midnight local) for isSameDay comparison
+  const toBrusselsDay = (date: Date): Date => {
+    const parts = new Intl.DateTimeFormat("fr-BE", {
+      timeZone: "Europe/Brussels",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const y = parseInt(parts.find((p) => p.type === "year")!.value);
+    const m = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
+    const d = parseInt(parts.find((p) => p.type === "day")!.value);
+    return new Date(y, m, d);
+  };
+
+  // Get Brussels offset in hours for a given date (handles DST: CET=+1, CEST=+2)
+  const getBrusselsOffsetHours = (date: Date): number => {
+    const utcHour = date.getUTCHours() + date.getUTCMinutes() / 60;
+    const brHour = getBrusselsHour(date) + date.getUTCMinutes() / 60;
+    let diff = brHour - utcHour;
+    if (diff < -12) diff += 24;
+    if (diff > 12) diff -= 24;
+    return diff;
   };
 
   const isHourBooked = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
+    const offset = getBrusselsOffsetHours(day);
+    const slotStartUTC = new Date(dayBrussels);
+    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
+    const slotEndUTC = new Date(dayBrussels);
+    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
     return weekBookings.some((b) => {
       const start = new Date(b.start_time);
       const end = new Date(b.end_time);
-      if (!isSameDay(start, day) && !isSameDay(end, day)) return false;
-      const slotStart = new Date(day);
-      slotStart.setHours(hour, 0, 0, 0);
-      const slotEnd = new Date(day);
-      slotEnd.setHours(hour + 1, 0, 0, 0);
-      return start < slotEnd && end > slotStart;
+      if (!isSameDay(toBrusselsDay(start), dayBrussels) && !isSameDay(toBrusselsDay(end), dayBrussels)) return false;
+      return start.getTime() < slotEndUTC.getTime() && end.getTime() > slotStartUTC.getTime();
     });
   };
 
   const isHourActivity = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
+    const offset = getBrusselsOffsetHours(day);
+    const slotStartUTC = new Date(dayBrussels);
+    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
+    const slotEndUTC = new Date(dayBrussels);
+    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
     return weekActivities.some((a) => {
       const start = new Date(a.start_time);
       const end = new Date(a.end_time);
-      if (!isSameDay(start, day) && !isSameDay(end, day)) return false;
-      const slotStart = new Date(day);
-      slotStart.setHours(hour, 0, 0, 0);
-      const slotEnd = new Date(day);
-      slotEnd.setHours(hour + 1, 0, 0, 0);
-      return start < slotEnd && end > slotStart;
+      if (!isSameDay(toBrusselsDay(start), dayBrussels) && !isSameDay(toBrusselsDay(end), dayBrussels)) return false;
+      return start.getTime() < slotEndUTC.getTime() && end.getTime() > slotStartUTC.getTime();
     });
   };
 
   const getBookingAtHour = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
     return weekBookings.find((b) => {
       const start = new Date(b.start_time);
-      return isSameDay(start, day) && start.getHours() === hour;
+      return isSameDay(toBrusselsDay(start), dayBrussels) && getBrusselsHour(start) === hour;
     });
   };
 
   const getActivityAtHour = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
     return weekActivities.find((a) => {
       const start = new Date(a.start_time);
-      return isSameDay(start, day) && start.getHours() === hour;
+      return isSameDay(toBrusselsDay(start), dayBrussels) && getBrusselsHour(start) === hour;
     });
   };
 
