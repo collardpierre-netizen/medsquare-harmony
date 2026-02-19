@@ -118,6 +118,18 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
   };
 
   return (
+    <>
+      {/* SVG pattern for diagonal hatching */}
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <pattern id="day-hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.45)" strokeWidth="2" />
+          </pattern>
+          <pattern id="day-hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="rgb(249 115 22 / 0.35)" strokeWidth="2" />
+          </pattern>
+        </defs>
+      </svg>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -168,7 +180,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
                   onClick={() => handleSlotClick(slot)}
                   disabled={false}
                   className={cn(
-                    "relative flex flex-col items-center justify-center py-3 px-2 rounded-xl border transition-all",
+                    "relative overflow-hidden flex flex-col items-center justify-center py-3 px-2 rounded-xl border transition-all",
                     activity
                       ? "bg-orange-500/10 border-orange-500/20 cursor-pointer hover:bg-orange-500/20"
                       : booked
@@ -181,6 +193,12 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
                       : undefined
                   }
                 >
+                  {/* Diagonal hatching overlay for occupied slots */}
+                  {isOccupied && (
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-xl" preserveAspectRatio="none">
+                      <rect width="100%" height="100%" fill={activity ? "url(#day-hatch-activity)" : "url(#day-hatch-booked)"} />
+                    </svg>
+                  )}
                   <Clock
                     className={cn(
                       "h-4 w-4 mb-1",
@@ -216,6 +234,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
         )}
       </CardContent>
     </Card>
+    </>
   );
 };
 
