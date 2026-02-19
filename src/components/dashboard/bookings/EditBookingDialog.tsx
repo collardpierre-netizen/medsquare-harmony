@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, addWeeks } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, MapPin, User, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,8 @@ const EditBookingDialog = ({
   const [endTime, setEndTime] = useState("");
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
+  const [recurrence, setRecurrence] = useState(false);
+  const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
 
   useEffect(() => {
     if (booking) {
@@ -129,6 +132,8 @@ const EditBookingDialog = ({
     }
 
     setSaving(true);
+
+    // Update the existing booking
     const { error } = await supabase
       .from("bookings")
       .update({
@@ -143,11 +148,37 @@ const EditBookingDialog = ({
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
+    // Create recurring copies if enabled
+    if (recurrence && recurrenceWeeks >= 2) {
+      const bookingsToInsert = [];
+      for (let w = 1; w < recurrenceWeeks; w++) {
+        const wStart = addWeeks(newStart, w);
+        const wEnd = addWeeks(newEnd, w);
+        bookingsToInsert.push({
+          room_id: roomId,
+          practitioner_id: practitionerId,
+          start_time: wStart.toISOString(),
+          end_time: wEnd.toISOString(),
+          status,
+          notes: notes || null,
+        });
+      }
+      const { error: recError } = await supabase.from("bookings").insert(bookingsToInsert);
+      if (recError) {
+        toast({ title: "Réservation mise à jour mais récurrence échouée", description: recError.message, variant: "destructive" });
+      } else {
+        toast({ title: `Réservation mise à jour + ${recurrenceWeeks - 1} récurrences créées ✓` });
+      }
     } else {
       toast({ title: "Réservation mise à jour ✓" });
-      onOpenChange(false);
-      onSaved();
     }
+
+    onOpenChange(false);
+    onSaved();
     setSaving(false);
   };
 
@@ -248,6 +279,39 @@ const EditBookingDialog = ({
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes…" rows={2} />
+          </div>
+
+          {/* Recurrence */}
+          <div className="rounded-xl border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-sm">Ajouter une récurrence</Label>
+                  <p className="text-xs text-muted-foreground">Dupliquer cette réservation chaque semaine</p>
+                </div>
+              </div>
+              <Switch
+                checked={recurrence}
+                onCheckedChange={setRecurrence}
+              />
+            </div>
+            {recurrence && (
+              <div className="flex items-center gap-3 pt-1">
+                <Label className="text-xs whitespace-nowrap">Nombre de semaines :</Label>
+                <Input
+                  type="number"
+                  min={2}
+                  max={52}
+                  value={recurrenceWeeks}
+                  onChange={(e) => setRecurrenceWeeks(Math.min(52, Math.max(2, parseInt(e.target.value) || 2)))}
+                  className="w-20 h-8 text-sm"
+                />
+                <span className="text-xs text-muted-foreground">
+                  ({recurrenceWeeks - 1} copies)
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
