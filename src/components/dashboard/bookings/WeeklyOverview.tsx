@@ -7,6 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface WeeklyOverviewProps {
   weekStart: Date;
@@ -171,7 +177,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
   const roomName = rooms.find((r) => r.id === selectedRoom)?.name || "Salle";
 
   return (
-    <>
+    <TooltipProvider delayDuration={200}>
       {/* SVG pattern for diagonal hatching */}
       <svg width="0" height="0" className="absolute">
         <defs>
@@ -295,15 +301,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                     const isToday = isSameDay(day, new Date());
                     const isOccupied = booked || activity;
 
-                    return (
-                      <td
-                        key={day.toISOString() + hour}
-                        className={cn(
-                          "p-1 text-center",
-                          isToday && "bg-accent/30"
-                        )}
-                      >
-                        <div
+                    const cellContent = (
+                          <div
                           className={cn(
                             "rounded-lg h-10 flex items-center justify-center text-[10px] font-medium transition-all relative overflow-hidden",
                             !inRange
@@ -344,6 +343,44 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                             </span>
                           )}
                         </div>
+                    );
+
+                    // Build tooltip
+                    const tooltipLines: string[] = [];
+                    if (booking) {
+                      const name = booking.profiles ? `${booking.profiles.first_name} ${booking.profiles.last_name}` : "Inconnu";
+                      const timeStr = `${format(new Date(booking.start_time), "HH:mm")}–${format(new Date(booking.end_time), "HH:mm")}`;
+                      tooltipLines.push(`📅 ${name} · ${timeStr}`);
+                    }
+                    if (actSession) {
+                      const p = (actSession as any).activities?.profiles;
+                      const name = p ? `${p.first_name} ${p.last_name}` : "";
+                      const timeStr = `${format(new Date(actSession.start_time), "HH:mm")}–${format(new Date(actSession.end_time), "HH:mm")}`;
+                      tooltipLines.push(`🎯 ${actSession.activities?.title || "Activité"} · ${timeStr}${name ? ` · ${name}` : ""}`);
+                    }
+
+                    return (
+                      <td
+                        key={day.toISOString() + hour}
+                        className={cn(
+                          "p-1 text-center",
+                          isToday && "bg-accent/30"
+                        )}
+                      >
+                        {isOccupied && tooltipLines.length > 0 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {cellContent}
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs space-y-1">
+                              {tooltipLines.map((line, i) => (
+                                <p key={i} className="text-[11px] leading-tight">{line}</p>
+                              ))}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          cellContent
+                        )}
                       </td>
                     );
                   })}
@@ -354,7 +391,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
         </div>
       </CardContent>
     </Card>
-    </>
+    </TooltipProvider>
   );
 };
 
