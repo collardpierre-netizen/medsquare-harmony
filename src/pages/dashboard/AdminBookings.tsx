@@ -184,32 +184,53 @@ const AdminBookings = () => {
     });
   };
 
-  // Occupancy stats per room (based on current week)
+  // Occupancy stats per room — uses date filter if set, otherwise current week
   const occupancyData = useMemo(() => {
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    let rangeStart: Date;
+    let rangeEnd: Date;
+    let label: string;
 
-    // Total available hours per room this week
+    if (filterDateFrom && filterDateTo) {
+      rangeStart = startOfDay(filterDateFrom);
+      rangeEnd = startOfDay(filterDateTo);
+      label = `${format(filterDateFrom, "d MMM", { locale: fr })} — ${format(filterDateTo, "d MMM yyyy", { locale: fr })}`;
+    } else if (filterDateFrom) {
+      rangeStart = startOfDay(filterDateFrom);
+      rangeEnd = addDays(rangeStart, 6);
+      label = `à partir du ${format(filterDateFrom, "d MMM yyyy", { locale: fr })}`;
+    } else {
+      const now = new Date();
+      rangeStart = startOfWeek(now, { weekStartsOn: 1 });
+      rangeEnd = addDays(rangeStart, 6);
+      label = "semaine en cours";
+    }
+
+    // Build array of days in range
+    const days: Date[] = [];
+    let cursor = rangeStart;
+    while (cursor <= rangeEnd) {
+      days.push(cursor);
+      cursor = addDays(cursor, 1);
+    }
+
     const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number }> = {};
 
     rooms.forEach((r) => {
       let totalHours = 0;
-      weekDays.forEach((day) => {
+      days.forEach((day) => {
         const { start, end } = getOpeningHours(day);
         totalHours += end - start;
       });
       roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0 };
     });
 
-    // Count booked hours this week
     bookings.forEach((b) => {
       if (b.status === "cancelled") return;
       const start = new Date(b.start_time);
       const end = new Date(b.end_time);
       const bDay = startOfDay(start);
-      const isThisWeek = weekDays.some((d) => isSameDay(d, bDay));
-      if (!isThisWeek) return;
+      const inRange = days.some((d) => isSameDay(d, bDay));
+      if (!inRange) return;
 
       if (roomStats[b.room_id]) {
         const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
@@ -218,14 +239,17 @@ const AdminBookings = () => {
       }
     });
 
-    return Object.entries(roomStats)
-      .map(([id, stats]) => ({
-        id,
-        ...stats,
-        occupancyPct: stats.totalHours > 0 ? Math.round((stats.bookedHours / stats.totalHours) * 100) : 0,
-      }))
-      .sort((a, b) => b.occupancyPct - a.occupancyPct);
-  }, [rooms, bookings]);
+    return {
+      label,
+      rooms: Object.entries(roomStats)
+        .map(([id, stats]) => ({
+          id,
+          ...stats,
+          occupancyPct: stats.totalHours > 0 ? Math.round((stats.bookedHours / stats.totalHours) * 100) : 0,
+        }))
+        .sort((a, b) => b.occupancyPct - a.occupancyPct),
+    };
+  }, [rooms, bookings, filterDateFrom, filterDateTo]);
 
   const handlePractitionerChange = (practitionerId: string) => {
     setNewBooking((b) => ({ ...b, practitioner_id: practitionerId, activity_id: "" }));
@@ -739,15 +763,15 @@ const AdminBookings = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="font-display text-base">
-                Taux d'occupation par salle — semaine en cours
+                Taux d'occupation par salle — {occupancyData.label}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {occupancyData.length === 0 ? (
+              {occupancyData.rooms.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Aucune salle configurée.</p>
               ) : (
                 <div className="space-y-4">
-                  {occupancyData.map((room) => (
+                  {occupancyData.rooms.map((room) => (
                     <div key={room.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium">{room.name}</span>
