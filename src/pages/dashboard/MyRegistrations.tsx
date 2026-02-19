@@ -60,12 +60,23 @@ const MyRegistrations = () => {
 
   const cancelMutation = useMutation({
     mutationFn: async (registrationId: string) => {
+      // Find session_id before deleting so we can trigger waitlist promotion email
+      const reg = registrations.find((r) => r.id === registrationId);
+      const sessionId = reg?.session_id;
+
       const { error } = await supabase
         .from("activity_registrations")
         .delete()
         .eq("id", registrationId)
         .eq("user_id", user!.id);
       if (error) throw error;
+
+      // Trigger waitlist promotion email (best-effort)
+      if (sessionId) {
+        supabase.functions.invoke("notify-waitlist-promoted", {
+          body: { session_id: sessionId },
+        }).catch(() => {});
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
