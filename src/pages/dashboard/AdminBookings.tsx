@@ -55,6 +55,8 @@ const AdminBookings = () => {
   // Filters
   const [filterRoom, setFilterRoom] = useState<string>("__all__");
   const [filterPractitioner, setFilterPractitioner] = useState<string>("__all__");
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
 
   // Planning view state
   const [planningWeekStart, setPlanningWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -137,9 +139,20 @@ const AdminBookings = () => {
     return bookings.filter((b) => {
       if (filterRoom !== "__all__" && b.room_id !== filterRoom) return false;
       if (filterPractitioner !== "__all__" && b.practitioner_id !== filterPractitioner) return false;
+      if (filterDateFrom) {
+        const bStart = new Date(b.start_time);
+        if (bStart < startOfDay(filterDateFrom)) return false;
+      }
+      if (filterDateTo) {
+        const bStart = new Date(b.start_time);
+        // Include the entire "to" day
+        const endOfTo = new Date(filterDateTo);
+        endOfTo.setHours(23, 59, 59, 999);
+        if (bStart > endOfTo) return false;
+      }
       return true;
     });
-  }, [bookings, filterRoom, filterPractitioner]);
+  }, [bookings, filterRoom, filterPractitioner, filterDateFrom, filterDateTo]);
 
   // Grouped by practitioner
   const groupedByPractitioner = useMemo(() => {
@@ -590,8 +603,47 @@ const AdminBookings = () => {
               </SelectContent>
             </Select>
           </div>
-          {(filterRoom !== "__all__" || filterPractitioner !== "__all__") && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); }}>
+
+          {/* Date range filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 text-sm gap-1.5", filterDateFrom && "border-primary/40")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {filterDateFrom ? format(filterDateFrom, "dd/MM/yy", { locale: fr }) : "Du"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filterDateFrom}
+                onSelect={setFilterDateFrom}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-xs text-muted-foreground">→</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 text-sm gap-1.5", filterDateTo && "border-primary/40")}>
+                <CalendarIcon className="h-3.5 w-3.5" />
+                {filterDateTo ? format(filterDateTo, "dd/MM/yy", { locale: fr }) : "Au"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filterDateTo}
+                onSelect={setFilterDateTo}
+                disabled={(date) => filterDateFrom ? date < filterDateFrom : false}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {(filterRoom !== "__all__" || filterPractitioner !== "__all__" || filterDateFrom || filterDateTo) && (
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(undefined); setFilterDateTo(undefined); }}>
               Réinitialiser
             </Button>
           )}
