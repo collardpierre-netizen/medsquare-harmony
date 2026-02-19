@@ -25,6 +25,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -66,6 +76,7 @@ const AdminBookings = () => {
   const [hideCancelled, setHideCancelled] = useState(false);
   const [hideNotes, setHideNotes] = useState(false);
   const [collapsedPractitioners, setCollapsedPractitioners] = useState<Set<string>>(new Set());
+  const [deleteBookingId, setDeleteBookingId] = useState<string | null>(null);
 
   // New booking dialog state
   const [open, setOpen] = useState(false);
@@ -365,7 +376,6 @@ const AdminBookings = () => {
   };
 
   const handleDeleteBooking = async (id: string) => {
-    if (!window.confirm("Supprimer définitivement cette réservation ?")) return;
     const { error } = await supabase.from("bookings").delete().eq("id", id);
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -373,6 +383,7 @@ const AdminBookings = () => {
       toast({ title: "Réservation supprimée" });
       fetchBookings();
     }
+    setDeleteBookingId(null);
   };
 
   const BookingRow = ({ booking }: { booking: any }) => (
@@ -418,7 +429,7 @@ const AdminBookings = () => {
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          onClick={() => handleDeleteBooking(booking.id)}
+          onClick={() => setDeleteBookingId(booking.id)}
           title="Supprimer la réservation"
         >
           <Trash2 className="h-4 w-4" />
@@ -888,6 +899,26 @@ const AdminBookings = () => {
         practitioners={practitioners}
         onSaved={fetchBookings}
       />
+
+      <AlertDialog open={!!deleteBookingId} onOpenChange={(open) => { if (!open) setDeleteBookingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette réservation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La réservation sera définitivement supprimée du planning.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteBookingId && handleDeleteBooking(deleteBookingId)}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
