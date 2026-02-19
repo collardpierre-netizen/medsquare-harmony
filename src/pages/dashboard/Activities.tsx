@@ -62,6 +62,7 @@ interface ActivityForm {
   is_free: boolean;
   price: number | null;
   booking_enabled: boolean;
+  practitioner_id: string;
 }
 
 const emptyForm: ActivityForm = {
@@ -76,10 +77,11 @@ const emptyForm: ActivityForm = {
   is_free: true,
   price: null,
   booking_enabled: false,
+  practitioner_id: "",
 };
 
 const Activities = () => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,8 @@ const Activities = () => {
   const [form, setForm] = useState<ActivityForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [practitioners, setPractitioners] = useState<any[]>([]);
+  const [filterPractitioner, setFilterPractitioner] = useState<string>("all");
   const [confirmDisableBooking, setConfirmDisableBooking] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
 
@@ -102,12 +106,19 @@ const Activities = () => {
   const [sessions, setSessions] = useState<Record<string, any[]>>({});
 
   const fetchActivities = async () => {
-    if (!profile) return;
-    const { data } = await supabase
+    if (!profile && !isAdmin) return;
+    let query = supabase
       .from("activities")
-      .select("*")
-      .eq("practitioner_id", profile.id)
+      .select("*, profiles(first_name, last_name)")
       .order("created_at", { ascending: false });
+
+    if (!isAdmin) {
+      query = query.eq("practitioner_id", profile!.id);
+    } else if (filterPractitioner !== "all") {
+      query = query.eq("practitioner_id", filterPractitioner);
+    }
+
+    const { data } = await query;
     setActivities(data || []);
 
     // Fetch sessions for all activities
@@ -136,18 +147,34 @@ const Activities = () => {
       const { data } = await supabase.from("rooms").select("id, name").eq("is_available", true).order("name");
       setRooms(data || []);
     };
+    const fetchPractitionersList = async () => {
+      if (!isAdmin) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, user_id")
+        .eq("is_active", true)
+        .order("last_name");
+      setPractitioners(data || []);
+    };
     fetchRooms();
+    fetchPractitionersList();
     fetchActivities();
-  }, [profile]);
+  }, [profile, filterPractitioner]);
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!profile && !isAdmin) return;
+    if (isAdmin && !editingId && !form.practitioner_id) {
+      toast({ variant: "destructive", title: "Praticien requis", description: "Veuillez sélectionner un praticien." });
+      return;
+    }
     setIsSaving(true);
+
+    const { practitioner_id: formPractitionerId, ...formData } = form;
 
     if (editingId) {
       const { error } = await supabase
         .from("activities")
-        .update({ ...form })
+        .update({ ...formData, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
         .eq("id", editingId);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
@@ -155,9 +182,10 @@ const Activities = () => {
         toast({ title: "Activité mise à jour" });
       }
     } else {
+      const targetPractitionerId = isAdmin && formPractitionerId ? formPractitionerId : profile!.id;
       const { error } = await supabase
         .from("activities")
-        .insert({ ...form, practitioner_id: profile.id });
+        .insert({ ...formData, practitioner_id: targetPractitionerId });
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
@@ -186,6 +214,7 @@ const Activities = () => {
       is_free: activity.is_free ?? true,
       price: activity.price ?? null,
       booking_enabled: activity.booking_enabled ?? false,
+      practitioner_id: activity.practitioner_id || "",
     });
     setShowDialog(true);
   };
@@ -289,9 +318,13 @@ const Activities = () => {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl font-bold">Mes activités</h2>
+            <h2 className="font-display text-xl font-bold">
+              {isAdmin ? "Gestion des activités" : "Mes activités"}
+            </h2>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Gérez vos cours, ateliers et séances collectives.
+              {isAdmin
+                ? "Créez et gérez les activités pour tous les praticiens."
+                : "Gérez vos cours, ateliers et séances collectives."}
             </p>
           </div>
           <Button
@@ -305,6 +338,26 @@ const Activities = () => {
             Nouvelle activité
           </Button>
         </div>
+
+        {/* Admin: practitioner filter */}
+        {isAdmin && practitioners.length > 0 && (
+          <div className="flex items-center gap-3">
+            <Label className="text-sm whitespace-nowrap">Praticien :</Label>
+            <Select value={filterPractitioner} onValueChange={setFilterPractitioner}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Tous les praticiens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les praticiens</SelectItem>
+                {practitioners.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.first_name} {p.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -328,8 +381,8 @@ const Activities = () => {
                 <Card key={activity.id}>
                   <CardContent className="pt-6">
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-display font-semibold">{activity.title}</h3>
                           <Badge variant="secondary" className="text-[10px]">
                             {categoryLabel(activity.category)}
@@ -337,6 +390,11 @@ const Activities = () => {
                           {!activity.is_active && (
                             <Badge variant="destructive" className="text-[10px]">
                               Inactif
+                            </Badge>
+                          )}
+                          {isAdmin && activity.profiles && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {activity.profiles.first_name} {activity.profiles.last_name}
                             </Badge>
                           )}
                         </div>
@@ -466,7 +524,27 @@ const Activities = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Photos gallery upload */}
+            {/* Admin: practitioner selector */}
+            {isAdmin && practitioners.length > 0 && (
+              <div>
+                <Label>Praticien</Label>
+                <Select
+                  value={form.practitioner_id}
+                  onValueChange={(v) => setForm({ ...form, practitioner_id: v })}
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="Choisir un praticien" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {practitioners.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.first_name} {p.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Photos de l'activité</Label>
               <div className="mt-1.5 flex flex-wrap gap-2">
