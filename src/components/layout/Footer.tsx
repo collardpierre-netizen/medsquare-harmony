@@ -49,28 +49,32 @@ const Footer = () => {
               dans un cadre chaleureux et professionnel.
             </p>
             {/* Social Links */}
-            <div className="flex items-center gap-4 flex-wrap">
-              {activeSocials.length > 0 ? (
-                activeSocials.map(({ key, icon: Icon, label }) => (
-                  <a
-                    key={key}
-                    href={socials[key]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-background/70 hover:text-background transition-colors"
-                    aria-label={label}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </a>
-                ))
-              ) : (
-                // Fallback placeholders si rien n'est configuré
-                <>
-                  <span className="text-background/30"><Facebook className="h-5 w-5" /></span>
-                  <span className="text-background/30"><Instagram className="h-5 w-5" /></span>
-                  <span className="text-background/30"><Linkedin className="h-5 w-5" /></span>
-                </>
-              )}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-background/50 mb-3">
+                Suivez-nous
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {activeSocials.length > 0 ? (
+                  activeSocials.map(({ key, icon: Icon, label }) => (
+                    <a
+                      key={key}
+                      href={socials[key]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 hover:bg-background/20 text-background/80 hover:text-background transition-all"
+                      aria-label={label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  ))
+                ) : (
+                  <>
+                    <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 text-background/30"><Facebook className="h-4 w-4" /></span>
+                    <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 text-background/30"><Instagram className="h-4 w-4" /></span>
+                    <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 text-background/30"><Linkedin className="h-4 w-4" /></span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
