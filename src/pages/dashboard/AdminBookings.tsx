@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -77,6 +77,8 @@ const AdminBookings = () => {
   const [hideNotes, setHideNotes] = useState(false);
   const [collapsedPractitioners, setCollapsedPractitioners] = useState<Set<string>>(new Set());
   const [deleteBookingId, setDeleteBookingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // New booking dialog state
   const [open, setOpen] = useState(false);
@@ -386,57 +388,100 @@ const AdminBookings = () => {
     setDeleteBookingId(null);
   };
 
-  const BookingRow = ({ booking }: { booking: any }) => (
-    <div
-      className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
-      onClick={() => handleEditBooking(booking)}
-    >
-      <div className="flex-1">
-        <div className="flex items-center gap-3 mb-1 flex-wrap">
-          <p className="font-medium text-sm">
-            {booking.profiles?.first_name} {booking.profiles?.last_name}
-          </p>
-          {statusBadge(booking.status)}
-          {booking.activities?.title && (
-            <Badge variant="outline" className="text-xs">{booking.activities.title}</Badge>
-          )}
-          <Pencil className="h-3 w-3 text-muted-foreground" />
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredBookings.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredBookings.map((b) => b.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("bookings").delete().in("id", ids);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `${ids.length} réservation${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}` });
+      setSelectedIds(new Set());
+      fetchBookings();
+    }
+    setBulkDeleteOpen(false);
+  };
+
+  const BookingRow = ({ booking }: { booking: any }) => {
+    const isSelected = selectedIds.has(booking.id);
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-between p-4 rounded-lg border transition-colors cursor-pointer",
+          isSelected ? "border-primary/40 bg-primary/5" : "border-border hover:bg-accent/50"
+        )}
+        onClick={() => handleEditBooking(booking)}
+      >
+        <div className="flex items-center gap-3 flex-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => toggleSelected(booking.id)}
+            className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+          >
+            {isSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+          </button>
+          <div className="flex-1 cursor-pointer" onClick={() => handleEditBooking(booking)}>
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
+              <p className="font-medium text-sm">
+                {booking.profiles?.first_name} {booking.profiles?.last_name}
+              </p>
+              {statusBadge(booking.status)}
+              {booking.activities?.title && (
+                <Badge variant="outline" className="text-xs">{booking.activities.title}</Badge>
+              )}
+              <Pencil className="h-3 w-3 text-muted-foreground" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {booking.rooms?.name} •{" "}
+              {format(new Date(booking.start_time), "EEEE d MMMM • HH:mm", { locale: fr })}
+              {" — "}
+              {format(new Date(booking.end_time), "HH:mm")}
+            </p>
+            {booking.notes && !hideNotes && (
+              <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {booking.rooms?.name} •{" "}
-          {format(new Date(booking.start_time), "EEEE d MMMM • HH:mm", { locale: fr })}
-          {" — "}
-          {format(new Date(booking.end_time), "HH:mm")}
-        </p>
-        {booking.notes && !hideNotes && (
-          <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
-        )}
+        <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+          {booking.status === "pending" && (
+            <>
+              <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Confirmer
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => updateStatus(booking.id, "cancelled")}>
+                <XCircle className="h-4 w-4 mr-1" />
+                Refuser
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={() => setDeleteBookingId(booking.id)}
+            title="Supprimer la réservation"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-        {booking.status === "pending" && (
-          <>
-            <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Confirmer
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => updateStatus(booking.id, "cancelled")}>
-              <XCircle className="h-4 w-4 mr-1" />
-              Refuser
-            </Button>
-          </>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          onClick={() => setDeleteBookingId(booking.id)}
-          title="Supprimer la réservation"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <DashboardLayout>
@@ -881,6 +926,28 @@ const AdminBookings = () => {
               ) : (
                 /* ─── Default List ─── */
                 <div className="space-y-3">
+                  {/* Bulk action bar */}
+                  <div className="flex items-center gap-3 pb-2 border-b border-border">
+                    <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-primary transition-colors">
+                      {selectedIds.size === filteredBookings.length && filteredBookings.length > 0
+                        ? <CheckSquare className="h-4 w-4 text-primary" />
+                        : <Square className="h-4 w-4" />}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedIds.size > 0 ? `${selectedIds.size} sélectionnée${selectedIds.size > 1 ? "s" : ""}` : "Tout sélectionner"}
+                    </span>
+                    {selectedIds.size > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="ml-auto text-xs"
+                        onClick={() => setBulkDeleteOpen(true)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Supprimer ({selectedIds.size})
+                      </Button>
+                    )}
+                  </div>
                   {filteredBookings.map((booking: any) => (
                     <BookingRow key={booking.id} booking={booking} />
                   ))}
@@ -915,6 +982,26 @@ const AdminBookings = () => {
               onClick={() => deleteBookingId && handleDeleteBooking(deleteBookingId)}
             >
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer {selectedIds.size} réservation{selectedIds.size > 1 ? "s" : ""} ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Les réservations sélectionnées seront définitivement supprimées du planning.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleBulkDelete}
+            >
+              Supprimer ({selectedIds.size})
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
