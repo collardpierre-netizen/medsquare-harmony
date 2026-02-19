@@ -5,7 +5,8 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Mail, UserPlus } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Lock, Mail, UserPlus, Stethoscope, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,10 +16,24 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [accountType, setAccountType] = useState<"patient" | "practitioner">("patient");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const notifyAdminsByEmail = async (firstName: string, lastName: string, email: string) => {
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      await fetch(`https://${projectId}.supabase.co/functions/v1/notify-practitioner-signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email }),
+      });
+    } catch (e) {
+      // Non-blocking
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +43,7 @@ const Login = () => {
       const { error } = await signUp(email, password, {
         first_name: firstName,
         last_name: lastName,
+        account_type: accountType,
       });
       if (error) {
         toast({
@@ -36,9 +52,14 @@ const Login = () => {
           description: error.message,
         });
       } else {
+        if (accountType === "practitioner") {
+          notifyAdminsByEmail(firstName, lastName, email);
+        }
         toast({
           title: "Inscription réussie !",
-          description: "Vérifiez votre email pour confirmer votre compte.",
+          description: accountType === "practitioner"
+            ? "Vérifiez votre email. Votre compte professionnel sera activé après validation par l'administration."
+            : "Vérifiez votre email pour confirmer votre compte.",
         });
         setIsSignUp(false);
       }
@@ -82,30 +103,70 @@ const Login = () => {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 {isSignUp && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <>
                     <div>
-                      <Label htmlFor="firstName">Prénom</Label>
-                      <Input
-                        id="firstName"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Prénom"
-                        required
-                        className="mt-1.5"
-                      />
+                      <Label className="mb-3 block">Je suis</Label>
+                      <RadioGroup
+                        value={accountType}
+                        onValueChange={(v) => setAccountType(v as "patient" | "practitioner")}
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        <label
+                          htmlFor="type-patient"
+                          className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            accountType === "patient"
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <RadioGroupItem value="patient" id="type-patient" className="sr-only" />
+                          <Heart className="h-6 w-6 text-primary" />
+                          <span className="text-sm font-medium">Patient</span>
+                        </label>
+                        <label
+                          htmlFor="type-practitioner"
+                          className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            accountType === "practitioner"
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <RadioGroupItem value="practitioner" id="type-practitioner" className="sr-only" />
+                          <Stethoscope className="h-6 w-6 text-primary" />
+                          <span className="text-sm font-medium">Professionnel</span>
+                        </label>
+                      </RadioGroup>
+                      {accountType === "practitioner" && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Votre compte sera activé après validation par l'administration.
+                        </p>
+                      )}
                     </div>
-                    <div>
-                      <Label htmlFor="lastName">Nom</Label>
-                      <Input
-                        id="lastName"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Nom"
-                        required
-                        className="mt-1.5"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="firstName">Prénom</Label>
+                        <Input
+                          id="firstName"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="Prénom"
+                          required
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName">Nom</Label>
+                        <Input
+                          id="lastName"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Nom"
+                          required
+                          className="mt-1.5"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 <div>
