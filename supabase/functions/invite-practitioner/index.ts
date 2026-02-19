@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     });
     if (!isAdmin) throw new Error("Admin access required");
 
-    const { email, first_name, last_name, resend_user_id } = await req.json();
+    const { email, first_name, last_name, specialty, bio, phone, contact_email, schedule, resend_user_id } = await req.json();
 
     let targetEmail = email;
     let targetFirstName = first_name || "";
@@ -62,6 +62,23 @@ Deno.serve(async (req) => {
     });
 
     if (linkError) throw linkError;
+
+    // Pre-fill profile data if provided (not a resend)
+    if (!resend_user_id && linkData.user?.id) {
+      const profileUpdates: Record<string, any> = {};
+      if (specialty) profileUpdates.specialty = specialty;
+      if (bio) profileUpdates.bio = bio;
+      if (phone) profileUpdates.phone = phone;
+      if (contact_email) profileUpdates.contact_email = contact_email;
+      if (schedule) profileUpdates.schedule = schedule;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        await adminClient
+          .from("profiles")
+          .update(profileUpdates)
+          .eq("user_id", linkData.user.id);
+      }
+    }
 
     // Build the redirect URL from the hashed token
     const properties = linkData.properties;
