@@ -31,6 +31,7 @@ import DailyExport from "./pages/dashboard/DailyExport";
 import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import NotFound from "./pages/NotFound";
 import GuestRegistration from "./pages/GuestRegistration";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ScrollToTop />
           <Routes>
             {/* Public pages */}
             <Route path="/" element={<Index />} />
