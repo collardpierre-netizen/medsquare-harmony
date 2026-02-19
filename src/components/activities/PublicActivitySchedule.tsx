@@ -23,7 +23,7 @@ interface PublicSession {
     price?: number | null;
     profiles?: { first_name: string; last_name: string } | null;
   } | null;
-  activity_registrations?: Array<{ id: string }>;
+  registration_count?: number;
 }
 
 const PublicActivitySchedule = () => {
@@ -41,12 +41,23 @@ const PublicActivitySchedule = () => {
     const weekEnd = addDays(weekStart, 7);
     const { data } = await supabase
       .from("activity_sessions")
-      .select("*, rooms(name), activities(title, category, description, is_free, price, profiles(first_name, last_name)), activity_registrations(id)")
+      .select("*, rooms(name), activities(title, category, description, is_free, price, profiles(first_name, last_name))")
       .gte("start_time", startOfDay(weekStart).toISOString())
       .lt("start_time", weekEnd.toISOString())
       .eq("status", "scheduled")
       .order("start_time");
-    setSessions((data as PublicSession[]) || []);
+
+    // Fetch registration counts securely via RPC
+    const sessionsWithCounts = await Promise.all(
+      (data || []).map(async (session: any) => {
+        const { data: count } = await supabase.rpc(
+          "count_session_registrations",
+          { session_uuid: session.id }
+        );
+        return { ...session, registration_count: count || 0 };
+      })
+    );
+    setSessions(sessionsWithCounts as PublicSession[]);
   }, [weekStart]);
 
   useEffect(() => {
@@ -122,7 +133,7 @@ const PublicActivitySchedule = () => {
                   ) : (
                     <div className="space-y-2">
                       {daySessions.map((session) => {
-                        const regCount = session.activity_registrations?.length || 0;
+                        const regCount = session.registration_count || 0;
                         const maxP = session.max_participants;
                         const isFull = maxP ? regCount >= maxP : false;
 

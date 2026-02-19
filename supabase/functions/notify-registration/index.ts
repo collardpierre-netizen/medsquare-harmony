@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check - this function requires authentication
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -29,6 +29,8 @@ Deno.serve(async (req) => {
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    const callerUserId = claimsData.claims.sub;
 
     // Input validation
     const text = await req.text();
@@ -47,10 +49,11 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Authorization: verify caller is the practitioner owning the activity or is admin
     const { data: session, error: sessionError } = await supabase
       .from("activity_sessions")
       .select(
-        "*, activities(title, practitioner_id, profiles(first_name, last_name, contact_email)), rooms(name)"
+        "*, activities(title, practitioner_id, profiles(first_name, last_name, contact_email, user_id)), rooms(name)"
       )
       .eq("id", session_id)
       .single();
@@ -60,8 +63,27 @@ Deno.serve(async (req) => {
     }
 
     const practitioner = session.activities?.profiles;
-    const contactEmail = practitioner?.contact_email;
+    const practitionerUserId = practitioner?.user_id;
 
+    // Check: caller must be the registrant, the practitioner, or an admin
+    let authorized = practitionerUserId === callerUserId;
+    if (!authorized && registration_id) {
+      const { data: reg } = await supabase
+        .from("activity_registrations")
+        .select("user_id")
+        .eq("id", registration_id)
+        .single();
+      if (reg?.user_id === callerUserId) authorized = true;
+    }
+    if (!authorized) {
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "admin" });
+      if (isAdmin) authorized = true;
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const contactEmail = practitioner?.contact_email;
     if (!contactEmail) {
       return new Response(JSON.stringify({ skipped: true, reason: "No contact_email configured" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
