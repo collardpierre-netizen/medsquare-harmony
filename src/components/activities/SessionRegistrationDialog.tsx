@@ -211,6 +211,16 @@ const SessionRegistrationDialog = ({
     setIsLoading(false);
   };
 
+  const notifyWaitlistPromoted = async () => {
+    try {
+      await supabase.functions.invoke("notify-waitlist-promoted", {
+        body: { session_id: session.id },
+      });
+    } catch {
+      // Silent fail - best effort
+    }
+  };
+
   const handleUnregister = async () => {
     if (!user) return;
     setIsLoading(true);
@@ -228,6 +238,8 @@ const SessionRegistrationDialog = ({
       setRegistrationCount((c) => Math.max(0, c - 1));
       toast({ title: "Inscription annulée" });
       onRegistrationChange?.();
+      // Send email to promoted waitlisted person (best-effort)
+      notifyWaitlistPromoted();
     }
     setIsLoading(false);
   };
