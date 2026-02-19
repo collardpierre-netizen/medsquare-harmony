@@ -171,6 +171,18 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
   const roomName = rooms.find((r) => r.id === selectedRoom)?.name || "Salle";
 
   return (
+    <>
+      {/* SVG pattern for diagonal hatching */}
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <pattern id="hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.25)" strokeWidth="1.5" />
+          </pattern>
+          <pattern id="hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(210 30% 50% / 0.2)" strokeWidth="1.5" />
+          </pattern>
+        </defs>
+      </svg>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -287,7 +299,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                       >
                         <div
                           className={cn(
-                            "rounded-lg h-10 flex items-center justify-center text-[10px] font-medium transition-all",
+                            "rounded-lg h-10 flex items-center justify-center text-[10px] font-medium transition-all relative overflow-hidden",
                             !inRange
                               ? "bg-muted/30 text-muted-foreground/20"
                               : isPast
@@ -309,13 +321,19 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           }}
                           style={(activity || booked) ? { cursor: "pointer" } : undefined}
                         >
+                          {/* Diagonal hatching overlay for occupied slots */}
+                          {inRange && !isPast && isOccupied && (
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                              <rect width="100%" height="100%" fill={activity ? "url(#hatch-activity)" : "url(#hatch-booked)"} />
+                            </svg>
+                          )}
                           {actSession && (
-                            <span className="truncate px-1">
+                            <span className="truncate px-1 relative z-10">
                               {actSession.activities?.title?.slice(0, 8) || "Act."}
                             </span>
                           )}
                           {booking && !activity && (
-                            <span className="truncate px-1">
+                            <span className="truncate px-1 relative z-10">
                               {booking.profiles?.first_name?.[0]}.{booking.profiles?.last_name?.[0]}.
                             </span>
                           )}
@@ -330,6 +348,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
         </div>
       </CardContent>
     </Card>
+    </>
   );
 };
 
