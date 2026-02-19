@@ -181,11 +181,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
       {/* SVG pattern for diagonal hatching */}
       <svg width="0" height="0" className="absolute">
         <defs>
-          <pattern id="hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.45)" strokeWidth="2" />
+          <pattern id="hatch-booked" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="hsl(var(--primary) / 0.6)" strokeWidth="2.5" />
           </pattern>
-          <pattern id="hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="rgb(249 115 22 / 0.35)" strokeWidth="2" />
+          <pattern id="hatch-activity" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="rgb(249 115 22 / 0.5)" strokeWidth="2.5" />
           </pattern>
         </defs>
       </svg>
@@ -310,9 +310,9 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               : isPast
                               ? "bg-muted/50 text-muted-foreground/30"
                               : activity
-                              ? "bg-orange-500/20 text-orange-700 border border-orange-500/30"
+                              ? "bg-orange-500/25 text-orange-800 border border-orange-500/40"
                               : booked
-                              ? "bg-primary/20 text-primary border border-primary/30 cursor-pointer hover:bg-primary/30"
+                              ? "bg-primary/25 text-primary border border-primary/40 cursor-pointer hover:bg-primary/35"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
                           onClick={() => {
