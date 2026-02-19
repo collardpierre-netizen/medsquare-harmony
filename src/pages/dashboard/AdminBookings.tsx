@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -32,13 +32,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import { Progress } from "@/components/ui/progress";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   [0, 30].map((m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
 ).flat();
 
-type ViewMode = "list" | "practitioner" | "occupancy";
+type ViewMode = "list" | "practitioner" | "occupancy" | "planning";
 
 const AdminBookings = () => {
   const { toast } = useToast();
@@ -54,6 +55,10 @@ const AdminBookings = () => {
   // Filters
   const [filterRoom, setFilterRoom] = useState<string>("__all__");
   const [filterPractitioner, setFilterPractitioner] = useState<string>("__all__");
+
+  // Planning view state
+  const [planningWeekStart, setPlanningWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [planningRoom, setPlanningRoom] = useState<string>("");
 
   // New booking dialog state
   const [open, setOpen] = useState(false);
@@ -100,6 +105,9 @@ const AdminBookings = () => {
     ]);
     setPractitioners(profs || []);
     setRooms(roomsData || []);
+    if (roomsData && roomsData.length > 0 && !planningRoom) {
+      setPlanningRoom(roomsData[0].id);
+    }
   };
 
   const fetchPractitionerActivities = async (practitionerId: string) => {
@@ -540,6 +548,13 @@ const AdminBookings = () => {
               <BarChart3 className="h-3.5 w-3.5" />
               Occupation
             </button>
+            <button
+              onClick={() => setViewMode("planning")}
+              className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all", viewMode === "planning" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Planning
+            </button>
           </div>
         </div>
 
@@ -583,7 +598,55 @@ const AdminBookings = () => {
         </div>
 
         {/* Content based on view mode */}
-        {viewMode === "occupancy" ? (
+        {viewMode === "planning" ? (
+          /* ─── Planning View ─── */
+          <div className="space-y-4">
+            {/* Week navigation + room selector */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPlanningWeekStart((w) => addDays(w, -7))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium min-w-[180px] text-center">
+                  {format(planningWeekStart, "d MMM", { locale: fr })} — {format(addDays(planningWeekStart, 6), "d MMM yyyy", { locale: fr })}
+                </span>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPlanningWeekStart((w) => addDays(w, 7))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => setPlanningWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+                Aujourd'hui
+              </Button>
+              <div className="min-w-[200px]">
+                <Select value={planningRoom} onValueChange={setPlanningRoom}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Sélectionner une salle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rooms.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {planningRoom ? (
+              <WeeklyOverview
+                weekStart={planningWeekStart}
+                selectedRoom={planningRoom}
+                rooms={rooms}
+                onSlotClick={() => {}}
+                onBookingClick={(booking) => { setEditBooking(booking); setEditOpen(true); }}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground text-sm">
+                  Sélectionnez une salle pour afficher le planning.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : viewMode === "occupancy" ? (
           /* ─── Occupancy View ─── */
           <Card>
             <CardHeader className="pb-3">
