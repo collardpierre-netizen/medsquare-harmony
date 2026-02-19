@@ -153,7 +153,7 @@ const AdminSiteSettings = () => {
       ...s,
       hero: {
         ...s.hero,
-        images: [...(s.hero.images || []), { url, alt: "Image hero" }],
+        images: [...(s.hero.images || []), { url, alt: "Image hero", specialty: "" }],
       },
     }));
   };
@@ -183,6 +183,16 @@ const AdminSiteSettings = () => {
       hero: {
         ...s.hero,
         images: (s.hero.images || []).map((img, i) => (i === idx ? { ...img, alt } : img)),
+      },
+    }));
+  };
+
+  const updateHeroImageSpecialty = (idx: number, specialty: string) => {
+    setSettings((s) => ({
+      ...s,
+      hero: {
+        ...s.hero,
+        images: (s.hero.images || []).map((img, i) => (i === idx ? { ...img, specialty } : img)),
       },
     }));
   };
@@ -338,11 +348,17 @@ const AdminSiteSettings = () => {
                     {(settings.hero.images || []).map((img, idx) => (
                       <div key={idx} className="relative group border border-border rounded-lg overflow-hidden">
                         <img src={img.url} alt={img.alt} className="w-full h-28 object-cover" />
-                        <div className="p-2">
+                        <div className="p-2 space-y-1.5">
                           <Input
                             value={img.alt}
                             onChange={(e) => updateHeroImageAlt(idx, e.target.value)}
                             placeholder="Texte alternatif"
+                            className="text-xs h-7"
+                          />
+                          <Input
+                            value={img.specialty || ""}
+                            onChange={(e) => updateHeroImageSpecialty(idx, e.target.value)}
+                            placeholder="Spécialité affichée (ex: Yoga)"
                             className="text-xs h-7"
                           />
                         </div>

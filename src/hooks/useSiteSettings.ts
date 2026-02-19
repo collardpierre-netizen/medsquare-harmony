@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface HeroImageItem {
   url: string;
   alt: string;
+  specialty?: string;
 }
 
 export interface HeroSettings {
