@@ -1,7 +1,42 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
+import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin, Twitter, Globe, Youtube } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface MedsquareSocials {
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  youtube?: string;
+  website?: string;
+}
+
+const SOCIAL_ITEMS: { key: keyof MedsquareSocials; icon: React.ElementType; label: string }[] = [
+  { key: "facebook", icon: Facebook, label: "Facebook" },
+  { key: "instagram", icon: Instagram, label: "Instagram" },
+  { key: "linkedin", icon: Linkedin, label: "LinkedIn" },
+  { key: "twitter", icon: Twitter, label: "Twitter / X" },
+  { key: "youtube", icon: Youtube, label: "YouTube" },
+  { key: "website", icon: Globe, label: "Site web" },
+];
 
 const Footer = () => {
+  const [socials, setSocials] = useState<MedsquareSocials>({});
+
+  useEffect(() => {
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "medsquare_socials")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setSocials(data.value as MedsquareSocials);
+      });
+  }, []);
+
+  const activeSocials = SOCIAL_ITEMS.filter(({ key }) => socials[key]);
+
   return (
     <footer className="bg-foreground text-background">
       <div className="container mx-auto px-4 py-16">
@@ -14,43 +49,28 @@ const Footer = () => {
               dans un cadre chaleureux et professionnel.
             </p>
             {/* Social Links */}
-            <div className="flex items-center gap-4">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-background/70 hover:text-background transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-background/70 hover:text-background transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-background/70 hover:text-background transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="h-5 w-5" />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-background/70 hover:text-background transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
+            <div className="flex items-center gap-4 flex-wrap">
+              {activeSocials.length > 0 ? (
+                activeSocials.map(({ key, icon: Icon, label }) => (
+                  <a
+                    key={key}
+                    href={socials[key]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-background/70 hover:text-background transition-colors"
+                    aria-label={label}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                ))
+              ) : (
+                // Fallback placeholders si rien n'est configuré
+                <>
+                  <span className="text-background/30"><Facebook className="h-5 w-5" /></span>
+                  <span className="text-background/30"><Instagram className="h-5 w-5" /></span>
+                  <span className="text-background/30"><Linkedin className="h-5 w-5" /></span>
+                </>
+              )}
             </div>
           </div>
 

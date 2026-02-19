@@ -313,6 +313,7 @@ export type Database = {
           notification_preferences: Json
           phone: string | null
           schedule: Json | null
+          social_links: Json | null
           specialty: string | null
           updated_at: string
           user_id: string
@@ -330,6 +331,7 @@ export type Database = {
           notification_preferences?: Json
           phone?: string | null
           schedule?: Json | null
+          social_links?: Json | null
           specialty?: string | null
           updated_at?: string
           user_id: string
@@ -347,6 +349,7 @@ export type Database = {
           notification_preferences?: Json
           phone?: string | null
           schedule?: Json | null
+          social_links?: Json | null
           specialty?: string | null
           updated_at?: string
           user_id?: string
