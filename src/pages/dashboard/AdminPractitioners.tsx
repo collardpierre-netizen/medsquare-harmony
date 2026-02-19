@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw } from "lucide-react";
+import { Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -15,6 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import ScheduleEditor, { DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
+
+const DEFAULT_SCHEDULE: DaySchedule[] = [];
 
 const AdminPractitioners = () => {
   const { toast } = useToast();
@@ -23,7 +28,17 @@ const AdminPractitioners = () => {
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ email: "", first_name: "", last_name: "" });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
+  const [form, setForm] = useState({
+    email: "",
+    first_name: "",
+    last_name: "",
+    specialty: "",
+    bio: "",
+    phone: "",
+    contact_email: "",
+  });
 
   const fetchPractitioners = async () => {
     const [{ data: profiles }, { data: roles }] = await Promise.all([
@@ -65,6 +80,12 @@ const AdminPractitioners = () => {
     }
   };
 
+  const resetForm = () => {
+    setForm({ email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "" });
+    setSchedule(DEFAULT_SCHEDULE);
+    setShowAdvanced(false);
+  };
+
   const handleInvite = async () => {
     if (!form.email) {
       toast({ title: "L'email est requis", variant: "destructive" });
@@ -72,16 +93,23 @@ const AdminPractitioners = () => {
     }
     setInviting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("invite-practitioner", {
-        body: form,
+        body: {
+          email: form.email,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          specialty: form.specialty,
+          bio: form.bio,
+          phone: form.phone,
+          contact_email: form.contact_email || form.email,
+          schedule: schedule.length > 0 ? schedule : null,
+        },
       });
       if (res.error) throw res.error;
       if (res.data?.error) throw new Error(res.data.error);
       toast({ title: "Invitation envoyée !", description: `Un email a été envoyé à ${form.email}` });
-      setForm({ email: "", first_name: "", last_name: "" });
+      resetForm();
       setOpen(false);
-      // Refresh after a short delay to let the trigger create the profile
       setTimeout(() => fetchPractitioners(), 2000);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible d'envoyer l'invitation", variant: "destructive" });
@@ -121,51 +149,116 @@ const AdminPractitioners = () => {
               Gérez les profils et les accès des praticiens.
             </p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Inviter un praticien
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Inviter un nouveau praticien</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-2">
+              <div className="space-y-5 pt-2">
                 <p className="text-sm text-muted-foreground">
-                  Le praticien recevra un email pour activer son compte et compléter son profil.
+                  Le praticien recevra un email pour activer son compte. Vous pouvez déjà pré-remplir son profil.
                 </p>
-                <div className="space-y-2">
-                  <Label htmlFor="invite-email">Email *</Label>
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    placeholder="praticien@exemple.com"
-                    value={form.email}
-                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+
+                {/* Required */}
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="invite-first">Prénom</Label>
+                    <Label htmlFor="invite-email">Email *</Label>
                     <Input
-                      id="invite-first"
-                      placeholder="Jean"
-                      value={form.first_name}
-                      onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                      id="invite-email"
+                      type="email"
+                      placeholder="praticien@exemple.com"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-last">Nom</Label>
-                    <Input
-                      id="invite-last"
-                      placeholder="Dupont"
-                      value={form.last_name}
-                      onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-first">Prénom</Label>
+                      <Input
+                        id="invite-first"
+                        placeholder="Jean"
+                        value={form.first_name}
+                        onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-last">Nom</Label>
+                      <Input
+                        id="invite-last"
+                        placeholder="Dupont"
+                        value={form.last_name}
+                        onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 </div>
+
+                {/* Advanced / optional */}
+                <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full justify-between">
+                      Informations complémentaires (facultatif)
+                      {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-specialty">Spécialité</Label>
+                      <Input
+                        id="invite-specialty"
+                        placeholder="Ostéopathe, Kinésithérapeute…"
+                        value={form.specialty}
+                        onChange={(e) => setForm((f) => ({ ...f, specialty: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-bio">Bio / Présentation</Label>
+                      <Textarea
+                        id="invite-bio"
+                        placeholder="Présentation affichée sur la fiche publique du praticien…"
+                        rows={3}
+                        value={form.bio}
+                        onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-phone">Téléphone</Label>
+                        <Input
+                          id="invite-phone"
+                          placeholder="+32 470 000 000"
+                          value={form.phone}
+                          onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-contact-email">Email de contact public</Label>
+                        <Input
+                          id="invite-contact-email"
+                          type="email"
+                          placeholder="contact@praticien.be"
+                          value={form.contact_email}
+                          onChange={(e) => setForm((f) => ({ ...f, contact_email: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Planning hebdomadaire</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Définissez les jours et horaires de présence par défaut du praticien.
+                      </p>
+                      <ScheduleEditor schedule={schedule} onChange={setSchedule} />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
                 <Button onClick={handleInvite} disabled={inviting} className="w-full">
                   {inviting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
