@@ -38,6 +38,23 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth check - require authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const callerUserId = claimsData.claims.sub;
+
     const text = await req.text();
     if (text.length > 1024) {
       return new Response(JSON.stringify({ error: "Request too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -48,7 +65,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Valid registration_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -60,6 +76,25 @@ Deno.serve(async (req) => {
 
     if (regError || !registration) {
       return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Authorization: caller must be the registrant, the practitioner, or admin
+    let authorized = registration.user_id === callerUserId;
+    if (!authorized) {
+      const { data: sessionAuth } = await supabase
+        .from("activity_sessions")
+        .select("activities(practitioner_id, profiles(user_id))")
+        .eq("id", registration.session_id)
+        .single();
+      const practitionerUserId = (sessionAuth?.activities as any)?.profiles?.user_id;
+      if (practitionerUserId === callerUserId) authorized = true;
+    }
+    if (!authorized) {
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "admin" });
+      if (isAdmin) authorized = true;
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Get recipient info
@@ -189,7 +224,6 @@ Deno.serve(async (req) => {
         ${infoTable(
           infoRow("Patient", recipientName) +
           (recipientEmail ? infoRow("Email", recipientEmail) : "") +
-          (registration.guest_email ? infoRow("Téléphone", registration.guest_email) : "") +
           infoRow("Prestation", activityTitle) +
           infoRow("Date", formattedDate) +
           infoRow("Horaire", `${formattedTimeStart} – ${formattedTimeEnd}`) +

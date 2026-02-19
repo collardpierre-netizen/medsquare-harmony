@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check - this function requires authentication
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -29,6 +29,8 @@ Deno.serve(async (req) => {
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    const callerUserId = claimsData.claims.sub;
 
     // Input validation
     const text = await req.text();
@@ -52,6 +54,25 @@ Deno.serve(async (req) => {
 
     if (regError || !registration) {
       return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Authorization: caller must be the registrant, the practitioner, or admin
+    let authorized = registration.user_id === callerUserId;
+    if (!authorized) {
+      const { data: session } = await supabase
+        .from("activity_sessions")
+        .select("activities(practitioner_id, profiles(user_id))")
+        .eq("id", registration.session_id)
+        .single();
+      const practitionerUserId = (session?.activities as any)?.profiles?.user_id;
+      if (practitionerUserId === callerUserId) authorized = true;
+    }
+    if (!authorized) {
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "admin" });
+      if (isAdmin) authorized = true;
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let recipientEmail = registration.guest_email;

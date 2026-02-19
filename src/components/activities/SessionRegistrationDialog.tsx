@@ -65,13 +65,12 @@ const SessionRegistrationDialog = ({
     const checkRegistration = async () => {
       setChecking(true);
 
-      const { count } = await supabase
-        .from("activity_registrations")
-        .select("id", { count: "exact", head: true })
-        .eq("session_id", session.id)
-        .eq("status", "registered");
+      const { data: regCount } = await supabase.rpc(
+        "count_session_registrations",
+        { session_uuid: session.id }
+      );
 
-      setRegistrationCount(count || 0);
+      setRegistrationCount(regCount || 0);
 
       if (user) {
         const { data } = await supabase
