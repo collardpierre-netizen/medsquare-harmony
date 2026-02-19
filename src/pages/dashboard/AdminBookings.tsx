@@ -873,9 +873,28 @@ const AdminBookings = () => {
               ) : viewMode === "practitioner" ? (
                 /* ─── Grouped by Practitioner ─── */
                 <div className="space-y-6">
-                  {/* Toggles */}
+                  {/* Toggles + Bulk actions */}
                   <div className="flex flex-wrap items-center gap-4 pb-2 border-b border-border">
-                    <div className="flex items-center gap-2">
+                    <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-primary transition-colors">
+                      {selectedIds.size === filteredBookings.length && filteredBookings.length > 0
+                        ? <CheckSquare className="h-4 w-4 text-primary" />
+                        : <Square className="h-4 w-4" />}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedIds.size > 0 ? `${selectedIds.size} sélectionnée${selectedIds.size > 1 ? "s" : ""}` : "Tout sélectionner"}
+                    </span>
+                    {selectedIds.size > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setBulkDeleteOpen(true)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Supprimer ({selectedIds.size})
+                      </Button>
+                    )}
+                    <div className="flex items-center gap-2 ml-auto">
                       <Switch id="hide-cancelled" checked={hideCancelled} onCheckedChange={setHideCancelled} />
                       <Label htmlFor="hide-cancelled" className="text-xs cursor-pointer">Masquer les annulées</Label>
                     </div>
@@ -886,7 +905,7 @@ const AdminBookings = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs ml-auto"
+                      className="text-xs"
                       onClick={() => {
                         if (collapsedPractitioners.size === groupedByPractitioner.length) {
                           setCollapsedPractitioners(new Set());
