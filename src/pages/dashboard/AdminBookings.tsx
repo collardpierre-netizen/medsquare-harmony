@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -340,6 +340,17 @@ const AdminBookings = () => {
     setEditOpen(true);
   };
 
+  const handleDeleteBooking = async (id: string) => {
+    if (!window.confirm("Supprimer définitivement cette réservation ?")) return;
+    const { error } = await supabase.from("bookings").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Réservation supprimée" });
+      fetchBookings();
+    }
+  };
+
   const BookingRow = ({ booking }: { booking: any }) => (
     <div
       className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
@@ -366,18 +377,29 @@ const AdminBookings = () => {
           <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
         )}
       </div>
-      {booking.status === "pending" && (
-        <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
-            <CheckCircle className="h-4 w-4 mr-1" />
-            Confirmer
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => updateStatus(booking.id, "cancelled")}>
-            <XCircle className="h-4 w-4 mr-1" />
-            Refuser
-          </Button>
-        </div>
-      )}
+      <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+        {booking.status === "pending" && (
+          <>
+            <Button size="sm" onClick={() => updateStatus(booking.id, "confirmed")}>
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirmer
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => updateStatus(booking.id, "cancelled")}>
+              <XCircle className="h-4 w-4 mr-1" />
+              Refuser
+            </Button>
+          </>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() => handleDeleteBooking(booking.id)}
+          title="Supprimer la réservation"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 
