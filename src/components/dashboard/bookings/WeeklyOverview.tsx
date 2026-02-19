@@ -178,18 +178,18 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* SVG pattern for diagonal hatching */}
-      <svg width="0" height="0" className="absolute">
+    <Card>
+      {/* SVG pattern definitions for diagonal hatching */}
+      <svg width="0" height="0" style={{ position: "absolute" }}>
         <defs>
-          <pattern id="hatch-booked" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="5" stroke="hsl(var(--primary) / 0.6)" strokeWidth="2.5" />
+          <pattern id="week-hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.5)" strokeWidth="2" />
           </pattern>
-          <pattern id="hatch-activity" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="5" stroke="rgb(249 115 22 / 0.5)" strokeWidth="2.5" />
+          <pattern id="week-hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="rgb(249 115 22 / 0.45)" strokeWidth="2" />
           </pattern>
         </defs>
       </svg>
-    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="font-display text-base">
@@ -209,14 +209,14 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
               <div className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 rounded overflow-hidden border border-primary/30" viewBox="0 0 12 12">
                   <rect width="12" height="12" fill="hsl(var(--primary) / 0.15)" />
-                  <rect width="12" height="12" fill="url(#hatch-booked)" />
+                  <rect width="12" height="12" fill="url(#week-hatch-booked)" />
                 </svg>
                 Réservé
               </div>
               <div className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 rounded overflow-hidden border border-orange-500/30" viewBox="0 0 12 12">
                   <rect width="12" height="12" fill="rgb(249 115 22 / 0.15)" />
-                  <rect width="12" height="12" fill="url(#hatch-activity)" />
+                  <rect width="12" height="12" fill="url(#week-hatch-activity)" />
                 </svg>
                 Activité
               </div>
@@ -329,7 +329,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {/* Diagonal hatching overlay for occupied slots */}
                           {inRange && !isPast && isOccupied && (
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <rect width="100%" height="100%" fill={activity ? "url(#hatch-activity)" : "url(#hatch-booked)"} />
+                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : "url(#week-hatch-booked)"} />
                             </svg>
                           )}
                           {actSession && (
