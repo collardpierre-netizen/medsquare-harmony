@@ -200,11 +200,11 @@ const AllRoomsOverview = ({
       {/* SVG patterns */}
       <svg width="0" height="0" className="absolute">
         <defs>
-          <pattern id="allrooms-hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.45)" strokeWidth="2" />
+          <pattern id="allrooms-hatch-booked" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="hsl(var(--primary) / 0.6)" strokeWidth="2.5" />
           </pattern>
-          <pattern id="allrooms-hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="rgb(249 115 22 / 0.35)" strokeWidth="2" />
+          <pattern id="allrooms-hatch-activity" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="rgb(249 115 22 / 0.5)" strokeWidth="2.5" />
           </pattern>
         </defs>
       </svg>
