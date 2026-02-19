@@ -62,6 +62,11 @@ const AdminBookings = () => {
   const [planningWeekStart, setPlanningWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [planningRoom, setPlanningRoom] = useState<string>("");
 
+  // Practitioner view toggles
+  const [hideCancelled, setHideCancelled] = useState(false);
+  const [hideNotes, setHideNotes] = useState(false);
+  const [collapsedPractitioners, setCollapsedPractitioners] = useState<Set<string>>(new Set());
+
   // New booking dialog state
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -157,7 +162,8 @@ const AdminBookings = () => {
   // Grouped by practitioner
   const groupedByPractitioner = useMemo(() => {
     const groups: Record<string, { name: string; bookings: any[] }> = {};
-    filteredBookings.forEach((b) => {
+    const source = hideCancelled ? filteredBookings.filter(b => b.status !== "cancelled") : filteredBookings;
+    source.forEach((b) => {
       const pid = b.practitioner_id;
       if (!groups[pid]) {
         groups[pid] = {
@@ -168,7 +174,15 @@ const AdminBookings = () => {
       groups[pid].bookings.push(b);
     });
     return Object.entries(groups).sort(([, a], [, b]) => a.name.localeCompare(b.name));
-  }, [filteredBookings]);
+  }, [filteredBookings, hideCancelled]);
+
+  const toggleCollapsed = (pid: string) => {
+    setCollapsedPractitioners(prev => {
+      const next = new Set(prev);
+      if (next.has(pid)) next.delete(pid); else next.add(pid);
+      return next;
+    });
+  };
 
   // Occupancy stats per room (based on current week)
   const occupancyData = useMemo(() => {
@@ -348,7 +362,7 @@ const AdminBookings = () => {
           {" — "}
           {format(new Date(booking.end_time), "HH:mm")}
         </p>
-        {booking.notes && (
+        {booking.notes && !hideNotes && (
           <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
         )}
       </div>
@@ -757,22 +771,53 @@ const AdminBookings = () => {
               ) : viewMode === "practitioner" ? (
                 /* ─── Grouped by Practitioner ─── */
                 <div className="space-y-6">
+                  {/* Toggles */}
+                  <div className="flex flex-wrap items-center gap-4 pb-2 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Switch id="hide-cancelled" checked={hideCancelled} onCheckedChange={setHideCancelled} />
+                      <Label htmlFor="hide-cancelled" className="text-xs cursor-pointer">Masquer les annulées</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch id="hide-notes" checked={hideNotes} onCheckedChange={setHideNotes} />
+                      <Label htmlFor="hide-notes" className="text-xs cursor-pointer">Masquer les notes</Label>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs ml-auto"
+                      onClick={() => {
+                        if (collapsedPractitioners.size === groupedByPractitioner.length) {
+                          setCollapsedPractitioners(new Set());
+                        } else {
+                          setCollapsedPractitioners(new Set(groupedByPractitioner.map(([pid]) => pid)));
+                        }
+                      }}
+                    >
+                      {collapsedPractitioners.size === groupedByPractitioner.length ? "Tout déplier" : "Tout replier"}
+                    </Button>
+                  </div>
                   {groupedByPractitioner.map(([pid, group]) => (
                     <div key={pid}>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <button
+                        className="flex items-center gap-2 mb-3 w-full text-left hover:bg-accent/50 rounded-lg p-1.5 -ml-1.5 transition-colors"
+                        onClick={() => toggleCollapsed(pid)}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <Users className="h-4 w-4 text-primary" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <p className="font-semibold text-sm">{group.name}</p>
                           <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
                         </div>
-                      </div>
-                      <div className="space-y-2 pl-10">
-                        {group.bookings.map((b: any) => (
-                          <BookingRow key={b.id} booking={b} />
-                        ))}
-                      </div>
+                        <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
+                      </button>
+                      {!collapsedPractitioners.has(pid) && (
+                        <div className="space-y-2 pl-10">
+                          {group.bookings.map((b: any) => (
+                            <BookingRow key={b.id} booking={b} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
