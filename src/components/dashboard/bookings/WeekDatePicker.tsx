@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addDays, format, isSameDay, isBefore, startOfDay } from "date-fns";
+import { addDays, format, isSameDay, isBefore, startOfDay, startOfWeek } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,9 +28,23 @@ const WeekDatePicker = ({ weekStart, selectedDate, onWeekChange, onDateSelect }:
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <h3 className="font-display font-semibold text-lg">
-            {format(weekStart, "MMMM yyyy", { locale: fr })}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-display font-semibold text-lg">
+              {format(weekStart, "MMMM yyyy", { locale: fr })}
+            </h3>
+            {!isSameDay(selectedDate, new Date()) && (
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  onWeekChange(startOfWeek(today, { weekStartsOn: 1 }));
+                  onDateSelect(today);
+                }}
+                className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                Aujourd'hui
+              </button>
+            )}
+          </div>
           <button
             onClick={() => onWeekChange(addDays(weekStart, 7))}
             className="p-2 rounded-lg hover:bg-accent transition-colors"
