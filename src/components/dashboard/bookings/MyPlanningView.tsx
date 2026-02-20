@@ -28,6 +28,7 @@ interface UnifiedEvent {
   startTime: string;
   endTime: string;
   status: string;
+  isPrivatise?: boolean;
   category?: string;
   practitionerName?: string;
   raw: Booking | ActivitySessionSlot;
@@ -116,6 +117,7 @@ const MyPlanningView = ({
       result.push({
         id: b.id,
         type: "booking",
+        isPrivatise,
         title: isPrivatise
           ? `🔒 ${b.profiles?.first_name || ""} ${b.profiles?.last_name || ""}`.trim()
           : `${b.profiles?.first_name || ""} ${b.profiles?.last_name || ""}`.trim() || "Réservation",
@@ -243,6 +245,10 @@ const MyPlanningView = ({
                 Réservation
               </div>
               <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-red-500/20 border border-red-500/30" />
+                🔒 Privatisé
+              </div>
+              <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded bg-orange-500/20 border border-orange-500/30" />
                 Activité
               </div>
@@ -349,6 +355,8 @@ const MyPlanningView = ({
                                 ? "bg-gradient-to-r from-primary/15 to-orange-500/15 border border-primary/20 cursor-pointer"
                                 : hasActivity
                                 ? "bg-orange-500/15 text-orange-700 border border-orange-500/20 cursor-pointer hover:bg-orange-500/25"
+                                : hasBooking && firstEvent?.isPrivatise
+                                ? "bg-red-500/15 text-red-800 border border-red-500/30 cursor-pointer hover:bg-red-500/25"
                                 : hasBooking
                                 ? "bg-primary/15 text-primary/70 border border-primary/20 cursor-pointer hover:bg-primary/25"
                                 : "bg-accent/50 border border-border/50"
@@ -409,6 +417,8 @@ const MyPlanningView = ({
                             "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm",
                             event.type === "activity"
                               ? "bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10"
+                              : event.isPrivatise
+                              ? "bg-red-500/5 border-red-500/20 hover:bg-red-500/10"
                               : "bg-card border-border hover:bg-accent/50"
                           )}
                         >
@@ -417,11 +427,15 @@ const MyPlanningView = ({
                               "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
                               event.type === "activity"
                                 ? "bg-orange-500/15"
+                                : event.isPrivatise
+                                ? "bg-red-500/15"
                                 : "bg-primary/10"
                             )}
                           >
                             {event.type === "activity" ? (
                               <Users className="h-5 w-5 text-orange-600" />
+                            ) : event.isPrivatise ? (
+                              <Lock className="h-5 w-5 text-red-600" />
                             ) : (
                               <Clock className="h-5 w-5 text-primary" />
                             )}

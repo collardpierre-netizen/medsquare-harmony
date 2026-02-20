@@ -203,6 +203,9 @@ const AllRoomsOverview = ({
           <pattern id="allrooms-hatch-booked" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="5" stroke="hsl(var(--primary) / 0.6)" strokeWidth="2.5" />
           </pattern>
+          <pattern id="allrooms-hatch-privatise" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(-45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="hsl(0 72% 51% / 0.55)" strokeWidth="2.5" />
+          </pattern>
           <pattern id="allrooms-hatch-activity" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="5" stroke="rgb(249 115 22 / 0.5)" strokeWidth="2.5" />
           </pattern>
@@ -234,6 +237,13 @@ const AllRoomsOverview = ({
                     <rect width="12" height="12" fill="url(#allrooms-hatch-activity)" />
                   </svg>
                   Activité
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-3 h-3 rounded overflow-hidden border border-red-500/30" viewBox="0 0 12 12">
+                    <rect width="12" height="12" fill="rgb(239 68 68 / 0.15)" />
+                    <rect width="12" height="12" fill="url(#allrooms-hatch-privatise)" />
+                  </svg>
+                  🔒 Privatisé
                 </div>
               </div>
             </div>
@@ -360,6 +370,8 @@ const AllRoomsOverview = ({
                           );
                         });
 
+                        const isPrivatise = bookingStart?.notes?.includes("[Privatisé]");
+
                         const cellContent = (
                           <div
                             className={cn(
@@ -372,6 +384,8 @@ const AllRoomsOverview = ({
                                 ? "bg-muted/40 text-muted-foreground/40 border border-border/30"
                                 : isActivity
                                 ? "bg-orange-500/20 text-orange-700 border border-orange-500/30 cursor-pointer hover:bg-orange-500/30"
+                                : isPrivatise
+                                ? "bg-red-500/20 text-red-800 border border-red-500/40 cursor-pointer hover:bg-red-500/30"
                                 : isBooked
                                 ? "bg-primary/20 text-primary border border-primary/30 cursor-pointer hover:bg-primary/30"
                                 : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
@@ -389,7 +403,7 @@ const AllRoomsOverview = ({
                             {/* Hatching */}
                             {inRange && !(isPast && !isToday) && isOccupied && !dimmed && (
                               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                                <rect width="100%" height="100%" fill={isActivity ? "url(#allrooms-hatch-activity)" : "url(#allrooms-hatch-booked)"} />
+                                <rect width="100%" height="100%" fill={isActivity ? "url(#allrooms-hatch-activity)" : isPrivatise ? "url(#allrooms-hatch-privatise)" : "url(#allrooms-hatch-booked)"} />
                               </svg>
                             )}
                             {activityStart && !dimmed && (
