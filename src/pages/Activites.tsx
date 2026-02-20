@@ -195,7 +195,7 @@ const ActivitesPage = () => {
       {/* Weekly schedule */}
       <section className="py-6 border-b border-border">
         <div className="max-w-6xl mx-auto px-4">
-          <PublicActivitySchedule />
+          <PublicActivitySchedule selectedCategory={selectedCategory} search={search} />
         </div>
       </section>
 
