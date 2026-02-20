@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -497,6 +497,31 @@ const Activities = () => {
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(activity)}>
                           <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Dupliquer"
+                          onClick={() => {
+                            setEditingId(null);
+                            setForm({
+                              title: activity.title + " (copie)",
+                              description: activity.description || "",
+                              category: activity.category,
+                              duration_minutes: activity.duration_minutes,
+                              max_participants: activity.max_participants,
+                              location: activity.location || "",
+                              photo_url: activity.photo_url || "",
+                              photos: activity.photos || [],
+                              is_free: activity.is_free ?? true,
+                              price: activity.price ?? null,
+                              booking_enabled: false,
+                              practitioner_id: activity.practitioner_id || "",
+                            });
+                            setShowDialog(true);
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
