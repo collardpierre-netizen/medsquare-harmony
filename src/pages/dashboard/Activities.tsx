@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy } from "lucide-react";
-import { format, addMinutes } from "date-fns";
+import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy, AlertTriangle } from "lucide-react";
+import { format, addMinutes, addDays, startOfDay, setHours, setMinutes, nextMonday, nextTuesday, nextWednesday, nextThursday, nextFriday, nextSaturday, nextSunday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -179,6 +179,61 @@ const Activities = () => {
     fetchActivities();
   }, [profile, filterPractitioner]);
 
+  const dayToNextFn: Record<string, (date: Date) => Date> = {
+    lundi: nextMonday,
+    mardi: nextTuesday,
+    mercredi: nextWednesday,
+    jeudi: nextThursday,
+    vendredi: nextFriday,
+    samedi: nextSaturday,
+    dimanche: nextSunday,
+  };
+
+  const checkRecurrenceBookings = async (
+    slots: RecurrenceSlot[],
+    roomId: string,
+    practitionerId: string,
+  ) => {
+    const now = new Date();
+    const missingSlots: string[] = [];
+
+    for (const slot of slots) {
+      const nextFn = dayToNextFn[slot.day];
+      if (!nextFn) continue;
+
+      const nextDate = nextFn(now);
+      const [sh, sm] = slot.start.split(":").map(Number);
+      const [eh, em] = slot.end.split(":").map(Number);
+      const slotStart = setMinutes(setHours(startOfDay(nextDate), sh), sm);
+      const slotEnd = setMinutes(setHours(startOfDay(nextDate), eh), em);
+
+      // Check for a booking covering this slot
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("room_id", roomId)
+        .eq("practitioner_id", practitionerId)
+        .neq("status", "cancelled")
+        .lte("start_time", slotStart.toISOString())
+        .gte("end_time", slotEnd.toISOString())
+        .limit(1);
+
+      if (!bookings || bookings.length === 0) {
+        const dayLabel = DAYS.find((d) => d.value === slot.day)?.label || slot.day;
+        missingSlots.push(`${dayLabel} ${slot.start}–${slot.end}`);
+      }
+    }
+
+    if (missingSlots.length > 0) {
+      toast({
+        title: "⚠️ Réservation de salle manquante",
+        description: `Aucune réservation de salle trouvée pour : ${missingSlots.join(", ")}. Pensez à réserver la salle pour ces créneaux.`,
+        variant: "destructive",
+        duration: 8000,
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!profile && !isAdmin) return;
     if (isAdmin && !editingId && !form.practitioner_id) {
@@ -209,6 +264,18 @@ const Activities = () => {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
         toast({ title: "Activité créée !" });
+      }
+    }
+
+    // Check if recurrence slots match existing room bookings
+    if (recurrence.length > 0 && form.location) {
+      const targetPractId = editingId
+        ? (isAdmin && formPractitionerId ? formPractitionerId : form.practitioner_id)
+        : (isAdmin && formPractitionerId ? formPractitionerId : profile!.id);
+      const selectedRoom = rooms.find((r) => r.name === form.location);
+
+      if (selectedRoom && targetPractId) {
+        await checkRecurrenceBookings(recurrence, selectedRoom.id, targetPractId);
       }
     }
 
