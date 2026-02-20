@@ -57,6 +57,7 @@ interface Activity {
   price: number | null;
   location: string | null;
   booking_enabled: boolean;
+  recurrence: { day: string; start: string; end: string }[] | null;
   profiles: {
     id: string;
     first_name: string;
@@ -97,7 +98,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, profiles(id, first_name, last_name, specialty, avatar_url)"
+          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, recurrence, profiles(id, first_name, last_name, specialty, avatar_url)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -323,6 +324,35 @@ const ActiviteDetail = () => {
                 </span>
               )}
             </div>
+
+            {/* Recurring schedule */}
+            {(() => {
+              let slots: { day: string; start: string; end: string }[] = [];
+              try {
+                const raw = activity.recurrence;
+                if (Array.isArray(raw)) slots = raw as any;
+                else if (typeof raw === "string") slots = JSON.parse(raw);
+              } catch {}
+              if (slots.length === 0) return null;
+              const dayLabels: Record<string, string> = {
+                lundi: "Lundi", mardi: "Mardi", mercredi: "Mercredi",
+                jeudi: "Jeudi", vendredi: "Vendredi", samedi: "Samedi", dimanche: "Dimanche",
+              };
+              return (
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <Calendar className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-foreground mr-1">Horaires récurrents :</span>
+                  {slots.map((s, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-sm"
+                    >
+                      {dayLabels[s.day] || s.day} {s.start}–{s.end}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
 
             <Separator className="mb-6" />
 
