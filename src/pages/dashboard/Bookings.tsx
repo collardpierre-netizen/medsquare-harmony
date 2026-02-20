@@ -155,48 +155,88 @@ const Bookings = () => {
     bookingType: BookingType;
     recurrence: RecurrenceType;
     recurrenceWeeks: number;
+    recurrenceDays: number[];
     practitionerId?: string;
   }) => {
     if (!profile || !selectedSlot || !selectedRoom) return;
     setIsSubmitting(true);
     const targetPractitionerId = options.practitionerId || profile.id;
 
-    const { bookingType, recurrence, recurrenceWeeks } = options;
+    const { bookingType, recurrence, recurrenceWeeks, recurrenceDays } = options;
     const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
 
-    // Calculate how many bookings to create
-    const count = recurrence === "weekly" ? recurrenceWeeks : 1;
     const insertRows: any[] = [];
     const bookingsToCreate: Array<{ startTime: Date; endTime: Date; week: number }> = [];
-    const groupId = count > 1 ? crypto.randomUUID() : null;
 
-    for (let i = 0; i < count; i++) {
-      const baseDate = addWeeks(selectedDate, i);
+    if (recurrence === "weekly" && recurrenceDays.length > 0) {
+      // Multi-day recurrence
+      const groupId = crypto.randomUUID();
+      const selectedDayOfWeek = selectedDate.getDay();
 
-      let startTime: Date;
-      let endTime: Date;
+      for (let w = 0; w < recurrenceWeeks; w++) {
+        for (const dayNum of recurrenceDays) {
+          let dayOffset = dayNum - selectedDayOfWeek;
+          if (dayOffset < 0) dayOffset += 7;
 
-      if (bookingType === "full_day") {
-        const dayHours = getOpeningHours(baseDate);
-        startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
-        endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
-      } else {
-        startTime = setMinutes(
-          setHours(new Date(baseDate), selectedSlot.getHours()),
-          selectedSlot.getMinutes()
-        );
-        endTime = addMinutes(startTime, parseInt(duration));
+          const baseDate = addDays(addWeeks(selectedDate, w), dayOffset);
+          let startTime: Date;
+          let endTime: Date;
+
+          if (bookingType === "full_day") {
+            const dayHours = getOpeningHours(baseDate);
+            startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
+            endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
+          } else {
+            startTime = setMinutes(
+              setHours(new Date(baseDate), selectedSlot.getHours()),
+              selectedSlot.getMinutes()
+            );
+            endTime = addMinutes(startTime, parseInt(duration));
+          }
+
+          bookingsToCreate.push({ startTime, endTime, week: w + 1 });
+          insertRows.push({
+            practitioner_id: targetPractitionerId,
+            room_id: selectedRoom,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            notes: notes || null,
+            recurrence_group_id: groupId,
+          });
+        }
       }
+    } else {
+      // Single or weekly same-day
+      const count = recurrence === "weekly" ? recurrenceWeeks : 1;
+      const groupId = count > 1 ? crypto.randomUUID() : null;
 
-      bookingsToCreate.push({ startTime, endTime, week: i + 1 });
-      insertRows.push({
-        practitioner_id: targetPractitionerId,
-        room_id: selectedRoom,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        notes: notes || null,
-        ...(groupId ? { recurrence_group_id: groupId } : {}),
-      });
+      for (let i = 0; i < count; i++) {
+        const baseDate = addWeeks(selectedDate, i);
+        let startTime: Date;
+        let endTime: Date;
+
+        if (bookingType === "full_day") {
+          const dayHours = getOpeningHours(baseDate);
+          startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
+          endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
+        } else {
+          startTime = setMinutes(
+            setHours(new Date(baseDate), selectedSlot.getHours()),
+            selectedSlot.getMinutes()
+          );
+          endTime = addMinutes(startTime, parseInt(duration));
+        }
+
+        bookingsToCreate.push({ startTime, endTime, week: i + 1 });
+        insertRows.push({
+          practitioner_id: targetPractitionerId,
+          room_id: selectedRoom,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          notes: notes || null,
+          ...(groupId ? { recurrence_group_id: groupId } : {}),
+        });
+      }
     }
 
     // Check for conflicts (bookings + activity sessions)
@@ -261,8 +301,9 @@ const Bookings = () => {
         description: "Impossible de créer la réservation.",
       });
     } else {
-      const label = count > 1
-        ? `${count} réservations créées !`
+      const totalCount = insertRows.length;
+      const label = totalCount > 1
+        ? `${totalCount} réservations créées !`
         : "Réservation créée !";
       toast({ title: label, description: "En attente de confirmation." });
       setShowNewBooking(false);
