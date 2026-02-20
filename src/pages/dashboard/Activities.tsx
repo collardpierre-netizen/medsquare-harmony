@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy } from "lucide-react";
-import { format, addMinutes, addDays, startOfDay, setHours, setMinutes, nextMonday, nextTuesday, nextWednesday, nextThursday, nextFriday, nextSaturday, nextSunday } from "date-fns";
+import { format, addMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -179,15 +180,6 @@ const Activities = () => {
     fetchActivities();
   }, [profile, filterPractitioner]);
 
-  const dayToNextFn: Record<string, (date: Date) => Date> = {
-    lundi: nextMonday,
-    mardi: nextTuesday,
-    mercredi: nextWednesday,
-    jeudi: nextThursday,
-    vendredi: nextFriday,
-    samedi: nextSaturday,
-    dimanche: nextSunday,
-  };
 
   const handleSave = async () => {
     if (!profile && !isAdmin) return;
@@ -489,33 +481,6 @@ const Activities = () => {
                           );
                         })()}
 
-                        {/* Upcoming sessions */}
-                        {actSessions.length > 0 && (
-                          <div className="mt-4 space-y-1.5">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Prochaines séances
-                            </p>
-                            {actSessions.slice(0, 3).map((session: any) => (
-                              <div
-                                key={session.id}
-                                className="flex items-center gap-3 text-xs p-2 rounded-lg bg-muted/50"
-                              >
-                                <Calendar className="h-3.5 w-3.5 text-primary" />
-                                <span className="font-medium">
-                                  {format(new Date(session.start_time), "EEE d MMM • HH:mm", { locale: fr })}
-                                </span>
-                                {session.rooms?.name && (
-                                  <Badge variant="outline" className="text-[9px]">
-                                    {session.rooms.name}
-                                  </Badge>
-                                )}
-                                <span className="text-muted-foreground ml-auto">
-                                  {session.activity_registrations?.length || 0}/{session.max_participants} inscrits
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       <div className="flex sm:flex-col items-center gap-2">
@@ -863,11 +828,70 @@ const Activities = () => {
 
       {/* Session scheduling dialog */}
       <Dialog open={showSessionDialog} onOpenChange={setShowSessionDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Planifier une séance</DialogTitle>
+            <DialogTitle className="font-display">Séances</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+
+          {/* Existing sessions */}
+          {sessionActivityId && (sessions[sessionActivityId] || []).length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Prochaines séances
+              </p>
+              {(sessions[sessionActivityId] || []).map((session: any) => {
+                const isFull = session.status === "full";
+                const regCount = session.activity_registrations?.length || 0;
+                return (
+                  <div
+                    key={session.id}
+                    className="flex items-center justify-between gap-3 text-xs p-2.5 rounded-lg bg-muted/50 border border-border"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="font-medium">
+                        {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
+                      </span>
+                      {session.rooms?.name && (
+                        <Badge variant="outline" className="text-[9px]">
+                          {session.rooms.name}
+                        </Badge>
+                      )}
+                      <span className="text-muted-foreground">
+                        {regCount}/{session.max_participants} inscrits
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch
+                        checked={isFull}
+                        onCheckedChange={async (checked) => {
+                          await supabase
+                            .from("activity_sessions")
+                            .update({ status: checked ? "full" : "scheduled" })
+                            .eq("id", session.id);
+                          fetchActivities();
+                          toast({
+                            title: checked ? "Séance marquée complète" : "Séance rouverte aux inscriptions",
+                          });
+                        }}
+                      />
+                      <span className={`text-[10px] font-medium ${isFull ? "text-destructive" : "text-muted-foreground"}`}>
+                        {isFull ? "Complet" : "Ouvert"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <Separator />
+
+          {/* New session form */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Planifier une nouvelle séance
+          </p>
+          <div className="space-y-4">
             <div>
               <Label>Date</Label>
               <Input
@@ -908,7 +932,7 @@ const Activities = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSessionDialog(false)}>
-              Annuler
+              Fermer
             </Button>
             <Button onClick={handleCreateSession} disabled={isSaving || !sessionForm.date}>
               {isSaving ? "Planification..." : "Planifier"}

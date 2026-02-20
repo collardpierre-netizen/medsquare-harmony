@@ -47,7 +47,8 @@ const ActivityDetailSessions = ({
         const waitlisted = session.activity_registrations?.filter((r) => r.status === "waitlisted") || [];
         const registrationCount = registered.length;
         const maxP = session.max_participants;
-        const isFull = maxP ? registrationCount >= maxP : false;
+        const isMarkedFull = session.status === "full";
+        const isFull = isMarkedFull || (maxP ? registrationCount >= maxP : false);
         const remaining = maxP ? Math.max(0, maxP - registrationCount) : null;
         const isRegistered = myRegistrations.includes(session.id);
 

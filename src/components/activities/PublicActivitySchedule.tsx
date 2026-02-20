@@ -44,7 +44,7 @@ const PublicActivitySchedule = () => {
       .select("*, rooms(name), activities(title, category, description, is_free, price, profiles(first_name, last_name))")
       .gte("start_time", startOfDay(weekStart).toISOString())
       .lt("start_time", weekEnd.toISOString())
-      .eq("status", "scheduled")
+      .in("status", ["scheduled", "full"])
       .order("start_time");
 
     // Fetch registration counts securely via RPC
