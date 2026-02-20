@@ -474,6 +474,7 @@ export type Database = {
         Args: { session_uuid: string }
         Returns: number
       }
+      generate_recurring_sessions: { Args: never; Returns: undefined }
       get_practitioner_login_status: {
         Args: never
         Returns: {
