@@ -267,6 +267,16 @@ const Activities = () => {
       }
     }
 
+    // Auto-generate sessions from recurrence
+    if (recurrence.length > 0) {
+      const { error: rpcError } = await supabase.rpc("generate_recurring_sessions");
+      if (rpcError) {
+        console.error("Error generating recurring sessions:", rpcError);
+      } else {
+        toast({ title: "Séances générées automatiquement 🗓️", description: "Les 4 prochaines semaines ont été planifiées." });
+      }
+    }
+
     // Check if recurrence slots match existing room bookings
     if (recurrence.length > 0 && form.location) {
       const targetPractId = editingId
