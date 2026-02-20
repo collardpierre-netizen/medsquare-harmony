@@ -26,6 +26,8 @@ interface CancelBookingDialogProps {
   onRefuse?: () => void;
   isUpdating?: boolean;
   roomName?: string;
+  onDeleteRecurrenceGroup?: () => void;
+  recurrenceGroupCount?: number;
 }
 
 const CancelBookingDialog = ({
@@ -41,6 +43,8 @@ const CancelBookingDialog = ({
   onRefuse,
   isUpdating,
   roomName,
+  onDeleteRecurrenceGroup,
+  recurrenceGroupCount,
 }: CancelBookingDialogProps) => {
   if (!booking) return null;
 
@@ -166,6 +170,19 @@ const CancelBookingDialog = ({
                   {isCancelling
                     ? "Annulation..."
                     : `Annuler toutes les occurrences futures (${futureCount})`}
+                </Button>
+              )}
+
+              {onDeleteRecurrenceGroup && booking.recurrence_group_id && (recurrenceGroupCount || 0) > 1 && (
+                <Button
+                  variant="outline"
+                  className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={onDeleteRecurrenceGroup}
+                  disabled={isCancelling}
+                >
+                  {isCancelling
+                    ? "Suppression..."
+                    : `🗑️ Supprimer tout le groupe récurrent (${recurrenceGroupCount})`}
                 </Button>
               )}
             </div>

@@ -47,6 +47,7 @@ const Bookings = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [futureBookingsCount, setFutureBookingsCount] = useState(0);
+  const [recurrenceGroupCount, setRecurrenceGroupCount] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [practitioners, setPractitioners] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
@@ -363,6 +364,19 @@ const Bookings = () => {
     });
 
     setFutureBookingsCount(matching.length);
+
+    // Count recurrence group
+    if (booking.recurrence_group_id) {
+      const { count } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("recurrence_group_id", booking.recurrence_group_id)
+        .neq("status", "cancelled");
+      setRecurrenceGroupCount(count || 0);
+    } else {
+      setRecurrenceGroupCount(0);
+    }
+
     setShowCancelDialog(true);
   };
 
@@ -425,6 +439,26 @@ const Bookings = () => {
       toast({ variant: "destructive", title: "Erreur", description: "Impossible d'annuler les réservations." });
     } else {
       toast({ title: `${matchingIds.length} réservations annulées`, description: "Toutes les occurrences futures ont été annulées." });
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+      await refreshBookings();
+    }
+    setIsCancelling(false);
+  };
+
+  const handleDeleteRecurrenceGroup = async () => {
+    if (!selectedBooking?.recurrence_group_id) return;
+    setIsCancelling(true);
+
+    const { error } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("recurrence_group_id", selectedBooking.recurrence_group_id);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de supprimer le groupe." });
+    } else {
+      toast({ title: "Groupe supprimé", description: `${recurrenceGroupCount} réservations supprimées. Le local est dé-privatisé.` });
       setShowCancelDialog(false);
       setSelectedBooking(null);
       await refreshBookings();
@@ -671,6 +705,8 @@ const Bookings = () => {
         onRefuse={handleRefuseBooking}
         isUpdating={isUpdatingStatus}
         roomName={roomName}
+        onDeleteRecurrenceGroup={handleDeleteRecurrenceGroup}
+        recurrenceGroupCount={recurrenceGroupCount}
       />
 
       {/* Activity detail dialog */}
