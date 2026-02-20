@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -621,6 +621,29 @@ const AdminBookings = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Privatiser button */}
+                {newBooking.room_id && newBooking.date && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-primary/30 text-primary hover:bg-primary/5"
+                    onClick={() => {
+                      const d = parseISO(newBooking.date);
+                      const { start, end } = getOpeningHours(d);
+                      setNewBooking((b) => ({
+                        ...b,
+                        start_time: `${String(start).padStart(2, "0")}:00`,
+                        end_time: `${String(end).padStart(2, "0")}:00`,
+                        notes: b.notes.includes("[Privatisé]") ? b.notes : `[Privatisé] ${b.notes}`.trim(),
+                      }));
+                      toast({ title: "🔒 Journée privatisée", description: `Horaires réglés de ${start}h à ${end}h` });
+                    }}
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    🔒 Privatiser la journée
+                  </Button>
+                )}
 
                 <div className="space-y-2">
                   <Label>Statut initial</Label>
