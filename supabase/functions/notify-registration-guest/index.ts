@@ -9,13 +9,44 @@ const corsHeaders = {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const ADDRESS = "25 rue de la Procession, 7822 Meslin-l'Évêque, Belgique";
+const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
+const WAZE_URL = `https://waze.com/ul?q=${encodeURIComponent(ADDRESS)}&navigate=yes`;
+
+function generateICS(activityTitle: string, startDate: Date, endDate: Date, roomName: string, description: string): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const toICSDate = (d: Date) => {
+    return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+  };
+  const uid = crypto.randomUUID();
+  const now = toICSDate(new Date());
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Medsquare//Activity//FR",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${toICSDate(startDate)}`,
+    `DTEND:${toICSDate(endDate)}`,
+    `SUMMARY:${activityTitle}`,
+    `LOCATION:${roomName ? roomName + " — " : ""}${ADDRESS}`,
+    `DESCRIPTION:${description.replace(/\n/g, "\\n").substring(0, 200)}`,
+    "STATUS:CONFIRMED",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -32,7 +63,6 @@ Deno.serve(async (req) => {
 
     const callerUserId = claimsData.claims.sub;
 
-    // Input validation
     const text = await req.text();
     if (text.length > 1024) {
       return new Response(JSON.stringify({ error: "Request too large" }), { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -56,7 +86,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Authorization: caller must be the registrant, the practitioner, or admin
+    // Authorization
     let authorized = registration.user_id === callerUserId;
     if (!authorized) {
       const { data: session } = await supabase
@@ -120,6 +150,10 @@ Deno.serve(async (req) => {
       ? `${siteUrl}/mon-inscription?token=${registration.cancellation_token}`
       : null;
 
+    // Generate ICS
+    const icsContent = generateICS(activityTitle, startDate, endDate, roomName, activityDescription);
+    const icsBase64 = btoa(icsContent);
+
     const content = `
       <p>Bonjour <strong>${recipientName}</strong>,</p>
       <p>Votre inscription a été confirmée ! 🎉</p>
@@ -130,8 +164,18 @@ Deno.serve(async (req) => {
         infoRow("Activité", activityTitle) +
         infoRow("Date", formattedDate) +
         infoRow("Horaire", `${formattedTimeStart} – ${formattedTimeEnd}`) +
-        infoRow("Lieu", roomName)
+        infoRow("Lieu", `${roomName} — ${ADDRESS}`)
       )}
+
+      <!-- Maps links -->
+      <div style="margin:20px 0;text-align:center;">
+        <a href="${GOOGLE_MAPS_URL}" style="display:inline-block;padding:10px 18px;background:#4285F4;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;margin-right:8px;">
+          📍 Google Maps
+        </a>
+        <a href="${WAZE_URL}" style="display:inline-block;padding:10px 18px;background:#33CCFF;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">
+          🗺️ Waze
+        </a>
+      </div>
 
       ${activityDescription ? `
       <div style="margin:20px 0;padding:16px;background:#F3F4F6;border-radius:10px;border-left:4px solid #6B7280;">
@@ -177,6 +221,13 @@ Deno.serve(async (req) => {
         to: [recipientEmail],
         subject: `Inscription confirmée — ${activityTitle}`,
         html,
+        attachments: [
+          {
+            filename: `${activityTitle.replace(/\s+/g, "-")}.ics`,
+            content: icsBase64,
+            type: "text/calendar",
+          },
+        ],
       }),
     });
 
