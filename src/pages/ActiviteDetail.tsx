@@ -119,7 +119,7 @@ const ActiviteDetail = () => {
         )
         .eq("activity_id", id)
         .gte("start_time", new Date().toISOString())
-        .eq("status", "scheduled")
+        .in("status", ["scheduled", "full"])
         .order("start_time");
 
       setSessions((sess || []) as unknown as Session[]);

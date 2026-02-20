@@ -76,7 +76,7 @@ const ActivitesPage = () => {
         .from("activity_sessions")
         .select("*, rooms(name), activity_registrations(id, user_id, status)")
         .gte("start_time", new Date().toISOString())
-        .eq("status", "scheduled")
+        .in("status", ["scheduled", "full"])
         .order("start_time");
 
       setSessions(sess || []);
@@ -225,59 +225,10 @@ const ActivitesPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
                   >
-                    <div className="space-y-3">
-                      <ActivityCard
-                        activity={activity}
-                        nextSession={nextSession}
-                      />
-
-                      {/* Upcoming sessions under card */}
-                      {actSessions.length > 0 && (
-                        <div className="space-y-1.5 pl-1">
-                          {actSessions.slice(0, 2).map((session: any) => {
-                            const registered = myRegistrations.includes(session.id);
-                            const regs = session.activity_registrations?.filter((r: any) => (r.status || "registered") === "registered") || [];
-                            const registrationCount = regs.length;
-                            const maxP = session.max_participants;
-                            const isFull = maxP ? registrationCount >= maxP : false;
-                            const remaining = maxP ? Math.max(0, maxP - registrationCount) : null;
-
-                            return (
-                              <div
-                                key={session.id}
-                                className="flex items-center justify-between gap-2 text-xs"
-                              >
-                                <span className="text-muted-foreground truncate">
-                                  {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
-                                  <span className={`ml-1 font-medium ${isFull ? "text-destructive" : remaining !== null && remaining <= 3 ? "text-amber-600" : "text-muted-foreground/60"}`}>
-                                    {isFull ? "(complet)" : remaining !== null ? `(${remaining} place${remaining > 1 ? "s" : ""})` : ""}
-                                  </span>
-                                </span>
-                                {registered ? (
-                                  <button
-                                    onClick={() => handleUnregister(session.id)}
-                                    className="text-destructive hover:underline font-medium shrink-0"
-                                  >
-                                    Annuler
-                                  </button>
-                                ) : (
-                                  <button
-                                    disabled={!user}
-                                    onClick={() => {
-                                      setSelectedSession({ ...session, activity });
-                                      setShowConfirmDialog(true);
-                                    }}
-                                    className={`hover:underline font-medium shrink-0 disabled:opacity-40 disabled:no-underline ${isFull ? "text-amber-600" : "text-primary"}`}
-                                  >
-                                    {isFull ? "Liste d'attente" : "S'inscrire"}
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <ActivityCard
+                      activity={activity}
+                      nextSession={nextSession}
+                    />
                   </motion.div>
                 );
               })}
