@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CalendarDays, List, MapPin, Clock, Users } from "lucide-react";
+import { CalendarDays, List, MapPin, Clock, Users, Lock } from "lucide-react";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
 
 type SubView = "week" | "agenda";
@@ -112,10 +112,13 @@ const MyPlanningView = ({
   const events: UnifiedEvent[] = useMemo(() => {
     const result: UnifiedEvent[] = [];
     bookings.forEach((b) => {
+      const isPrivatise = b.notes?.includes("[Privatisé]");
       result.push({
         id: b.id,
         type: "booking",
-        title: `${b.profiles?.first_name || ""} ${b.profiles?.last_name || ""}`.trim() || "Réservation",
+        title: isPrivatise
+          ? `🔒 ${b.profiles?.first_name || ""} ${b.profiles?.last_name || ""}`.trim()
+          : `${b.profiles?.first_name || ""} ${b.profiles?.last_name || ""}`.trim() || "Réservation",
         roomName: roomMap[b.room_id] || "Salle",
         roomId: b.room_id,
         startTime: b.start_time,

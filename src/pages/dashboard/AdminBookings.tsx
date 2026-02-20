@@ -469,6 +469,11 @@ const AdminBookings = () => {
               <p className="font-medium text-sm">
                 {booking.profiles?.first_name} {booking.profiles?.last_name}
               </p>
+              {booking.notes?.includes("[Privatisé]") && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <Lock className="h-3 w-3" /> Privatisé
+                </Badge>
+              )}
               {statusBadge(booking.status)}
               {booking.activities?.title && (
                 <Badge variant="outline" className="text-xs">{booking.activities.title}</Badge>
