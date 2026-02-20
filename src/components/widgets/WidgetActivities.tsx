@@ -11,6 +11,7 @@ interface Activity {
   category: string;
   description: string | null;
   photo_url: string | null;
+  photos: string[] | null;
   duration_minutes: number;
   location: string | null;
   max_participants: number | null;
@@ -26,7 +27,7 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     const fetch = async () => {
       const { data } = await supabase
         .from("activities")
-        .select("id, title, category, description, photo_url, duration_minutes, location, max_participants, practitioner_id")
+        .select("id, title, category, description, photo_url, photos, duration_minutes, location, max_participants, practitioner_id")
         .eq("is_active", true)
         .limit(config.settings.maxItems || 20);
 
@@ -74,13 +75,17 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     return () => clearInterval(interval);
   }, [config.template, config.settings.autoScroll, config.settings.scrollInterval]);
 
-  const ActivityCard = ({ a }: { a: Activity }) => (
+  const ActivityCard = ({ a }: { a: Activity }) => {
+    const imgUrl = a.photo_url || a.photos?.[0] || null;
+    return (
     <div className="rounded-2xl overflow-hidden shadow-sm bg-card h-full flex flex-col">
-      {a.photo_url && (
-        <div className="aspect-[16/9] bg-muted">
-          <img src={a.photo_url} alt={a.title} className="w-full h-full object-cover" />
-        </div>
-      )}
+      <div className="aspect-[16/9] bg-muted">
+        {imgUrl ? (
+          <img src={imgUrl} alt={a.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center"><Calendar className="h-12 w-12 text-muted-foreground/20" /></div>
+        )}
+      </div>
       <div className="p-4 flex-1 flex flex-col gap-2">
         <span className="text-[10px] uppercase tracking-widest text-primary font-semibold">{a.category}</span>
         <h3 className="font-display font-bold text-base">{a.title}</h3>
@@ -102,7 +107,8 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   if (config.template === "carousel") {
     return (
@@ -121,9 +127,9 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
       <div className="space-y-3 overflow-y-auto h-full pr-2">
         {activities.map((a) => (
           <div key={a.id} className="flex items-center gap-4 p-4 rounded-xl bg-card shadow-sm">
-            {a.photo_url && (
+            {(a.photo_url || a.photos?.[0]) && (
               <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-muted">
-                <img src={a.photo_url} alt={a.title} className="w-full h-full object-cover" />
+                <img src={(a.photo_url || a.photos?.[0])!} alt={a.title} className="w-full h-full object-cover" />
               </div>
             )}
             <div className="min-w-0 flex-1">
