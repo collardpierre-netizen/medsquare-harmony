@@ -123,6 +123,56 @@ const Activities = () => {
     room_id: "",
   });
   const [sessions, setSessions] = useState<Record<string, any[]>>({});
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+
+  const handleExportPDF = async (session: any, registrations: any[]) => {
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF();
+    const activityTitle = activities.find((a: any) => a.id === session.activity_id)?.title || "Activité";
+    const dateStr = format(new Date(session.start_time), "EEEE d MMMM yyyy · HH:mm", { locale: fr });
+    const roomName = session.rooms?.name || "";
+
+    doc.setFontSize(18);
+    doc.text("Feuille de présence", 14, 20);
+    doc.setFontSize(12);
+    doc.text(activityTitle, 14, 30);
+    doc.setFontSize(10);
+    doc.text(dateStr + (roomName ? ` — ${roomName}` : ""), 14, 38);
+    doc.text(`${registrations.filter((r: any) => r.status === "registered").length} inscrit(s)`, 14, 45);
+
+    // Table header
+    let y = 55;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("#", 14, y);
+    doc.text("Nom", 22, y);
+    doc.text("Email", 80, y);
+    doc.text("Téléphone", 145, y);
+    doc.text("Statut", 180, y);
+    doc.line(14, y + 2, 200, y + 2);
+    doc.setFont("helvetica", "normal");
+    y += 8;
+
+    const sorted = [...registrations.filter((r: any) => r.status === "registered"), ...registrations.filter((r: any) => r.status === "waitlisted")];
+    sorted.forEach((reg: any, idx: number) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(String(idx + 1), 14, y);
+      doc.text(reg.guest_name || "—", 22, y);
+      doc.text(reg.guest_email || "—", 80, y);
+      doc.text(reg.guest_phone || "—", 145, y);
+      doc.text(reg.status === "waitlisted" ? "Attente" : "Inscrit", 180, y);
+      y += 7;
+    });
+
+    // Signature area
+    y += 10;
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFontSize(9);
+    doc.text("Signature / Présence : ___________________________", 14, y);
+
+    doc.save(`presence-${activityTitle.replace(/\s+/g, "-")}-${format(new Date(session.start_time), "yyyy-MM-dd")}.pdf`);
+    toast({ title: "PDF téléchargé !" });
+  };
 
   const fetchActivities = async () => {
     if (!profile && !isAdmin) return;
@@ -145,7 +195,7 @@ const Activities = () => {
       const ids = data.map((a: any) => a.id);
       const { data: sessionsData } = await supabase
         .from("activity_sessions")
-        .select("*, rooms(name), activity_registrations(id)")
+        .select("*, rooms(name), activity_registrations(id, status, guest_name, guest_email, guest_phone, user_id, created_at)")
         .in("activity_id", ids)
         .gte("start_time", new Date().toISOString())
         .order("start_time");
@@ -835,50 +885,106 @@ const Activities = () => {
 
           {/* Existing sessions */}
           {sessionActivityId && (sessions[sessionActivityId] || []).length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Prochaines séances
               </p>
               {(sessions[sessionActivityId] || []).map((session: any) => {
                 const isFull = session.status === "full";
-                const regCount = session.activity_registrations?.length || 0;
+                const allRegs = session.activity_registrations || [];
+                const registered = allRegs.filter((r: any) => r.status === "registered");
+                const waitlisted = allRegs.filter((r: any) => r.status === "waitlisted");
+                const regCount = registered.length;
+                const isExpanded = expandedSessionId === session.id;
                 return (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between gap-3 text-xs p-2.5 rounded-lg bg-muted/50 border border-border"
+                    className="rounded-lg bg-muted/50 border border-border overflow-hidden"
                   >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span className="font-medium">
-                        {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
-                      </span>
-                      {session.rooms?.name && (
-                        <Badge variant="outline" className="text-[9px]">
-                          {session.rooms.name}
-                        </Badge>
-                      )}
-                      <span className="text-muted-foreground">
-                        {regCount}/{session.max_participants} inscrits
-                      </span>
+                    {/* Session header */}
+                    <div
+                      className="flex items-center justify-between gap-3 text-xs p-2.5 cursor-pointer hover:bg-muted/80 transition-colors"
+                      onClick={() => setExpandedSessionId(isExpanded ? null : session.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="font-medium">
+                          {format(new Date(session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
+                        </span>
+                        {session.rooms?.name && (
+                          <Badge variant="outline" className="text-[9px]">
+                            {session.rooms.name}
+                          </Badge>
+                        )}
+                        <span className="text-muted-foreground">
+                          {regCount}/{session.max_participants} inscrits
+                        </span>
+                        {waitlisted.length > 0 && (
+                          <span className="text-amber-600 font-medium">+{waitlisted.length} attente</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Switch
+                          checked={isFull}
+                          onCheckedChange={async (checked) => {
+                            await supabase
+                              .from("activity_sessions")
+                              .update({ status: checked ? "full" : "scheduled" })
+                              .eq("id", session.id);
+                            fetchActivities();
+                            toast({
+                              title: checked ? "Séance marquée complète" : "Séance rouverte aux inscriptions",
+                            });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className={`text-[10px] font-medium ${isFull ? "text-destructive" : "text-muted-foreground"}`}>
+                          {isFull ? "Complet" : "Ouvert"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Switch
-                        checked={isFull}
-                        onCheckedChange={async (checked) => {
-                          await supabase
-                            .from("activity_sessions")
-                            .update({ status: checked ? "full" : "scheduled" })
-                            .eq("id", session.id);
-                          fetchActivities();
-                          toast({
-                            title: checked ? "Séance marquée complète" : "Séance rouverte aux inscriptions",
-                          });
-                        }}
-                      />
-                      <span className={`text-[10px] font-medium ${isFull ? "text-destructive" : "text-muted-foreground"}`}>
-                        {isFull ? "Complet" : "Ouvert"}
-                      </span>
-                    </div>
+
+                    {/* Expanded registrants list */}
+                    {isExpanded && (
+                      <div className="border-t border-border bg-background p-3 space-y-2">
+                        {allRegs.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-2">Aucun inscrit pour cette séance.</p>
+                        ) : (
+                          <>
+                            <div className="space-y-1.5">
+                              {[...registered, ...waitlisted].map((reg: any, idx: number) => (
+                                <div key={reg.id} className="flex items-center justify-between gap-2 text-xs p-2 rounded-md bg-muted/30">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}.</span>
+                                    <Users className="h-3 w-3 text-muted-foreground shrink-0" />
+                                    <span className="font-medium truncate">{reg.guest_name || "Utilisateur inscrit"}</span>
+                                    {reg.status === "waitlisted" && (
+                                      <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-400">Attente</Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-muted-foreground shrink-0">
+                                    {reg.guest_email && <span className="hidden sm:inline">{reg.guest_email}</span>}
+                                    {reg.guest_phone && <span className="hidden sm:inline">{reg.guest_phone}</span>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {/* PDF Export */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full mt-2 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExportPDF(session, allRegs);
+                              }}
+                            >
+                              📄 Exporter la feuille de présence (PDF)
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
