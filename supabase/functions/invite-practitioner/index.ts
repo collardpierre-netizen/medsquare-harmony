@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${resendKey}`,
         },
         body: JSON.stringify({
-          from: "Medsquare <noreply@updates.medsquare.be>",
+          from: "Medsquare <noreply@medsquare.be>",
           to: [targetEmail],
           subject: "Bienvenue chez Medsquare — Activez votre compte",
           html: htmlBody,
