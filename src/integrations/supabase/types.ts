@@ -474,6 +474,13 @@ export type Database = {
         Args: { session_uuid: string }
         Returns: number
       }
+      get_practitioner_login_status: {
+        Args: never
+        Returns: {
+          last_sign_in_at: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

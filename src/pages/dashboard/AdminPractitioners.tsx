@@ -65,9 +65,10 @@ const AdminPractitioners = () => {
   });
 
   const fetchPractitioners = async () => {
-    const [{ data: profiles }, { data: roles }] = await Promise.all([
+    const [{ data: profiles }, { data: roles }, { data: loginStatus }] = await Promise.all([
       supabase.from("profiles").select("*").order("display_order" as any).order("last_name"),
       supabase.from("user_roles").select("user_id, role"),
+      supabase.rpc("get_practitioner_login_status"),
     ]);
 
     const rolesMap = new Map<string, string[]>();
@@ -77,9 +78,15 @@ const AdminPractitioners = () => {
       rolesMap.set(r.user_id, existing);
     });
 
+    const loginMap = new Map<string, string | null>();
+    (loginStatus || []).forEach((ls: any) => {
+      loginMap.set(ls.user_id, ls.last_sign_in_at);
+    });
+
     const merged = (profiles || []).map((p: any) => ({
       ...p,
       roles: rolesMap.get(p.user_id) || [],
+      last_sign_in_at: loginMap.get(p.user_id) ?? null,
     }));
 
     setPractitioners(merged);
@@ -281,7 +288,8 @@ const AdminPractitioners = () => {
     }
   };
 
-  const isAccountPending = (p: any) => p.created_at === p.updated_at && !p.contact_email && !p.specialty;
+  const isAccountPending = (p: any) => 
+    p.roles.includes("practitioner") && !p.roles.includes("admin") && !p.last_sign_in_at;
 
   return (
     <DashboardLayout>
