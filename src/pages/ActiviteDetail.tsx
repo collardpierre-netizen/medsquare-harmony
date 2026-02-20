@@ -10,6 +10,7 @@ import {
   User,
   Award,
   Calendar,
+  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -57,6 +58,7 @@ interface Activity {
   price: number | null;
   location: string | null;
   booking_enabled: boolean;
+  external_registration_url: string | null;
   recurrence: { day: string; start: string; end: string }[] | null;
   profiles: {
     id: string;
@@ -98,7 +100,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, recurrence, profiles(id, first_name, last_name, specialty, avatar_url)"
+          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -374,8 +376,27 @@ const ActiviteDetail = () => {
 
             <Separator className="mb-8" />
 
-            {/* Sessions */}
-            {activity.booking_enabled && (
+            {/* External registration link */}
+            {activity.external_registration_url && (
+              <div className="mb-8">
+                <h2 className="font-display text-xl font-semibold mb-4">
+                  Inscription
+                </h2>
+                <a
+                  href={activity.external_registration_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="lg" className="w-full sm:w-auto gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    S'inscrire en ligne
+                  </Button>
+                </a>
+              </div>
+            )}
+
+            {/* Internal sessions */}
+            {activity.booking_enabled && !activity.external_registration_url && (
             <div className="mb-8">
               <h2 className="font-display text-xl font-semibold mb-4">
                 Prochaines séances
@@ -459,7 +480,7 @@ const ActiviteDetail = () => {
               <Separator className="my-5" />
 
               <div className="space-y-3 text-sm">
-                {activity.booking_enabled && (
+                {activity.booking_enabled && !activity.external_registration_url && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
                   <span className="font-medium">
@@ -480,7 +501,7 @@ const ActiviteDetail = () => {
                 )}
               </div>
 
-              {activity.booking_enabled && !user && sessions.length > 0 && (
+              {activity.booking_enabled && !activity.external_registration_url && !user && sessions.length > 0 && (
                 <>
                   <Separator className="my-5" />
                   <p className="text-xs text-muted-foreground">
@@ -492,6 +513,22 @@ const ActiviteDetail = () => {
                     </Link>{" "}
                     pour vous inscrire à une séance.
                   </p>
+                </>
+              )}
+
+              {activity.external_registration_url && (
+                <>
+                  <Separator className="my-5" />
+                  <a
+                    href={activity.external_registration_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button size="sm" className="w-full gap-2">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      S'inscrire
+                    </Button>
+                  </a>
                 </>
               )}
             </div>

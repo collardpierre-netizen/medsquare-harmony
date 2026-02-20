@@ -81,6 +81,7 @@ interface ActivityForm {
   booking_enabled: boolean;
   practitioner_id: string;
   recurrence: RecurrenceSlot[];
+  external_registration_url: string;
 }
 
 const emptyForm: ActivityForm = {
@@ -97,6 +98,7 @@ const emptyForm: ActivityForm = {
   booking_enabled: false,
   practitioner_id: "",
   recurrence: [],
+  external_registration_url: "",
 };
 
 const Activities = () => {
@@ -239,13 +241,14 @@ const Activities = () => {
     }
     setIsSaving(true);
 
-    const { practitioner_id: formPractitionerId, recurrence, ...formData } = form;
+    const { practitioner_id: formPractitionerId, recurrence, external_registration_url, ...formData } = form;
+    const externalUrl = external_registration_url?.trim() || null;
     const recurrenceJson = JSON.parse(JSON.stringify(recurrence));
 
     if (editingId) {
       const { error } = await supabase
         .from("activities")
-        .update({ ...formData, recurrence: recurrenceJson, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
+        .update({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
         .eq("id", editingId);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
@@ -256,7 +259,7 @@ const Activities = () => {
       const targetPractitionerId = isAdmin && formPractitionerId ? formPractitionerId : profile!.id;
       const { error } = await supabase
         .from("activities")
-        .insert({ ...formData, recurrence: recurrenceJson, practitioner_id: targetPractitionerId });
+        .insert({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, practitioner_id: targetPractitionerId });
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
@@ -297,6 +300,7 @@ const Activities = () => {
       booking_enabled: activity.booking_enabled ?? false,
       practitioner_id: activity.practitioner_id || "",
       recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
+      external_registration_url: activity.external_registration_url || "",
     });
     setShowDialog(true);
   };
@@ -596,6 +600,7 @@ const Activities = () => {
                               booking_enabled: false,
                               practitioner_id: activity.practitioner_id || "",
                               recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
+                              external_registration_url: activity.external_registration_url || "",
                             });
                             setShowDialog(true);
                           }}
@@ -715,7 +720,20 @@ const Activities = () => {
                 <div>
                   <Label className="text-sm">Réservation en ligne activée</Label>
                   <p className="text-xs text-muted-foreground">Les patients pourront réserver un créneau directement depuis votre page</p>
-                </div>
+            </div>
+
+            {/* External registration URL */}
+            <div>
+              <Label>Lien d'inscription externe</Label>
+              <p className="text-xs text-muted-foreground mb-1.5">Si renseigné, les visiteurs seront redirigés vers ce site pour s'inscrire.</p>
+              <Input
+                value={form.external_registration_url}
+                onChange={(e) => setForm({ ...form, external_registration_url: e.target.value })}
+                placeholder="https://exemple.com/inscription"
+                className="mt-1"
+                type="url"
+              />
+            </div>
                 <Switch
                   checked={form.booking_enabled}
                   onCheckedChange={(checked) => setForm({ ...form, booking_enabled: checked })}
