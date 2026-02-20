@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, isAfter, isBefore, parseISO, startOfWeek, addDays, isSameDay, startOfDay } from "date-fns";
+import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -101,7 +101,18 @@ const AdminBookings = () => {
   // Recurrence
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [endDateOpen, setEndDateOpen] = useState(false);
+
+  const DAYS_OF_WEEK = [
+    { key: 1, label: "Lun" },
+    { key: 2, label: "Mar" },
+    { key: 3, label: "Mer" },
+    { key: 4, label: "Jeu" },
+    { key: 5, label: "Ven" },
+    { key: 6, label: "Sam" },
+    { key: 0, label: "Dim" },
+  ];
 
   const fetchBookings = async () => {
     let query = supabase
@@ -282,19 +293,36 @@ const AdminBookings = () => {
     });
     setIsRecurring(false);
     setRecurrenceEndDate(undefined);
+    setRecurrenceDays([]);
     setPractitionerActivities([]);
   };
 
   const computeBookingDates = (startDateStr: string): Date[] => {
     const start = parseISO(startDateStr);
     if (!isRecurring || !recurrenceEndDate) return [start];
+    
+    const selectedDays = recurrenceDays.length > 0 ? recurrenceDays : [getDay(start)];
     const dates: Date[] = [];
     let current = start;
+    
     while (!isAfter(current, recurrenceEndDate)) {
-      dates.push(new Date(current));
+      // For each day in the week starting from current
+      for (const dayNum of selectedDays) {
+        const currentDayOfWeek = getDay(current);
+        let dayOffset = dayNum - currentDayOfWeek;
+        if (dayOffset < 0) dayOffset += 7;
+        const targetDate = addDays(current, dayOffset);
+        if (!isBefore(targetDate, start) && !isAfter(targetDate, recurrenceEndDate)) {
+          // Avoid duplicates
+          if (!dates.some(d => isSameDay(d, targetDate))) {
+            dates.push(targetDate);
+          }
+        }
+      }
       current = addWeeks(current, 1);
     }
-    return dates;
+    
+    return dates.sort((a, b) => a.getTime() - b.getTime());
   };
 
   const handleCreateBooking = async () => {
@@ -590,7 +618,41 @@ const AdminBookings = () => {
                     <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
                   </div>
                   {isRecurring && (
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-3 pt-1">
+                      {/* Day pills */}
+                      <div>
+                        <Label className="text-xs mb-1.5 block">Jours de la semaine :</Label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {DAYS_OF_WEEK.map((d) => (
+                            <button
+                              key={d.key}
+                              type="button"
+                              onClick={() => {
+                                setRecurrenceDays((prev) =>
+                                  prev.includes(d.key)
+                                    ? prev.filter((x) => x !== d.key)
+                                    : [...prev, d.key]
+                                );
+                              }}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                                recurrenceDays.includes(d.key)
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-muted-foreground border-border hover:bg-accent"
+                              )}
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setRecurrenceDays([1, 2, 3, 4, 5])}
+                            className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-border text-muted-foreground hover:bg-accent transition-colors"
+                          >
+                            Lun-Ven
+                          </button>
+                        </div>
+                      </div>
                       <Label className="text-xs">Date de fin de récurrence *</Label>
                       <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                         <PopoverTrigger asChild>
