@@ -513,6 +513,29 @@ const Activities = () => {
                           )}
                         </div>
 
+                        {/* Recurrence schedule */}
+                        {(() => {
+                          let slots: { day: string; start: string; end: string }[] = [];
+                          try {
+                            const raw = typeof activity.recurrence === "string" ? JSON.parse(activity.recurrence) : activity.recurrence;
+                            if (Array.isArray(raw)) slots = raw;
+                          } catch {}
+                          if (slots.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                              {slots.map((s, i) => {
+                                const dayLabel = DAYS.find((d) => d.value === s.day)?.label || s.day;
+                                return (
+                                  <Badge key={i} variant="outline" className="text-[10px] font-normal gap-1">
+                                    {dayLabel} {s.start}–{s.end}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+
                         {/* Upcoming sessions */}
                         {actSessions.length > 0 && (
                           <div className="mt-4 space-y-1.5">
