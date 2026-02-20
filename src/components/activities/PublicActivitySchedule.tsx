@@ -26,7 +26,12 @@ interface PublicSession {
   registration_count?: number;
 }
 
-const PublicActivitySchedule = () => {
+interface Props {
+  selectedCategory?: string;
+  search?: string;
+}
+
+const PublicActivitySchedule = ({ selectedCategory, search }: Props) => {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [sessions, setSessions] = useState<PublicSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<PublicSession | null>(null);
@@ -64,8 +69,16 @@ const PublicActivitySchedule = () => {
     fetchSessions();
   }, [fetchSessions]);
 
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      if (selectedCategory && selectedCategory !== "all" && s.activities?.category !== selectedCategory) return false;
+      if (search && !s.activities?.title?.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [sessions, selectedCategory, search]);
+
   const getSessionsForDay = (day: Date) =>
-    sessions.filter((s) => isSameDay(new Date(s.start_time), day));
+    filteredSessions.filter((s) => isSameDay(new Date(s.start_time), day));
 
   const handleSessionClick = (session: PublicSession) => {
     setSelectedSession(session);
