@@ -36,10 +36,13 @@ const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
     const interval = setInterval(() => {
       const el = scrollRef.current;
       if (!el) return;
-      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 10) {
+      // Scroll by exactly one viewport width (batch mode)
+      const nextPos = el.scrollLeft + el.clientWidth;
+      if (nextPos >= el.scrollWidth - 10) {
+        // Loop back to start
         el.scrollTo({ left: 0, behavior: "smooth" });
       } else {
-        el.scrollBy({ left: el.clientWidth * 0.8, behavior: "smooth" });
+        el.scrollTo({ left: nextPos, behavior: "smooth" });
       }
     }, (config.settings.scrollInterval || 5) * 1000);
     return () => clearInterval(interval);
