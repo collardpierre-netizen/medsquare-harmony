@@ -3,6 +3,7 @@ import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -583,13 +584,25 @@ const AdminPractitioners = () => {
                         )}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm">
                             {p.first_name} {p.last_name}
                           </p>
                           {p.roles.includes("admin") && (
                             <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
                               Admin
+                            </Badge>
+                          )}
+                          {isAccountPending(p) && (
+                            <Badge className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Compte non activé
+                            </Badge>
+                          )}
+                          {isPendingValidation(p) && (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] gap-1">
+                              <ShieldCheck className="h-3 w-3" />
+                              Validation requise
                             </Badge>
                           )}
                         </div>
