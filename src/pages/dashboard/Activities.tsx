@@ -676,12 +676,21 @@ const Activities = () => {
             </div>
             <div>
               <Label>Lieu</Label>
-              <Input
+              <Select
                 value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-                placeholder="Ex: Salle Sérénité, En ligne..."
-                className="mt-1.5"
-              />
+                onValueChange={(v) => setForm({ ...form, location: v })}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="Sélectionner une salle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rooms.map((r) => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
