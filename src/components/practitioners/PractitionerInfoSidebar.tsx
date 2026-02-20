@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
 import { Mail, Clock, MapPin, Phone, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import ContactPractitionerDialog from "./ContactPractitionerDialog";
 
 interface DaySchedule {
   day: string;
@@ -24,6 +25,7 @@ interface PractitionerInfoSidebarProps {
     last_name: string;
     specialty: string | null;
     phone: string | null;
+    contact_email?: string | null;
     social_links?: SocialLinks | null;
   };
   scheduleSlots: { day: string; hours: string }[];
@@ -39,8 +41,10 @@ const SOCIAL_ICONS: { key: keyof SocialLinks; icon: React.ElementType; label: st
 ];
 
 const PractitionerInfoSidebar = ({ practitioner, scheduleSlots }: PractitionerInfoSidebarProps) => {
+  const [showContact, setShowContact] = useState(false);
   const socialLinks = practitioner.social_links || {};
   const activeSocials = SOCIAL_ICONS.filter(({ key }) => socialLinks[key]);
+  const practitionerFullName = `${practitioner.first_name} ${practitioner.last_name}`;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sticky top-28">
@@ -51,12 +55,17 @@ const PractitionerInfoSidebar = ({ practitioner, scheduleSlots }: PractitionerIn
         Contactez {practitioner.first_name} pour organiser une consultation.
       </p>
 
-      <Link to="/contact" className="block">
-        <Button size="lg" className="w-full">
-          <Mail className="h-4 w-4 mr-2" />
-          Contacter
-        </Button>
-      </Link>
+      <Button size="lg" className="w-full" onClick={() => setShowContact(true)}>
+        <Mail className="h-4 w-4 mr-2" />
+        Contacter
+      </Button>
+
+      <ContactPractitionerDialog
+        open={showContact}
+        onOpenChange={setShowContact}
+        practitionerName={practitionerFullName}
+        practitionerEmail={practitioner.contact_email || ""}
+      />
 
       {practitioner.phone && (
         <a href={`tel:${practitioner.phone}`} className="block mt-3">

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfoSidebar";
 import PractitionerActivities from "@/components/practitioners/PractitionerActivities";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
+import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 
 interface DaySchedule {
   day: string;
@@ -26,6 +27,7 @@ interface PractitionerProfile {
   bio: string | null;
   avatar_url: string | null;
   phone: string | null;
+  contact_email: string | null;
   schedule: DaySchedule[] | null;
   social_links: Record<string, string> | null;
 }
@@ -58,14 +60,14 @@ const PraticienDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-
+  const [showMobileContact, setShowMobileContact] = useState(false);
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, specialty, bio, avatar_url, phone, schedule, social_links")
+        .select("id, first_name, last_name, specialty, bio, avatar_url, phone, contact_email, schedule, social_links")
         .eq("id", id)
         .eq("is_active", true)
         .maybeSingle();
@@ -276,9 +278,7 @@ const PraticienDetail = () => {
                 <p className="text-xs text-muted-foreground">{practitioner.specialty}</p>
               )}
             </div>
-            <Link to="/contact">
-              <Button size="sm">Contacter</Button>
-            </Link>
+            <Button size="sm" onClick={() => setShowMobileContact(true)}>Contacter</Button>
             {activities.some((a) => a.booking_enabled) && (
               <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>
                 <CalendarPlus className="h-4 w-4 mr-1" />
@@ -303,6 +303,15 @@ const PraticienDetail = () => {
               max_participants: a.max_participants,
               category: a.category,
             }))}
+          />
+        )}
+
+        {practitioner && (
+          <ContactPractitionerDialog
+            open={showMobileContact}
+            onOpenChange={setShowMobileContact}
+            practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
+            practitionerEmail={practitioner.contact_email || ""}
           />
         )}
       </div>
