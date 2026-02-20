@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Medsquare <notifications@medsquare.be>",
+        from: "Medsquare <noreply@medsquare.be>",
         to: [contactEmail],
         subject: `Nouvelle inscription — ${activityTitle}`,
         html,
