@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         footer: "Si vous n'avez pas demandé cette invitation, vous pouvez ignorer cet email.",
       });
 
-      await fetch("https://api.resend.com/emails", {
+      const resendRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -114,6 +114,8 @@ Deno.serve(async (req) => {
           html: htmlBody,
         }),
       });
+      const resendBody = await resendRes.json();
+      console.log("Resend response:", resendRes.status, JSON.stringify(resendBody));
     }
 
     return new Response(JSON.stringify({ success: true }), {
