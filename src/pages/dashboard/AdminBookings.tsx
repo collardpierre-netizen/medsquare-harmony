@@ -919,21 +919,50 @@ const AdminBookings = () => {
                       {collapsedPractitioners.size === groupedByPractitioner.length ? "Tout déplier" : "Tout replier"}
                     </Button>
                   </div>
-                  {groupedByPractitioner.map(([pid, group]) => (
+                  {groupedByPractitioner.map(([pid, group]) => {
+                    const allGroupIds = group.bookings.map((b: any) => b.id);
+                    const allSelected = allGroupIds.length > 0 && allGroupIds.every((id: string) => selectedIds.has(id));
+                    const someSelected = allGroupIds.some((id: string) => selectedIds.has(id));
+
+                    const toggleSelectPractitioner = (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (allSelected) {
+                          allGroupIds.forEach((id: string) => next.delete(id));
+                        } else {
+                          allGroupIds.forEach((id: string) => next.add(id));
+                        }
+                        return next;
+                      });
+                    };
+
+                    return (
                     <div key={pid}>
-                      <button
-                        className="flex items-center gap-2 mb-3 w-full text-left hover:bg-accent/50 rounded-lg p-1.5 -ml-1.5 transition-colors"
-                        onClick={() => toggleCollapsed(pid)}
-                      >
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Users className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">{group.name}</p>
-                          <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
-                        </div>
-                        <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
-                      </button>
+                      <div className="flex items-center gap-2 mb-3">
+                        <button
+                          className="flex items-center gap-2 flex-1 text-left hover:bg-accent/50 rounded-lg p-1.5 -ml-1.5 transition-colors"
+                          onClick={() => toggleCollapsed(pid)}
+                        >
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Users className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">{group.name}</p>
+                            <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
+                          </div>
+                          <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
+                        </button>
+                        <Button
+                          variant={allSelected ? "default" : "outline"}
+                          size="sm"
+                          className="text-xs shrink-0"
+                          onClick={toggleSelectPractitioner}
+                        >
+                          {allSelected ? <CheckSquare className="h-3.5 w-3.5 mr-1" /> : <Square className="h-3.5 w-3.5 mr-1" />}
+                          {allSelected ? "Désélectionner tout" : someSelected ? `${allGroupIds.filter((id: string) => selectedIds.has(id)).length}/${allGroupIds.length}` : "Tout sélectionner"}
+                        </Button>
+                      </div>
                       {!collapsedPractitioners.has(pid) && (
                         <div className="space-y-2 pl-10">
                           {group.bookings.map((b: any) => (
@@ -942,7 +971,8 @@ const AdminBookings = () => {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 /* ─── Default List ─── */
