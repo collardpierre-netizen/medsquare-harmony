@@ -66,10 +66,13 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     const interval = setInterval(() => {
       const el = scrollRef.current;
       if (!el) return;
-      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 10) {
+      // Scroll by exactly one viewport width (batch mode)
+      const nextPos = el.scrollLeft + el.clientWidth;
+      if (nextPos >= el.scrollWidth - 10) {
+        // Loop back to start
         el.scrollTo({ left: 0, behavior: "smooth" });
       } else {
-        el.scrollBy({ left: el.clientWidth * 0.8, behavior: "smooth" });
+        el.scrollTo({ left: nextPos, behavior: "smooth" });
       }
     }, (config.settings.scrollInterval || 5) * 1000);
     return () => clearInterval(interval);
@@ -78,19 +81,19 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
   const ActivityCard = ({ a }: { a: Activity }) => {
     const imgUrl = a.photo_url || a.photos?.[0] || null;
     return (
-    <div className="rounded-2xl overflow-hidden shadow-sm bg-card h-full flex flex-col">
-      <div className="aspect-[16/9] bg-muted">
+    <div className="rounded-2xl overflow-hidden shadow-sm bg-card flex flex-col" style={{ height: "380px" }}>
+      <div className="h-[180px] bg-muted shrink-0">
         {imgUrl ? (
           <img src={imgUrl} alt={a.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center"><Calendar className="h-12 w-12 text-muted-foreground/20" /></div>
         )}
       </div>
-      <div className="p-4 flex-1 flex flex-col gap-2">
+      <div className="p-4 flex-1 flex flex-col gap-1 min-h-0">
         <span className="text-[10px] uppercase tracking-widest text-primary font-semibold">{a.category}</span>
-        <h3 className="font-display font-bold text-base">{a.title}</h3>
+        <h3 className="font-display font-bold text-base truncate">{a.title}</h3>
         {a.practitioner && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground truncate">
             {a.practitioner.first_name} {a.practitioner.last_name}
           </p>
         )}
@@ -100,8 +103,8 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
           {a.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{a.location}</span>}
         </div>
         {a.next_session && (
-          <p className="text-xs font-medium text-primary mt-1 flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
+          <p className="text-xs font-medium text-primary mt-1 flex items-center gap-1 truncate">
+            <Calendar className="h-3 w-3 shrink-0" />
             Prochaine : {format(new Date(a.next_session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
           </p>
         )}
