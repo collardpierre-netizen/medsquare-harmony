@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { format, isWeekend } from "date-fns";
+import { format, isWeekend, getDay, addDays, addWeeks } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, CalendarDays, Repeat } from "lucide-react";
+import { Clock, CalendarDays, Repeat, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +27,16 @@ import { cn } from "@/lib/utils";
 export type BookingType = "hourly" | "full_day";
 export type RecurrenceType = "none" | "weekly";
 
+const DAYS_OF_WEEK = [
+  { key: 1, label: "Lun" },
+  { key: 2, label: "Mar" },
+  { key: 3, label: "Mer" },
+  { key: 4, label: "Jeu" },
+  { key: 5, label: "Ven" },
+  { key: 6, label: "Sam" },
+  { key: 0, label: "Dim" },
+];
+
 interface NewBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,7 +47,7 @@ interface NewBookingDialogProps {
   onDurationChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
-  onSubmit: (options: { bookingType: BookingType; recurrence: RecurrenceType; recurrenceWeeks: number; practitionerId?: string }) => void;
+  onSubmit: (options: { bookingType: BookingType; recurrence: RecurrenceType; recurrenceWeeks: number; recurrenceDays: number[]; practitionerId?: string }) => void;
   isSubmitting: boolean;
   isAdmin?: boolean;
   practitioners?: Array<{ id: string; first_name: string; last_name: string }>;
@@ -63,6 +73,7 @@ const NewBookingDialog = ({
   const [bookingType, setBookingType] = useState<BookingType>("hourly");
   const [recurrence, setRecurrence] = useState<RecurrenceType>("none");
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [selectedPractitioner, setSelectedPractitioner] = useState<string>("");
 
   const { start, end } = getOpeningHours(selectedDate);
@@ -73,6 +84,7 @@ const NewBookingDialog = ({
       bookingType,
       recurrence,
       recurrenceWeeks,
+      recurrenceDays,
       practitionerId: isAdmin && selectedPractitioner ? selectedPractitioner : undefined,
     });
   };
@@ -195,28 +207,62 @@ const NewBookingDialog = ({
                 <Repeat className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <Label className="text-sm">Récurrence hebdomadaire</Label>
-                  <p className="text-xs text-muted-foreground">Répéter chaque semaine le même jour</p>
+                  <p className="text-xs text-muted-foreground">Répéter chaque semaine</p>
                 </div>
               </div>
               <Switch
                 checked={recurrence === "weekly"}
-                onCheckedChange={(checked) => setRecurrence(checked ? "weekly" : "none")}
+                onCheckedChange={(checked) => {
+                  setRecurrence(checked ? "weekly" : "none");
+                  if (checked && recurrenceDays.length === 0 && selectedDate) {
+                    setRecurrenceDays([getDay(selectedDate)]);
+                  }
+                }}
               />
             </div>
             {recurrence === "weekly" && (
-              <div className="flex items-center gap-3 pt-1">
-                <Label className="text-xs whitespace-nowrap">Nombre de semaines :</Label>
-                <Input
-                  type="number"
-                  min={2}
-                  max={52}
-                  value={recurrenceWeeks}
-                  onChange={(e) => setRecurrenceWeeks(Math.min(52, Math.max(2, parseInt(e.target.value) || 2)))}
-                  className="w-20 h-8 text-sm"
-                />
-                <span className="text-xs text-muted-foreground">
-                  ({recurrenceWeeks} réservations)
-                </span>
+              <div className="space-y-3 pt-1">
+                {/* Day pills */}
+                <div>
+                  <Label className="text-xs mb-1.5 block">Jours de la semaine :</Label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {DAYS_OF_WEEK.map((d) => (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => {
+                          setRecurrenceDays((prev) =>
+                            prev.includes(d.key)
+                              ? prev.filter((x) => x !== d.key)
+                              : [...prev, d.key]
+                          );
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                          recurrenceDays.includes(d.key)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:bg-accent"
+                        )}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="text-xs whitespace-nowrap">Nombre de semaines :</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={recurrenceWeeks}
+                    onChange={(e) => setRecurrenceWeeks(Math.min(52, Math.max(2, parseInt(e.target.value) || 2)))}
+                    className="w-20 h-8 text-sm"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    ({recurrenceWeeks * Math.max(recurrenceDays.length, 1)} réservations)
+                  </span>
+                </div>
               </div>
             )}
           </div>

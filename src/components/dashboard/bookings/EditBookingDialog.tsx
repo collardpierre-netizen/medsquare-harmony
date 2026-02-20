@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { format, addWeeks } from "date-fns";
+import { format, addWeeks, addDays, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat } from "lucide-react";
+import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -35,10 +35,22 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { getOpeningHours } from "./utils";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   [0, 30].map((m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
 ).flat();
+
+const DAYS_OF_WEEK = [
+  { key: 1, label: "Lun" },
+  { key: 2, label: "Mar" },
+  { key: 3, label: "Mer" },
+  { key: 4, label: "Jeu" },
+  { key: 5, label: "Ven" },
+  { key: 6, label: "Sam" },
+  { key: 0, label: "Dim" },
+];
 
 interface EditBookingDialogProps {
   open: boolean;
@@ -72,6 +84,7 @@ const EditBookingDialog = ({
   const [notes, setNotes] = useState("");
   const [recurrence, setRecurrence] = useState(false);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
 
   useEffect(() => {
     if (booking) {
@@ -157,30 +170,47 @@ const EditBookingDialog = ({
     }
 
     // Create recurring copies if enabled
-    if (recurrence && recurrenceWeeks >= 2) {
+    if (recurrence && recurrenceWeeks >= 2 && recurrenceDays.length > 0) {
       const groupId = booking.recurrence_group_id || crypto.randomUUID();
-      // Also tag the original booking with the group
       await supabase.from("bookings").update({ recurrence_group_id: groupId }).eq("id", booking.id);
 
-      const bookingsToInsert = [];
-      for (let w = 1; w < recurrenceWeeks; w++) {
-        const wStart = addWeeks(newStart, w);
-        const wEnd = addWeeks(newEnd, w);
-        bookingsToInsert.push({
-          room_id: roomId,
-          practitioner_id: practitionerId,
-          start_time: wStart.toISOString(),
-          end_time: wEnd.toISOString(),
-          status,
-          notes: notes || null,
-          recurrence_group_id: groupId,
-        });
+      const bookingsToInsert: any[] = [];
+      const bookingDayOfWeek = getDay(newStart);
+      const timeDiffMs = newEnd.getTime() - newStart.getTime();
+
+      for (let w = 0; w < recurrenceWeeks; w++) {
+        for (const dayNum of recurrenceDays) {
+          // Skip the original booking's day in week 0
+          if (w === 0 && dayNum === bookingDayOfWeek) continue;
+
+          // Calculate offset from the booking's day
+          let dayOffset = dayNum - bookingDayOfWeek;
+          if (dayOffset < 0) dayOffset += 7;
+
+          const wStart = addDays(addWeeks(newStart, w), dayOffset);
+          const wEnd = new Date(wStart.getTime() + timeDiffMs);
+
+          bookingsToInsert.push({
+            room_id: roomId,
+            practitioner_id: practitionerId,
+            start_time: wStart.toISOString(),
+            end_time: wEnd.toISOString(),
+            status,
+            notes: notes || null,
+            recurrence_group_id: groupId,
+          });
+        }
       }
-      const { error: recError } = await supabase.from("bookings").insert(bookingsToInsert);
-      if (recError) {
-        toast({ title: "Réservation mise à jour mais récurrence échouée", description: recError.message, variant: "destructive" });
+
+      if (bookingsToInsert.length > 0) {
+        const { error: recError } = await supabase.from("bookings").insert(bookingsToInsert);
+        if (recError) {
+          toast({ title: "Réservation mise à jour mais récurrence échouée", description: recError.message, variant: "destructive" });
+        } else {
+          toast({ title: `Réservation mise à jour + ${bookingsToInsert.length} récurrences créées ✓` });
+        }
       } else {
-        toast({ title: `Réservation mise à jour + ${recurrenceWeeks - 1} récurrences créées ✓` });
+        toast({ title: "Réservation mise à jour ✓" });
       }
     } else {
       toast({ title: "Réservation mise à jour ✓" });
@@ -319,25 +349,89 @@ const EditBookingDialog = ({
               </div>
               <Switch
                 checked={recurrence}
-                onCheckedChange={setRecurrence}
+                onCheckedChange={(checked) => {
+                  setRecurrence(checked);
+                  if (checked && recurrenceDays.length === 0) {
+                    // Pre-select the current booking's day
+                    const bookingDay = new Date(date).getDay();
+                    setRecurrenceDays([bookingDay]);
+                  }
+                }}
               />
             </div>
             {recurrence && (
-              <div className="flex items-center gap-3 pt-1">
-                <Label className="text-xs whitespace-nowrap">Nombre de semaines :</Label>
-                <Input
-                  type="number"
-                  min={2}
-                  max={52}
-                  value={recurrenceWeeks}
-                  onChange={(e) => setRecurrenceWeeks(Math.min(52, Math.max(2, parseInt(e.target.value) || 2)))}
-                  className="w-20 h-8 text-sm"
-                />
-                <span className="text-xs text-muted-foreground">
-                  ({recurrenceWeeks - 1} copies)
-                </span>
+              <div className="space-y-3 pt-1">
+                {/* Day pills */}
+                <div>
+                  <Label className="text-xs mb-1.5 block">Jours de la semaine :</Label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {DAYS_OF_WEEK.map((d) => (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => {
+                          setRecurrenceDays((prev) =>
+                            prev.includes(d.key)
+                              ? prev.filter((x) => x !== d.key)
+                              : [...prev, d.key]
+                          );
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                          recurrenceDays.includes(d.key)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:bg-accent"
+                        )}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="text-xs whitespace-nowrap">Nombre de semaines :</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={recurrenceWeeks}
+                    onChange={(e) => setRecurrenceWeeks(Math.min(52, Math.max(2, parseInt(e.target.value) || 2)))}
+                    className="w-20 h-8 text-sm"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    ({(recurrenceWeeks - 1) * Math.max(recurrenceDays.length, 1)} copies)
+                  </span>
+                </div>
               </div>
             )}
+          </div>
+
+          {/* Privatiser */}
+          <div className="rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-sm">Privatiser la salle</Label>
+                  <p className="text-xs text-muted-foreground">Bloquer la salle entière pour ce praticien (journée complète)</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => {
+                  const { start: openStart, end: openEnd } = getOpeningHours(new Date(date));
+                  setStartTime(`${String(openStart).padStart(2, "0")}:00`);
+                  setEndTime(`${String(openEnd).padStart(2, "0")}:00`);
+                  setNotes(notes ? notes + " [Privatisé]" : "[Privatisé]");
+                  toast({ title: "Horaires étendus à la journée complète 🔒" });
+                }}
+              >
+                <Lock className="h-3 w-3 mr-1" />
+                Privatiser
+              </Button>
+            </div>
           </div>
         </div>
 
