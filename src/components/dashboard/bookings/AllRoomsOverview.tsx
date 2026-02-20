@@ -345,8 +345,9 @@ const AllRoomsOverview = ({
                             : "Inconnu";
                           const timeStr = `${format(new Date(b.start_time), "HH:mm")}–${format(new Date(b.end_time), "HH:mm")}`;
                           const actTitle = (b as any).activities?.title;
+                          const recLabel = b.recurrence_group_id ? "🔁 Récurrent" : "1️⃣ Ponctuel";
                           tooltipLines.push(
-                            `📅 ${name} · ${timeStr}${actTitle ? ` · ${actTitle}` : ""}${b.notes ? ` — "${b.notes}"` : ""}`
+                            `📅 ${name} · ${timeStr}${actTitle ? ` · ${actTitle}` : ""} · ${recLabel}${b.notes ? ` — "${b.notes}"` : ""}`
                           );
                         });
                         roomActivities.forEach((a: any) => {
