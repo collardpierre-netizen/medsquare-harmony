@@ -50,19 +50,20 @@ const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
       <div ref={scrollRef} className="flex gap-6 overflow-x-auto h-full items-center scrollbar-hide snap-x snap-mandatory">
         {practitioners.map((p) => (
           <div key={p.id} className="snap-start shrink-0 w-[280px] md:w-[320px] lg:w-[360px]">
-            <div className="rounded-2xl overflow-hidden shadow-lg bg-card h-full">
-              <div className="aspect-[3/4] bg-muted relative">
+            <div className="rounded-2xl overflow-hidden shadow-lg bg-card flex flex-col" style={{ height: "420px" }}>
+              <div className="flex-1 bg-muted relative min-h-0">
                 {p.avatar_url ? (
                   <img src={p.avatar_url} alt={`${p.first_name} ${p.last_name}`} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center"><User className="h-16 w-16 text-muted-foreground/20" /></div>
                 )}
               </div>
-              <div className="p-4">
-                <h3 className="font-display text-lg font-bold">{p.first_name} {p.last_name}</h3>
-                {p.specialty && (
-                  <p className="text-sm text-primary flex items-center gap-1 mt-1"><Award className="h-3.5 w-3.5" />{p.specialty}</p>
-                )}
+              <div className="p-4 h-[88px] flex flex-col justify-center">
+                <h3 className="font-display text-lg font-bold truncate">{p.first_name} {p.last_name}</h3>
+                <p className="text-sm text-primary flex items-center gap-1 mt-1 line-clamp-2">
+                  <Award className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{p.specialty || "Praticien"}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -98,17 +99,17 @@ const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-y-auto h-full content-start">
       {practitioners.map((p) => (
-        <div key={p.id} className="rounded-2xl overflow-hidden shadow-sm bg-card">
-          <div className="aspect-[3/4] bg-muted relative">
+        <div key={p.id} className="rounded-2xl overflow-hidden shadow-sm bg-card flex flex-col" style={{ height: "320px" }}>
+          <div className="flex-1 bg-muted relative min-h-0">
             {p.avatar_url ? (
               <img src={p.avatar_url} alt={`${p.first_name} ${p.last_name}`} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center"><User className="h-12 w-12 text-muted-foreground/20" /></div>
             )}
           </div>
-          <div className="p-3">
+          <div className="p-3 h-[72px] flex flex-col justify-center">
             <h3 className="font-display text-sm font-bold truncate">{p.first_name} {p.last_name}</h3>
-            {p.specialty && <p className="text-xs text-primary truncate">{p.specialty}</p>}
+            <p className="text-xs text-primary truncate">{p.specialty || "Praticien"}</p>
           </div>
         </div>
       ))}
