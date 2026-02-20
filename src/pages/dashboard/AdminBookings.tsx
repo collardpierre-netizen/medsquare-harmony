@@ -699,11 +699,14 @@ const AdminBookings = () => {
                         end_time: `${String(end).padStart(2, "0")}:00`,
                         notes: b.notes.includes("[Privatisé]") ? b.notes : `[Privatisé] ${b.notes}`.trim(),
                       }));
-                      toast({ title: "🔒 Journée privatisée", description: `Horaires réglés de ${start}h à ${end}h` });
+                      // Auto-enable recurrence with all 7 days
+                      setIsRecurring(true);
+                      setRecurrenceDays([0, 1, 2, 3, 4, 5, 6]);
+                      toast({ title: "🔒 Local privatisé", description: `Horaires ${start}h–${end}h, 7j/7. Choisissez la date de fin de récurrence.` });
                     }}
                   >
                     <Lock className="h-4 w-4 mr-2" />
-                    🔒 Privatiser la journée
+                    🔒 Privatiser le local (7j/7)
                   </Button>
                 )}
 
