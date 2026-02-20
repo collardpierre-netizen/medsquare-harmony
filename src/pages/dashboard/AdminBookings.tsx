@@ -623,13 +623,13 @@ const AdminBookings = () => {
                 </div>
 
                 {/* Privatiser button */}
-                {newBooking.room_id && newBooking.date && (
+                {newBooking.room_id && (
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full border-primary/30 text-primary hover:bg-primary/5"
                     onClick={() => {
-                      const d = parseISO(newBooking.date);
+                      const d = newBooking.date ? parseISO(newBooking.date) : new Date();
                       const { start, end } = getOpeningHours(d);
                       setNewBooking((b) => ({
                         ...b,
