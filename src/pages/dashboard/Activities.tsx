@@ -50,6 +50,22 @@ const CATEGORIES = [
   { value: "autre", label: "Autre" },
 ];
 
+const DAYS = [
+  { value: "lundi", label: "Lundi" },
+  { value: "mardi", label: "Mardi" },
+  { value: "mercredi", label: "Mercredi" },
+  { value: "jeudi", label: "Jeudi" },
+  { value: "vendredi", label: "Vendredi" },
+  { value: "samedi", label: "Samedi" },
+  { value: "dimanche", label: "Dimanche" },
+];
+
+interface RecurrenceSlot {
+  day: string;
+  start: string;
+  end: string;
+}
+
 interface ActivityForm {
   title: string;
   description: string;
@@ -63,6 +79,7 @@ interface ActivityForm {
   price: number | null;
   booking_enabled: boolean;
   practitioner_id: string;
+  recurrence: RecurrenceSlot[];
 }
 
 const emptyForm: ActivityForm = {
@@ -78,6 +95,7 @@ const emptyForm: ActivityForm = {
   price: null,
   booking_enabled: false,
   practitioner_id: "",
+  recurrence: [],
 };
 
 const Activities = () => {
@@ -169,12 +187,13 @@ const Activities = () => {
     }
     setIsSaving(true);
 
-    const { practitioner_id: formPractitionerId, ...formData } = form;
+    const { practitioner_id: formPractitionerId, recurrence, ...formData } = form;
+    const recurrenceJson = JSON.parse(JSON.stringify(recurrence));
 
     if (editingId) {
       const { error } = await supabase
         .from("activities")
-        .update({ ...formData, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
+        .update({ ...formData, recurrence: recurrenceJson, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
         .eq("id", editingId);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
@@ -185,7 +204,7 @@ const Activities = () => {
       const targetPractitionerId = isAdmin && formPractitionerId ? formPractitionerId : profile!.id;
       const { error } = await supabase
         .from("activities")
-        .insert({ ...formData, practitioner_id: targetPractitionerId });
+        .insert({ ...formData, recurrence: recurrenceJson, practitioner_id: targetPractitionerId });
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
@@ -215,6 +234,7 @@ const Activities = () => {
       price: activity.price ?? null,
       booking_enabled: activity.booking_enabled ?? false,
       practitioner_id: activity.practitioner_id || "",
+      recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
     });
     setShowDialog(true);
   };
@@ -517,6 +537,7 @@ const Activities = () => {
                               price: activity.price ?? null,
                               booking_enabled: false,
                               practitioner_id: activity.practitioner_id || "",
+                              recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
                             });
                             setShowDialog(true);
                           }}
@@ -716,6 +737,74 @@ const Activities = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Jours et horaires */}
+            <div>
+              <Label>Jours et horaires</Label>
+              <p className="text-xs text-muted-foreground mb-2">Indiquez les créneaux récurrents de cette activité.</p>
+              <div className="space-y-2">
+                {form.recurrence.map((slot, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Select
+                      value={slot.day}
+                      onValueChange={(v) => {
+                        const updated = [...form.recurrence];
+                        updated[idx] = { ...updated[idx], day: v };
+                        setForm({ ...form, recurrence: updated });
+                      }}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAYS.map((d) => (
+                          <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="time"
+                      value={slot.start}
+                      onChange={(e) => {
+                        const updated = [...form.recurrence];
+                        updated[idx] = { ...updated[idx], start: e.target.value };
+                        setForm({ ...form, recurrence: updated });
+                      }}
+                      className="w-28"
+                    />
+                    <span className="text-muted-foreground text-sm">→</span>
+                    <Input
+                      type="time"
+                      value={slot.end}
+                      onChange={(e) => {
+                        const updated = [...form.recurrence];
+                        updated[idx] = { ...updated[idx], end: e.target.value };
+                        setForm({ ...form, recurrence: updated });
+                      }}
+                      className="w-28"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setForm({ ...form, recurrence: form.recurrence.filter((_, i) => i !== idx) })}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setForm({ ...form, recurrence: [...form.recurrence, { day: "lundi", start: "09:00", end: "10:00" }] })}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Ajouter un créneau
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
