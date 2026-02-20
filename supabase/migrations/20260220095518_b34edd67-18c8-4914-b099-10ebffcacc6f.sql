@@ -1,0 +1,1 @@
+ALTER TABLE public.activities ADD COLUMN external_registration_url text DEFAULT NULL;
