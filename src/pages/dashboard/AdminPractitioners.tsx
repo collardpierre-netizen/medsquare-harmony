@@ -628,20 +628,21 @@ const AdminPractitioners = () => {
                           Activer le compte
                         </Button>
                       )}
-                      {isAccountPending(p) && (
+                      {!p.roles.includes("admin") && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="text-xs gap-1.5"
                           disabled={resendingId === p.id}
                           onClick={() => handleResendInvite(p)}
+                          title="Renvoyer l'email d'accès"
                         >
                           {resendingId === p.id ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <RefreshCw className="h-3.5 w-3.5" />
+                            <Mail className="h-3.5 w-3.5" />
                           )}
-                          Renvoyer
+                          Renvoyer l'accès
                         </Button>
                       )}
                       <Button
