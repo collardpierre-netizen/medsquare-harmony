@@ -186,6 +186,9 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
           <pattern id="week-hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.5)" strokeWidth="2" />
           </pattern>
+          <pattern id="week-hatch-privatise" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(0 72% 51% / 0.5)" strokeWidth="2.5" />
+          </pattern>
           <pattern id="week-hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="rgb(249 115 22 / 0.45)" strokeWidth="2" />
           </pattern>
@@ -220,6 +223,13 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                   <rect width="12" height="12" fill="url(#week-hatch-activity)" />
                 </svg>
                 Activité
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-500/30" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(239 68 68 / 0.15)" />
+                  <rect width="12" height="12" fill="url(#week-hatch-privatise)" />
+                </svg>
+                🔒 Privatisé
               </div>
             </div>
           </div>
@@ -302,6 +312,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                     const isToday = isSameDay(day, new Date());
                     const isOccupied = booked || activity;
 
+                    const isPrivatise = booking?.notes?.includes("[Privatisé]");
+
                     const cellContent = (
                           <div
                           className={cn(
@@ -312,6 +324,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               ? "bg-muted/50 text-muted-foreground/30"
                               : activity
                               ? "bg-orange-500/25 text-orange-800 border border-orange-500/40"
+                              : isPrivatise
+                              ? "bg-red-500/20 text-red-800 border border-red-500/40 cursor-pointer hover:bg-red-500/30"
                               : booked
                               ? "bg-primary/25 text-primary border border-primary/40 cursor-pointer hover:bg-primary/35"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
@@ -330,7 +344,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {/* Diagonal hatching overlay for occupied slots */}
                           {inRange && !isPast && isOccupied && (
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : "url(#week-hatch-booked)"} />
+                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : "url(#week-hatch-booked)"} />
                             </svg>
                           )}
                           {actSession && (
