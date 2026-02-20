@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Lock } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -338,7 +339,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                             </span>
                           )}
                           {booking && !activity && (
-                            <span className="truncate px-1 relative z-10">
+                            <span className="truncate px-1 relative z-10 flex items-center gap-0.5">
+                              {booking.notes?.includes("[Privatisé]") && <Lock className="h-3 w-3 shrink-0" />}
                               {booking.profiles?.first_name?.[0]}.{booking.profiles?.last_name?.[0]}.
                             </span>
                           )}
@@ -350,7 +352,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                     if (booking) {
                       const name = booking.profiles ? `${booking.profiles.first_name} ${booking.profiles.last_name}` : "Inconnu";
                       const timeStr = `${format(new Date(booking.start_time), "HH:mm")}–${format(new Date(booking.end_time), "HH:mm")}`;
-                      tooltipLines.push(`📅 ${name} · ${timeStr}`);
+                      const privLabel = booking.notes?.includes("[Privatisé]") ? "🔒 Privatisé · " : "";
+                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}`);
                     }
                     if (actSession) {
                       const p = (actSession as any).activities?.profiles;

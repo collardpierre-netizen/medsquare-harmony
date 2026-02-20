@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, X } from "lucide-react";
+import { Filter, X, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AllRoomsOverviewProps {
@@ -346,8 +346,9 @@ const AllRoomsOverview = ({
                           const timeStr = `${format(new Date(b.start_time), "HH:mm")}–${format(new Date(b.end_time), "HH:mm")}`;
                           const actTitle = (b as any).activities?.title;
                           const recLabel = b.recurrence_group_id ? "🔁 Récurrent" : "1️⃣ Ponctuel";
+                          const privLabel = b.notes?.includes("[Privatisé]") ? "🔒 Privatisé · " : "";
                           tooltipLines.push(
-                            `📅 ${name} · ${timeStr}${actTitle ? ` · ${actTitle}` : ""} · ${recLabel}${b.notes ? ` — "${b.notes}"` : ""}`
+                            `📅 ${privLabel}${name} · ${timeStr}${actTitle ? ` · ${actTitle}` : ""} · ${recLabel}${b.notes && !b.notes.includes("[Privatisé]") ? ` — "${b.notes}"` : ""}`
                           );
                         });
                         roomActivities.forEach((a: any) => {
@@ -397,7 +398,8 @@ const AllRoomsOverview = ({
                               </span>
                             )}
                             {bookingStart && !isActivity && !dimmed && (
-                              <span className="truncate px-1 relative z-10">
+                              <span className="truncate px-1 relative z-10 flex items-center gap-0.5">
+                                {bookingStart.notes?.includes("[Privatisé]") && <Lock className="h-3 w-3 shrink-0" />}
                                 {bookingStart.profiles?.first_name?.[0]}.{bookingStart.profiles?.last_name?.[0]}.
                               </span>
                             )}
