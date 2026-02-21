@@ -46,10 +46,13 @@ const Login = () => {
         account_type: accountType,
       });
       if (error) {
+        const msg = error.message?.toLowerCase().includes("already registered")
+          ? "Un compte existe déjà avec cet email. Essayez de vous connecter ou utilisez \"Mot de passe oublié\" pour réinitialiser votre mot de passe."
+          : error.message;
         toast({
           variant: "destructive",
           title: "Erreur d'inscription",
-          description: error.message,
+          description: msg,
         });
       } else {
         if (accountType === "practitioner") {
