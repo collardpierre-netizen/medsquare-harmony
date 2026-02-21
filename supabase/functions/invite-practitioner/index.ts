@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     // Build the redirect URL from the hashed token
     const properties = linkData.properties;
     const siteUrl = Deno.env.get("SITE_URL") || "https://medsquare-harmony.lovable.app";
-    const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${properties.hashed_token}&type=invite&redirect_to=${siteUrl}/login`;
+    const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${properties.hashed_token}&type=invite&redirect_to=${siteUrl}/reset-password`;
 
     // Send branded email via Resend
     const resendKey = Deno.env.get("RESEND_API_KEY");
