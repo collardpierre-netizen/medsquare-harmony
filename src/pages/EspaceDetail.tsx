@@ -30,6 +30,7 @@ interface Room {
   photos: string[] | null;
   pricing: PricingItem[] | null;
   credits_info: string | null;
+  is_available: boolean;
 }
 
 interface Booking {
@@ -53,9 +54,8 @@ const EspaceDetail = () => {
 
       const { data: r } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available")
         .eq("id", id)
-        .eq("is_available", true)
         .maybeSingle();
 
       if (!r) {
@@ -116,7 +116,7 @@ const EspaceDetail = () => {
   const photos =
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
-  const isPrivatized = bookings.some((b) => b.notes?.includes("[Privatisé]"));
+  const isPrivatized = !room.is_available || bookings.some((b) => b.notes?.includes("[Privatisé]"));
 
   return (
     <Layout>
