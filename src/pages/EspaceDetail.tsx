@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import RoomPhotoGallery from "@/components/rooms/RoomPhotoGallery";
 import RoomAvailability from "@/components/rooms/RoomAvailability";
@@ -36,6 +37,7 @@ interface Booking {
   start_time: string;
   end_time: string;
   status: string;
+  notes: string | null;
 }
 
 const EspaceDetail = () => {
@@ -70,7 +72,7 @@ const EspaceDetail = () => {
 
       const { data: bk } = await supabase
         .from("bookings")
-        .select("id, start_time, end_time, status")
+        .select("id, start_time, end_time, status, notes")
         .eq("room_id", id)
         .gte("start_time", now.toISOString())
         .lte("start_time", twoWeeksLater.toISOString())
@@ -114,6 +116,8 @@ const EspaceDetail = () => {
   const photos =
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
+  const isPrivatized = bookings.some((b) => b.notes?.includes("[Privatisé]"));
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -146,6 +150,12 @@ const EspaceDetail = () => {
           >
             <h1 className="font-display text-3xl md:text-4xl font-bold mb-3">
               {room.name}
+              {isPrivatized && (
+                <Badge variant="secondary" className="ml-3 bg-destructive/10 text-destructive border-destructive/20 text-xs gap-1">
+                  <Lock className="h-3 w-3" />
+                  Espace privatisé
+                </Badge>
+              )}
             </h1>
 
             {/* Meta pills */}
@@ -262,43 +272,64 @@ const EspaceDetail = () => {
             className="hidden lg:block"
           >
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sticky top-28">
-              <h3 className="font-display text-lg font-semibold mb-2">
-                Réserver cet espace
-              </h3>
-              <p className="text-sm text-muted-foreground mb-5">
-                Contactez-nous pour réserver cette salle ou obtenir plus
-                d'informations sur les tarifs et disponibilités.
-              </p>
+              {isPrivatized ? (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lock className="h-5 w-5 text-destructive" />
+                    <h3 className="font-display text-lg font-semibold">
+                      Espace privatisé
+                    </h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location.
+                  </p>
+                  <Link to="/contact">
+                    <Button variant="outline" className="w-full" size="lg">
+                      Nous contacter pour plus d'infos
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h3 className="font-display text-lg font-semibold mb-2">
+                    Réserver cet espace
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Contactez-nous pour réserver cette salle ou obtenir plus
+                    d'informations sur les tarifs et disponibilités.
+                  </p>
 
-              {room.hourly_rate != null && room.hourly_rate > 0 && (
-                <div className="flex items-baseline gap-1 mb-5">
-                  <span className="font-display text-3xl font-bold text-primary">
-                    {room.hourly_rate}€
-                  </span>
-                  <span className="text-muted-foreground text-sm">/ heure</span>
-                </div>
+                  {room.hourly_rate != null && room.hourly_rate > 0 && (
+                    <div className="flex items-baseline gap-1 mb-5">
+                      <span className="font-display text-3xl font-bold text-primary">
+                        {room.hourly_rate}€
+                      </span>
+                      <span className="text-muted-foreground text-sm">/ heure</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-3 text-sm mb-6">
+                    {room.capacity && (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span>Capacité : {room.capacity} personne{room.capacity > 1 ? "s" : ""}</span>
+                      </div>
+                    )}
+                    {room.equipment && room.equipment.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 flex items-center justify-center text-primary font-bold text-xs">✓</div>
+                        <span>{room.equipment.length} équipement{room.equipment.length > 1 ? "s" : ""} inclus</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Link to="/contact">
+                    <Button className="w-full" size="lg">
+                      Contactez-nous
+                    </Button>
+                  </Link>
+                </>
               )}
-
-              <div className="space-y-3 text-sm mb-6">
-                {room.capacity && (
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span>Capacité : {room.capacity} personne{room.capacity > 1 ? "s" : ""}</span>
-                  </div>
-                )}
-                {room.equipment && room.equipment.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 flex items-center justify-center text-primary font-bold text-xs">✓</div>
-                    <span>{room.equipment.length} équipement{room.equipment.length > 1 ? "s" : ""} inclus</span>
-                  </div>
-                )}
-              </div>
-
-              <Link to="/contact">
-                <Button className="w-full" size="lg">
-                  Contactez-nous
-                </Button>
-              </Link>
             </div>
           </motion.div>
         </div>
@@ -308,14 +339,20 @@ const EspaceDetail = () => {
           <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
             <div>
               <p className="font-display font-semibold text-sm">{room.name}</p>
-              {room.hourly_rate != null && room.hourly_rate > 0 && (
+              {isPrivatized ? (
+                <p className="text-xs text-destructive font-medium flex items-center gap-1">
+                  <Lock className="h-3 w-3" /> Privatisé
+                </p>
+              ) : room.hourly_rate != null && room.hourly_rate > 0 ? (
                 <p className="text-xs text-primary font-medium">
                   {room.hourly_rate}€/h
                 </p>
-              )}
+              ) : null}
             </div>
             <Link to="/contact">
-              <Button size="sm">Réserver</Button>
+              <Button size="sm" variant={isPrivatized ? "outline" : "default"}>
+                {isPrivatized ? "Nous contacter" : "Réserver"}
+              </Button>
             </Link>
           </div>
         </div>
