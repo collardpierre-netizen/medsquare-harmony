@@ -140,6 +140,16 @@ const AdminAnalytics = () => {
   });
 
   // Compute chart data
+  // Brussels TZ offset: CET=+1, CEST=+2
+  const getBrusselsOffset = (date: Date): number => {
+    const month = date.getUTCMonth();
+    const day = date.getUTCDate();
+    const weekday = date.getUTCDay();
+    const isAfterMarchSwitch = month > 2 || (month === 2 && day - weekday >= 25);
+    const isBeforeOctoberSwitch = month < 9 || (month === 9 && day - weekday < 25);
+    return (isAfterMarchSwitch && isBeforeOctoberSwitch) ? 2 : 1;
+  };
+
   const { chartData, roomOccupancyData } = useMemo(() => {
     if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [] };
 
@@ -159,16 +169,18 @@ const AdminAnalytics = () => {
       const days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
       for (let d = 0; d < days; d++) {
         const day = addDays(start, d);
+        const offset = getBrusselsOffset(day);
         const { start: oS, end: oE } = getOpeningHours(day);
         const daySlots = oE - oS;
         totalSlots += daySlots * rooms.length;
 
         for (const room of rooms) {
           for (let h = oS; h < oE; h++) {
-            const slotStart = new Date(day);
-            slotStart.setUTCHours(h, 0, 0, 0);
-            const slotEnd = new Date(day);
-            slotEnd.setUTCHours(h + 1, 0, 0, 0);
+            // Convert Brussels hour to UTC
+            const slotStartUTC = new Date(day);
+            slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
+            const slotEndUTC = new Date(day);
+            slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
 
             const isOccupied =
               bookings.some(
@@ -176,16 +188,16 @@ const AdminAnalytics = () => {
                   b.room_id === room.id &&
                   new Date(b.start_time) >= start &&
                   new Date(b.start_time) < end &&
-                  new Date(b.start_time) < slotEnd &&
-                  new Date(b.end_time) > slotStart
+                  new Date(b.start_time) < slotEndUTC &&
+                  new Date(b.end_time) > slotStartUTC
               ) ||
               sessions.some(
                 (s) =>
                   s.room_id === room.id &&
                   new Date(s.start_time) >= start &&
                   new Date(s.start_time) < end &&
-                  new Date(s.start_time) < slotEnd &&
-                  new Date(s.end_time) > slotStart
+                  new Date(s.start_time) < slotEndUTC &&
+                  new Date(s.end_time) > slotStartUTC
               );
             if (isOccupied) occupiedSlots++;
           }
@@ -223,29 +235,30 @@ const AdminAnalytics = () => {
         let occupied = 0;
         for (let d = 0; d < days; d++) {
           const day = addDays(start, d);
+          const offset = getBrusselsOffset(day);
           const { start: oS, end: oE } = getOpeningHours(day);
           total += oE - oS;
           for (let h = oS; h < oE; h++) {
-            const slotStart = new Date(day);
-            slotStart.setUTCHours(h, 0, 0, 0);
-            const slotEnd = new Date(day);
-            slotEnd.setUTCHours(h + 1, 0, 0, 0);
+            const slotStartUTC = new Date(day);
+            slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
+            const slotEndUTC = new Date(day);
+            slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
             const has =
               bookings.some(
                 (b) =>
                   b.room_id === room.id &&
                   new Date(b.start_time) >= start &&
                   new Date(b.start_time) < end &&
-                  new Date(b.start_time) < slotEnd &&
-                  new Date(b.end_time) > slotStart
+                  new Date(b.start_time) < slotEndUTC &&
+                  new Date(b.end_time) > slotStartUTC
               ) ||
               sessions.some(
                 (s) =>
                   s.room_id === room.id &&
                   new Date(s.start_time) >= start &&
                   new Date(s.start_time) < end &&
-                  new Date(s.start_time) < slotEnd &&
-                  new Date(s.end_time) > slotStart
+                  new Date(s.start_time) < slotEndUTC &&
+                  new Date(s.end_time) > slotStartUTC
               );
             if (has) occupied++;
           }
