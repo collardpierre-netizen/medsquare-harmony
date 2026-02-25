@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen, Euro, X } from "lucide-react";
+import { Users, DoorOpen, Euro, X, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface Room {
   photos: string[] | null;
   pricing: PricingItem[] | null;
   credits_info: string | null;
+  is_available: boolean;
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=500&fit=crop";
@@ -40,8 +42,7 @@ const Espaces = () => {
     const fetch = async () => {
       const { data } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info")
-        .eq("is_available", true)
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available")
         .order("name");
       setRooms((data as unknown as Room[]) || []);
       setLoading(false);
@@ -115,7 +116,15 @@ const Espaces = () => {
                       </div>
                     </div>
                     <div className={index % 2 === 1 ? "lg:order-1" : ""}>
-                      <h3 className="font-display text-2xl font-bold mb-3">{room.name}</h3>
+                      <h3 className="font-display text-2xl font-bold mb-3">
+                        {room.name}
+                        {!room.is_available && (
+                          <Badge variant="secondary" className="ml-3 bg-destructive/10 text-destructive border-destructive/20 text-xs gap-1 align-middle">
+                            <Lock className="h-3 w-3" />
+                            Privatisé
+                          </Badge>
+                        )}
+                      </h3>
                       <p className="text-muted-foreground leading-relaxed mb-4">
                         {room.description || "Un espace de qualité pour vos consultations."}
                       </p>
@@ -151,13 +160,21 @@ const Espaces = () => {
                         <Link to={`/espaces/${room.id}`}>
                           <Button>Voir les détails</Button>
                         </Link>
-                        <Button
-                          variant="outline"
-                          onClick={() => setPricingRoom(room)}
-                        >
-                          <Euro className="h-4 w-4 mr-1.5" />
-                          Voir les tarifs
-                        </Button>
+                        {room.is_available ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => setPricingRoom(room)}
+                          >
+                            <Euro className="h-4 w-4 mr-1.5" />
+                            Voir les tarifs
+                          </Button>
+                        ) : (
+                          <Link to="/contact">
+                            <Button variant="outline">
+                              Nous contacter
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </motion.div>
