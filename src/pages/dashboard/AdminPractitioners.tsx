@@ -3,7 +3,7 @@ import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
-  AlertCircle, Trash2,
+  AlertCircle, Trash2, Phone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -644,6 +644,23 @@ const AdminPractitioners = () => {
                         <p className="text-xs text-muted-foreground">
                           {p.specialty || "Spécialité non renseignée"}
                         </p>
+                        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                          {(p.contact_email) && (
+                            <a href={`mailto:${p.contact_email}`} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {p.contact_email}
+                            </a>
+                          )}
+                          {p.phone && (
+                            <a href={`tel:${p.phone}`} className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {p.phone}
+                            </a>
+                          )}
+                          {!p.contact_email && !p.phone && (
+                            <span className="text-xs text-muted-foreground/50 italic">Aucun contact renseigné</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
