@@ -166,9 +166,9 @@ const AdminAnalytics = () => {
         for (const room of rooms) {
           for (let h = oS; h < oE; h++) {
             const slotStart = new Date(day);
-            slotStart.setHours(h, 0, 0, 0);
+            slotStart.setUTCHours(h, 0, 0, 0);
             const slotEnd = new Date(day);
-            slotEnd.setHours(h + 1, 0, 0, 0);
+            slotEnd.setUTCHours(h + 1, 0, 0, 0);
 
             const isOccupied =
               bookings.some(
@@ -227,9 +227,9 @@ const AdminAnalytics = () => {
           total += oE - oS;
           for (let h = oS; h < oE; h++) {
             const slotStart = new Date(day);
-            slotStart.setHours(h, 0, 0, 0);
+            slotStart.setUTCHours(h, 0, 0, 0);
             const slotEnd = new Date(day);
-            slotEnd.setHours(h + 1, 0, 0, 0);
+            slotEnd.setUTCHours(h + 1, 0, 0, 0);
             const has =
               bookings.some(
                 (b) =>
