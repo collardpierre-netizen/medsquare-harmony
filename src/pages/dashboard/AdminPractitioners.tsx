@@ -3,7 +3,7 @@ import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
-  AlertCircle,
+  AlertCircle, Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -22,6 +22,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ScheduleEditor, { DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -46,6 +50,8 @@ const AdminPractitioners = () => {
   const [inviting, setInviting] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [deletingPractitioner, setDeletingPractitioner] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [inviteSchedule, setInviteSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
   const [inviteForm, setInviteForm] = useState({
@@ -288,7 +294,28 @@ const AdminPractitioners = () => {
     }
   };
 
-  const isAccountPending = (p: any) => 
+  const handleDeletePractitioner = async () => {
+    if (!deletingPractitioner) return;
+    setDeleting(true);
+    try {
+      const res = await supabase.functions.invoke("delete-practitioner", {
+        body: { practitioner_user_id: deletingPractitioner.user_id },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast({
+        title: "Praticien supprimé",
+        description: `${deletingPractitioner.first_name} ${deletingPractitioner.last_name} a été définitivement supprimé.`,
+      });
+      setDeletingPractitioner(null);
+      fetchPractitioners();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de supprimer ce praticien.", variant: "destructive" });
+    }
+    setDeleting(false);
+  };
+
+  const isAccountPending = (p: any) =>
     p.roles.includes("practitioner") && !p.roles.includes("admin") && !p.last_sign_in_at;
 
   return (
@@ -680,19 +707,55 @@ const AdminPractitioners = () => {
                         title={p.is_active ? "Masquer du site public" : "Afficher sur le site public"}
                         onClick={() => toggleActive(p)}
                       >
-                        {p.is_active ? (
-                          <Ban className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                        )}
-                      </Button>
-                    </div>
+                         {p.is_active ? (
+                           <Ban className="h-4 w-4 text-muted-foreground" />
+                         ) : (
+                           <CheckCircle className="h-4 w-4 text-primary" />
+                         )}
+                       </Button>
+                       {!p.roles.includes("admin") && (
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           title="Supprimer définitivement"
+                           onClick={() => setDeletingPractitioner(p)}
+                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       )}
+                     </div>
                   </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={!!deletingPractitioner} onOpenChange={(v) => { if (!v) setDeletingPractitioner(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer définitivement ce praticien ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Le profil de{" "}
+                <strong>{deletingPractitioner?.first_name} {deletingPractitioner?.last_name}</strong>,
+                ses réservations, ses activités et son compte utilisateur seront définitivement supprimés.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeletePractitioner}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Supprimer définitivement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
