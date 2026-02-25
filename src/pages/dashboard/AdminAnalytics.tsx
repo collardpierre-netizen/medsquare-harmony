@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { addDays, subWeeks, subMonths, startOfWeek, startOfMonth, format, isWeekend } from "date-fns";
+import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
 import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,16 +8,16 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 
-type ViewMode = "weekly" | "monthly";
+type PeriodRange = "4w" | "8w" | "12w" | "3m" | "6m";
 
 const AdminAnalytics = () => {
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<ViewMode>("weekly");
+  const [periodRange, setPeriodRange] = useState<PeriodRange>("4w");
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
 
@@ -72,21 +72,27 @@ const AdminAnalytics = () => {
   // Compute period boundaries
   const periods = useMemo(() => {
     const now = new Date();
-    if (viewMode === "weekly") {
-      const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
-      return Array.from({ length: 4 }, (_, i) => {
-        const start = subWeeks(currentWeekStart, 3 - i);
+    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+    if (periodRange === "3m" || periodRange === "6m") {
+      const count = periodRange === "3m" ? 3 : 6;
+      return Array.from({ length: count }, (_, i) => {
+        const start = startOfMonth(subMonths(now, count - 1 - i));
+        const end = i === count - 1 ? addDays(endOfMonth(start), 1) : startOfMonth(subMonths(now, count - 2 - i));
+        return { start, end, label: format(start, "MMM yyyy", { locale: fr }) };
+      });
+    } else {
+      const weekCount = periodRange === "4w" ? 4 : periodRange === "8w" ? 8 : 12;
+      // Include current week + past weeks, and 1 future week
+      const futureWeeks = 1;
+      const pastWeeks = weekCount - 1 - futureWeeks;
+      return Array.from({ length: weekCount }, (_, i) => {
+        const start = subWeeks(currentWeekStart, pastWeeks - i);
         const end = addDays(start, 7);
         return { start, end, label: `Sem. ${format(start, "d MMM", { locale: fr })}` };
       });
-    } else {
-      return Array.from({ length: 3 }, (_, i) => {
-        const start = startOfMonth(subMonths(now, 2 - i));
-        const end = i === 2 ? now : startOfMonth(subMonths(now, 1 - i));
-        return { start, end, label: format(start, "MMM yyyy", { locale: fr }) };
-      });
     }
-  }, [viewMode]);
+  }, [periodRange]);
 
   const globalStart = periods[0].start.toISOString();
   const globalEnd = periods[periods.length - 1].end.toISOString();
@@ -351,15 +357,18 @@ const AdminAnalytics = () => {
               <FileDown className="h-3.5 w-3.5" />
               {isExporting ? "Export…" : "Export PDF"}
             </Button>
-            <Tabs
-              value={viewMode}
-              onValueChange={(v) => setViewMode(v as ViewMode)}
-            >
-              <TabsList>
-                <TabsTrigger value="weekly">Semaines</TabsTrigger>
-                <TabsTrigger value="monthly">Mois</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <Select value={periodRange} onValueChange={(v) => setPeriodRange(v as PeriodRange)}>
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="4w">4 semaines</SelectItem>
+                <SelectItem value="8w">8 semaines</SelectItem>
+                <SelectItem value="12w">12 semaines</SelectItem>
+                <SelectItem value="3m">3 mois</SelectItem>
+                <SelectItem value="6m">6 mois</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
