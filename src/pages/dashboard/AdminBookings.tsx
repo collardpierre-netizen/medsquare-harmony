@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
+import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
 import { Progress } from "@/components/ui/progress";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
@@ -886,6 +887,7 @@ const AdminBookings = () => {
                     <SelectValue placeholder="Sélectionner une salle" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__all__">🗓️ Toutes les salles</SelectItem>
                     {rooms.map((r) => (
                       <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                     ))}
@@ -893,7 +895,13 @@ const AdminBookings = () => {
                 </Select>
               </div>
             </div>
-            {planningRoom ? (
+            {planningRoom === "__all__" ? (
+              <WeeklyAllRoomsOverview
+                weekStart={planningWeekStart}
+                rooms={rooms}
+                onBookingClick={(booking) => { setEditBooking(booking); setEditOpen(true); }}
+              />
+            ) : planningRoom ? (
               <WeeklyOverview
                 weekStart={planningWeekStart}
                 selectedRoom={planningRoom}
