@@ -68,9 +68,7 @@ const WeeklyAllRoomsOverview = ({
       const startISO = startOfDay(weekStart).toISOString();
       const endISO = weekEnd.toISOString();
 
-      console.log("[WeeklyAllRooms] Fetching", { startISO, endISO, roomCount: rooms.length });
-
-      const [{ data: bookingsData, error: bErr }, { data: sessionsData, error: sErr }] = await Promise.all([
+      const [{ data: bookingsData }, { data: sessionsData }] = await Promise.all([
         supabase
           .from("bookings")
           .select("*, profiles(first_name, last_name), rooms(name)")
@@ -86,14 +84,6 @@ const WeeklyAllRoomsOverview = ({
           .eq("status", "scheduled")
           .order("start_time"),
       ]);
-
-      console.log("[WeeklyAllRooms] Results", {
-        bookings: bookingsData?.length ?? 0,
-        activities: sessionsData?.length ?? 0,
-        bErr,
-        sErr,
-        sampleBooking: bookingsData?.[0],
-      });
 
       setWeekBookings((bookingsData as Booking[]) || []);
       setWeekActivities((sessionsData as ActivitySessionSlot[]) || []);
