@@ -65,23 +65,35 @@ const WeeklyAllRoomsOverview = ({
   useEffect(() => {
     const fetchWeekData = async () => {
       const weekEnd = addDays(weekStart, 7);
+      const startISO = startOfDay(weekStart).toISOString();
+      const endISO = weekEnd.toISOString();
 
-      const [{ data: bookingsData }, { data: sessionsData }] = await Promise.all([
+      console.log("[WeeklyAllRooms] Fetching", { startISO, endISO, roomCount: rooms.length });
+
+      const [{ data: bookingsData, error: bErr }, { data: sessionsData, error: sErr }] = await Promise.all([
         supabase
           .from("bookings")
-          .select("*, profiles(first_name, last_name)")
-          .gte("start_time", startOfDay(weekStart).toISOString())
-          .lt("start_time", weekEnd.toISOString())
+          .select("*, profiles(first_name, last_name), rooms(name)")
+          .gte("start_time", startISO)
+          .lt("start_time", endISO)
           .neq("status", "cancelled")
           .order("start_time"),
         supabase
           .from("activity_sessions")
           .select("*, activities(title, category, profiles(first_name, last_name))")
-          .gte("start_time", startOfDay(weekStart).toISOString())
-          .lt("start_time", weekEnd.toISOString())
+          .gte("start_time", startISO)
+          .lt("start_time", endISO)
           .eq("status", "scheduled")
           .order("start_time"),
       ]);
+
+      console.log("[WeeklyAllRooms] Results", {
+        bookings: bookingsData?.length ?? 0,
+        activities: sessionsData?.length ?? 0,
+        bErr,
+        sErr,
+        sampleBooking: bookingsData?.[0],
+      });
 
       setWeekBookings((bookingsData as Booking[]) || []);
       setWeekActivities((sessionsData as ActivitySessionSlot[]) || []);
