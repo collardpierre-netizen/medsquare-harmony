@@ -49,16 +49,19 @@ Deno.serve(async (req) => {
 
     if (!targetEmail) throw new Error("Email is required");
 
-    // Generate invite link
+    // Generate invite or recovery link depending on context
+    const linkType = resend_user_id ? "recovery" : "invite";
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: "invite",
+      type: linkType,
       email: targetEmail,
-      options: {
-        data: {
-          first_name: targetFirstName,
-          last_name: targetLastName,
+      ...(linkType === "invite" ? {
+        options: {
+          data: {
+            first_name: targetFirstName,
+            last_name: targetLastName,
+          },
         },
-      },
+      } : {}),
     });
 
     if (linkError) throw linkError;
@@ -83,7 +86,8 @@ Deno.serve(async (req) => {
     // Build the redirect URL from the hashed token
     const properties = linkData.properties;
     const siteUrl = Deno.env.get("SITE_URL") || "https://medsquare-harmony.lovable.app";
-    const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${properties.hashed_token}&type=invite&redirect_to=${siteUrl}/reset-password`;
+    const verifyType = resend_user_id ? "recovery" : "invite";
+    const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${properties.hashed_token}&type=${verifyType}&redirect_to=${siteUrl}/reset-password`;
 
     // Send branded email via Resend
     const resendKey = Deno.env.get("RESEND_API_KEY");
