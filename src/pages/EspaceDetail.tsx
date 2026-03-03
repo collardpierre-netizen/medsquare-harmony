@@ -68,13 +68,15 @@ const EspaceDetail = () => {
 
       // Fetch upcoming bookings for availability display (next 14 days)
       const now = new Date();
-      const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+      const twoWeeksLater = new Date(startOfToday.getTime() + 14 * 24 * 60 * 60 * 1000);
 
       const { data: bk } = await supabase
         .from("bookings")
         .select("id, start_time, end_time, status, notes")
         .eq("room_id", id)
-        .gte("start_time", now.toISOString())
+        .gte("start_time", startOfToday.toISOString())
         .lte("start_time", twoWeeksLater.toISOString())
         .in("status", ["confirmed", "pending"])
         .order("start_time");
