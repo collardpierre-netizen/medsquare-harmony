@@ -31,6 +31,8 @@ import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
 import AdminSiteSettings from "./pages/dashboard/AdminSiteSettings";
 import DailyExport from "./pages/dashboard/DailyExport";
 import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
+import LegalDocuments from "./pages/dashboard/LegalDocuments";
+import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
 import NotFound from "./pages/NotFound";
 import GuestRegistration from "./pages/GuestRegistration";
 import Widget from "./pages/Widget";
@@ -75,6 +77,7 @@ const App = () => (
             <Route path="/dashboard/documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><Documents /></ProtectedRoute>} />
             <Route path="/dashboard/export" element={<ProtectedRoute allowedRoles={["practitioner"]}><DailyExport /></ProtectedRoute>} />
             <Route path="/dashboard/guide" element={<ProtectedRoute allowedRoles={["practitioner"]}><PractitionerGuide /></ProtectedRoute>} />
+            <Route path="/dashboard/legal-documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><LegalDocuments /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />
@@ -82,6 +85,7 @@ const App = () => (
             <Route path="/dashboard/admin/bookings" element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
             <Route path="/dashboard/admin/analytics" element={<ProtectedRoute requireAdmin><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/dashboard/admin/site-settings" element={<ProtectedRoute requireAdmin><AdminSiteSettings /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/legal-documents" element={<ProtectedRoute requireAdmin><AdminLegalDocuments /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

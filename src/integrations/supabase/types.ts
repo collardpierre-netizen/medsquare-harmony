@@ -279,6 +279,109 @@ export type Database = {
           },
         ]
       }
+      legal_document_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          document_id: string
+          id: string
+          user_id: string
+          version_acknowledged: number
+        }
+        Insert: {
+          acknowledged_at?: string
+          document_id: string
+          id?: string
+          user_id: string
+          version_acknowledged: number
+        }
+        Update: {
+          acknowledged_at?: string
+          document_id?: string
+          id?: string
+          user_id?: string
+          version_acknowledged?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_document_acknowledgments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_document_versions: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          document_id: string
+          id: string
+          title: string
+          version: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          id?: string
+          title: string
+          version: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_documents: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
