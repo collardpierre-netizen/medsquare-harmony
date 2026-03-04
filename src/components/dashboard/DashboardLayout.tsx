@@ -16,6 +16,7 @@ import {
   Settings,
   Download,
   BookOpen,
+  Scale,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "./NotificationBell";
@@ -38,12 +39,14 @@ const navItems: NavItem[] = [
   { label: "Mes espaces", href: "/dashboard/rooms", icon: DoorOpen },
   { label: "Mes inscriptions", href: "/dashboard/registrations", icon: ClipboardList },
   { label: "Documents", href: "/dashboard/documents", icon: FileText },
+  { label: "Documents juridiques", href: "/dashboard/legal-documents", icon: Scale },
   { label: "Export journalier", href: "/dashboard/export", icon: Download },
   { label: "Guide praticien", href: "/dashboard/guide", icon: BookOpen },
   { label: "Praticiens", href: "/dashboard/admin/practitioners", icon: Users, adminOnly: true },
   { label: "Salles", href: "/dashboard/admin/rooms", icon: DoorOpen, adminOnly: true },
   { label: "Toutes les réservations", href: "/dashboard/admin/bookings", icon: CalendarCheck, adminOnly: true },
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
+  { label: "Documents juridiques", href: "/dashboard/admin/legal-documents", icon: Scale, adminOnly: true },
   { label: "Paramètres du site", href: "/dashboard/admin/site-settings", icon: Settings, adminOnly: true },
 ];
 
