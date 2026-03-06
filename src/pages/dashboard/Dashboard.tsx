@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { profile, isAdmin } = useAuth();
