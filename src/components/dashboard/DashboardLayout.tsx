@@ -23,7 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import NotificationBell from "./NotificationBell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+
 
 interface NavItem {
   label: string;
