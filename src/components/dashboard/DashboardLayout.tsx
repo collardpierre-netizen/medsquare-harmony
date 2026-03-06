@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -19,10 +19,11 @@ import {
   Scale,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import NotificationBell from "./NotificationBell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+
 
 interface NavItem {
   label: string;
@@ -51,10 +52,33 @@ const navItems: NavItem[] = [
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingLegalCount, setPendingLegalCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      const { data: docs } = await supabase
+        .from("legal_documents")
+        .select("id, version")
+        .eq("is_active", true);
+      if (!docs || docs.length === 0) { setPendingLegalCount(0); return; }
+      const { data: acks } = await supabase
+        .from("legal_document_acknowledgments")
+        .select("document_id, version_acknowledged")
+        .eq("user_id", user.id);
+      const ackMap = new Map((acks || []).map((a: any) => [a.document_id, a.version_acknowledged]));
+      const pending = docs.filter((d: any) => {
+        const v = ackMap.get(d.id);
+        return !v || v < d.version;
+      });
+      setPendingLegalCount(pending.length);
+    };
+    fetchPending();
+  }, [user, location.pathname]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -119,7 +143,12 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/dashboard/legal-documents" && pendingLegalCount > 0 && (
+                  <span className="ml-auto h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingLegalCount}
+                  </span>
+                )}
               </Link>
             ))}
 

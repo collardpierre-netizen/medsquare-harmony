@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -7,11 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const { profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ upcoming: 0, pending: 0, confirmed: 0 });
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [pendingLegalDocs, setPendingLegalDocs] = useState(0);
 
   useEffect(() => {
     if (!profile) return;
@@ -48,6 +51,31 @@ const Dashboard = () => {
     fetchData();
   }, [profile, isAdmin]);
 
+  // Fetch pending legal documents
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      const { data: docs } = await supabase
+        .from("legal_documents")
+        .select("id, version")
+        .eq("is_active", true);
+      if (!docs || docs.length === 0) { setPendingLegalDocs(0); return; }
+
+      const { data: acks } = await supabase
+        .from("legal_document_acknowledgments")
+        .select("document_id, version_acknowledged")
+        .eq("user_id", user.id);
+
+      const ackMap = new Map((acks || []).map((a: any) => [a.document_id, a.version_acknowledged]));
+      const pending = docs.filter((d: any) => {
+        const ackVersion = ackMap.get(d.id);
+        return !ackVersion || ackVersion < d.version;
+      });
+      setPendingLegalDocs(pending.length);
+    };
+    fetchPending();
+  }, [user]);
+
   const statusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -73,6 +101,31 @@ const Dashboard = () => {
             Voici un aperçu de votre activité.
           </p>
         </div>
+
+        {/* Legal docs alert */}
+        {pendingLegalDocs > 0 && (
+          <Card
+            className="border-amber-200 bg-amber-50/50 cursor-pointer hover:bg-amber-50 transition-colors"
+            onClick={() => navigate("/dashboard/legal-documents")}
+          >
+            <CardContent className="flex items-center gap-4 pt-6 pb-5">
+              <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <Scale className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-amber-900">
+                  {pendingLegalDocs} document{pendingLegalDocs > 1 ? "s" : ""} juridique{pendingLegalDocs > 1 ? "s" : ""} en attente de lecture
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Cliquez ici pour consulter et accuser réception.
+                </p>
+              </div>
+              <Badge className="bg-amber-500 text-white hover:bg-amber-500 shrink-0">
+                {pendingLegalDocs}
+              </Badge>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
