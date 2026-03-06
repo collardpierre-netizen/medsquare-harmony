@@ -150,6 +150,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                   </span>
                 )}
               </Link>
+            ))}
 
           {isAdmin && (
             <>
