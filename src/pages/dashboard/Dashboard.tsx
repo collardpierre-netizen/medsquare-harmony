@@ -102,6 +102,31 @@ const Dashboard = () => {
           </p>
         </div>
 
+        {/* Legal docs alert */}
+        {pendingLegalDocs > 0 && (
+          <Card
+            className="border-amber-200 bg-amber-50/50 cursor-pointer hover:bg-amber-50 transition-colors"
+            onClick={() => navigate("/dashboard/legal-documents")}
+          >
+            <CardContent className="flex items-center gap-4 pt-6 pb-5">
+              <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <Scale className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-amber-900">
+                  {pendingLegalDocs} document{pendingLegalDocs > 1 ? "s" : ""} juridique{pendingLegalDocs > 1 ? "s" : ""} en attente de lecture
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Cliquez ici pour consulter et accuser réception.
+                </p>
+              </div>
+              <Badge className="bg-amber-500 text-white hover:bg-amber-500 shrink-0">
+                {pendingLegalDocs}
+              </Badge>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
