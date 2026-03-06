@@ -185,6 +185,13 @@ const ActiviteDetail = () => {
         supabase.functions.invoke("notify-registration-guest", {
           body: { registration_id: data.id },
         }).catch((err) => console.error("Error sending guest confirmation email:", err));
+        // Notify admin center
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        fetch(`https://${projectId}.supabase.co/functions/v1/notify-admin-center`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "registration", session_id: sessionId, registration_id: data.id }),
+        }).catch(() => {});
       }
     }
   };

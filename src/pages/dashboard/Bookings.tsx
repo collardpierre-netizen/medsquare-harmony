@@ -330,6 +330,14 @@ const Bookings = () => {
             supabase.functions.invoke("notify-new-booking", {
               body: { booking_id: created.id },
             }).catch((err) => console.error("Error sending new booking email:", err));
+
+            // Notify admin center
+            const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+            fetch(`https://${projectId}.supabase.co/functions/v1/notify-admin-center`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "booking", booking_id: created.id }),
+            }).catch(() => {});
           }
         } catch (err) {
           console.error("Error finding created booking:", err);
