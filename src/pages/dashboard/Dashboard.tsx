@@ -10,9 +10,11 @@ import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const { profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ upcoming: 0, pending: 0, confirmed: 0 });
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [pendingLegalDocs, setPendingLegalDocs] = useState(0);
 
   useEffect(() => {
     if (!profile) return;
