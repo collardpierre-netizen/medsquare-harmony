@@ -52,10 +52,33 @@ const navItems: NavItem[] = [
 ];
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingLegalCount, setPendingLegalCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      const { data: docs } = await supabase
+        .from("legal_documents")
+        .select("id, version")
+        .eq("is_active", true);
+      if (!docs || docs.length === 0) { setPendingLegalCount(0); return; }
+      const { data: acks } = await supabase
+        .from("legal_document_acknowledgments")
+        .select("document_id, version_acknowledged")
+        .eq("user_id", user.id);
+      const ackMap = new Map((acks || []).map((a: any) => [a.document_id, a.version_acknowledged]));
+      const pending = docs.filter((d: any) => {
+        const v = ackMap.get(d.id);
+        return !v || v < d.version;
+      });
+      setPendingLegalCount(pending.length);
+    };
+    fetchPending();
+  }, [user, location.pathname]);
 
   const handleSignOut = async () => {
     await signOut();
