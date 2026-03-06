@@ -281,6 +281,13 @@ const PatientBookingDialog = ({
       supabase.functions.invoke("notify-registration", {
         body: { session_id: session.id, registration_id: registration.id },
       }).catch(() => {});
+      // Notify admin center
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      fetch(`https://${projectId}.supabase.co/functions/v1/notify-admin-center`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "registration", session_id: session.id, registration_id: registration.id }),
+      }).catch(() => {});
     }
 
     setStep("done");

@@ -30,6 +30,12 @@ const Login = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ first_name: firstName, last_name: lastName, email }),
       });
+      // Also notify admin center
+      fetch(`https://${projectId}.supabase.co/functions/v1/notify-admin-center`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "practitioner_signup", first_name: firstName, last_name: lastName, email }),
+      }).catch(() => {});
     } catch (e) {
       // Non-blocking
     }

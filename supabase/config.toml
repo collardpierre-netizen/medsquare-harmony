@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.notify-practitioner-signup]
 verify_jwt = false
+
+[functions.notify-admin-center]
+verify_jwt = false
