@@ -51,6 +51,31 @@ const Dashboard = () => {
     fetchData();
   }, [profile, isAdmin]);
 
+  // Fetch pending legal documents
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      const { data: docs } = await supabase
+        .from("legal_documents")
+        .select("id, version")
+        .eq("is_active", true);
+      if (!docs || docs.length === 0) { setPendingLegalDocs(0); return; }
+
+      const { data: acks } = await supabase
+        .from("legal_document_acknowledgments")
+        .select("document_id, version_acknowledged")
+        .eq("user_id", user.id);
+
+      const ackMap = new Map((acks || []).map((a: any) => [a.document_id, a.version_acknowledged]));
+      const pending = docs.filter((d: any) => {
+        const ackVersion = ackMap.get(d.id);
+        return !ackVersion || ackVersion < d.version;
+      });
+      setPendingLegalDocs(pending.length);
+    };
+    fetchPending();
+  }, [user]);
+
   const statusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
