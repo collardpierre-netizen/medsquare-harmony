@@ -143,6 +143,20 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                {item.href === "/dashboard/legal-documents" && pendingLegalCount > 0 && (
+                  <span className="ml-auto h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingLegalCount}
+                  </span>
+                )}
+              </Link>
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                  location.pathname === item.href
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
                 {item.label}
               </Link>
             ))}
