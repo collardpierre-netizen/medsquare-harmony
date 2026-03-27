@@ -55,7 +55,7 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, on
     }
   };
 
-  const handlePrint = () => window.print();
+  
 
   const badges: { label: string; icon?: React.ElementType; show: boolean }[] = [
     { label: "Conventionné(e)", show: !!practitioner.conventioned },
