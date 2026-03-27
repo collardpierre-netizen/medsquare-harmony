@@ -239,6 +239,8 @@ const PraticienDetail = () => {
             practitioner={practitioner}
             hasBookableActivities={hasBookable}
             onBookClick={() => setShowBooking(true)}
+            onPdfClick={handlePdfExport}
+            isPdfLoading={pdfLoading}
           />
         </motion.div>
 
