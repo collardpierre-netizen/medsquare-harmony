@@ -300,7 +300,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Parcours professionnel"
                   description="La timeline du parcours sera bientôt disponible."
-                  icon="🎓"
+                  icon={GraduationCap}
                 />
               </TabsContent>
             </Tabs>
