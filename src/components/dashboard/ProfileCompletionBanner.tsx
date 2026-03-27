@@ -31,7 +31,7 @@ const ALL_ACTIONS: MissingAction[] = [
 
 const DISMISS_KEY = "medsquare_banner_dismissed";
 
-const ProfileCompletionBanner = () => {
+const ProfileCompletionBanner = ({ demoMode = false }: { demoMode?: boolean }) => {
   const { profile, isAdmin } = useAuth();
   const [score, setScore] = useState<number | null>(null);
   const [missingFields, setMissingFields] = useState<string[]>([]);
