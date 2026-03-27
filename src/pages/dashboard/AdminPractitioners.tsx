@@ -499,6 +499,7 @@ const AdminPractitioners = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Edit dialog */}
