@@ -420,61 +420,109 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepts_new_patients: boolean
+          associations: string[] | null
           avatar_url: string | null
+          avg_appointment_delay_days: number | null
           bio: string | null
           break_minutes: number
+          collaboration_ids: string[] | null
           contact_email: string | null
+          conventioned: boolean | null
           created_at: string
           display_order: number
+          experiences: Json | null
           first_name: string
+          formations: Json | null
+          home_visit: boolean
           id: string
+          inami_number: string | null
           is_active: boolean
+          languages: string[] | null
           last_name: string
           notification_preferences: Json
+          parking: boolean
+          payment_methods: string[] | null
           phone: string | null
+          pmr_accessible: boolean
           schedule: Json | null
           social_links: Json | null
+          specialties: string[] | null
           specialty: string | null
+          tiers_payant: boolean
           updated_at: string
           user_id: string
+          video_available: boolean
         }
         Insert: {
+          accepts_new_patients?: boolean
+          associations?: string[] | null
           avatar_url?: string | null
+          avg_appointment_delay_days?: number | null
           bio?: string | null
           break_minutes?: number
+          collaboration_ids?: string[] | null
           contact_email?: string | null
+          conventioned?: boolean | null
           created_at?: string
           display_order?: number
+          experiences?: Json | null
           first_name?: string
+          formations?: Json | null
+          home_visit?: boolean
           id?: string
+          inami_number?: string | null
           is_active?: boolean
+          languages?: string[] | null
           last_name?: string
           notification_preferences?: Json
+          parking?: boolean
+          payment_methods?: string[] | null
           phone?: string | null
+          pmr_accessible?: boolean
           schedule?: Json | null
           social_links?: Json | null
+          specialties?: string[] | null
           specialty?: string | null
+          tiers_payant?: boolean
           updated_at?: string
           user_id: string
+          video_available?: boolean
         }
         Update: {
+          accepts_new_patients?: boolean
+          associations?: string[] | null
           avatar_url?: string | null
+          avg_appointment_delay_days?: number | null
           bio?: string | null
           break_minutes?: number
+          collaboration_ids?: string[] | null
           contact_email?: string | null
+          conventioned?: boolean | null
           created_at?: string
           display_order?: number
+          experiences?: Json | null
           first_name?: string
+          formations?: Json | null
+          home_visit?: boolean
           id?: string
+          inami_number?: string | null
           is_active?: boolean
+          languages?: string[] | null
           last_name?: string
           notification_preferences?: Json
+          parking?: boolean
+          payment_methods?: string[] | null
           phone?: string | null
+          pmr_accessible?: boolean
           schedule?: Json | null
           social_links?: Json | null
+          specialties?: string[] | null
           specialty?: string | null
+          tiers_payant?: boolean
           updated_at?: string
           user_id?: string
+          video_available?: boolean
         }
         Relationships: []
       }
