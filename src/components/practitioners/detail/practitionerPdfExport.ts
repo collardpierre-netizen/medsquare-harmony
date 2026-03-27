@@ -54,7 +54,8 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
-function addPageFooter(doc: jsPDF, pageNum: number, totalPages: number) {
+function addPageFooter(doc: jsPDF, pageNum: number, totalPages: number, skipFooterPages: Set<number>) {
+  if (skipFooterPages.has(pageNum)) return;
   const y = PAGE_H - 10;
   doc.setFontSize(7);
   doc.setTextColor(...TEXT_MUTED);
@@ -132,7 +133,7 @@ export async function generatePractitionerPdf(practitioner: PractitionerPdfData)
 
   // Status badges line
   const badges: string[] = [];
-  if (practitioner.accepts_new_patients) badges.push("✓ Accepte nouveaux patients");
+  if (practitioner.accepts_new_patients) badges.push("Accepte nouveaux patients");
   if (practitioner.conventioned) badges.push("Conventionné(e)");
   if (practitioner.inami_number) badges.push(`INAMI ${practitioner.inami_number}`);
   if (badges.length) {
@@ -341,11 +342,15 @@ export async function generatePractitionerPdf(practitioner: PractitionerPdfData)
   doc.text("Medsquare — Centre médical pluridisciplinaire", MARGIN + qrSize + 8, footerY + 28);
   doc.text("Meslin-l'Évêque · www.medsquare.be", MARGIN + qrSize + 8, footerY + 33);
 
+  // Track which page has the QR footer band
+  const qrFooterPage = doc.getCurrentPageInfo().pageNumber;
+  const skipFooterPages = new Set([qrFooterPage]);
+
   // Add page numbers
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    addPageFooter(doc, i, totalPages);
+    addPageFooter(doc, i, totalPages, skipFooterPages);
   }
 
   // Save
