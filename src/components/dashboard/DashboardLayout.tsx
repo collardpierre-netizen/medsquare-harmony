@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
   { label: "Toutes les réservations", href: "/dashboard/admin/bookings", icon: CalendarCheck, adminOnly: true },
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
   { label: "Documents juridiques", href: "/dashboard/admin/legal-documents", icon: Scale, adminOnly: true },
+  { label: "Notifications", href: "/dashboard/admin/notifications", icon: Bell, adminOnly: true },
   { label: "Paramètres du site", href: "/dashboard/admin/site-settings", icon: Settings, adminOnly: true },
 ];
 

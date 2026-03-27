@@ -93,6 +93,7 @@ const App = () => (
             <Route path="/dashboard/admin/analytics" element={<ProtectedRoute requireAdmin><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/dashboard/admin/site-settings" element={<ProtectedRoute requireAdmin><AdminSiteSettings /></ProtectedRoute>} />
             <Route path="/dashboard/admin/legal-documents" element={<ProtectedRoute requireAdmin><AdminLegalDocuments /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/notifications" element={<ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
