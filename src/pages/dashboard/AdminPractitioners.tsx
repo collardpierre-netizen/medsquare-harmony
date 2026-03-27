@@ -725,8 +725,38 @@ const AdminPractitioners = () => {
                           )}
                         </div>
                       </div>
+                      {/* Score bar */}
+                      <div className="hidden md:flex flex-col items-center gap-1 min-w-[80px]">
+                        <div className="flex items-center gap-1">
+                          {(p.profile_score ?? 0) < 50 && <AlertCircle className="h-3 w-3 text-destructive" />}
+                          <span className={`text-xs font-bold ${(p.profile_score ?? 0) < 40 ? 'text-destructive' : (p.profile_score ?? 0) < 70 ? 'text-orange-500' : 'text-emerald-600'}`}>
+                            {p.profile_score ?? 0}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={p.profile_score ?? 0}
+                          className="h-1.5 w-16"
+                          style={{
+                            // @ts-ignore
+                            '--progress-foreground': (p.profile_score ?? 0) < 40 ? 'var(--destructive)' : (p.profile_score ?? 0) < 70 ? '#f59e0b' : '#22c55e'
+                          } as any}
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Notify button */}
+                      {(p.profile_score ?? 0) < 70 && !p.roles.includes("admin") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Envoyer une notification de complétion"
+                          disabled={notifyingId === p.id}
+                          onClick={() => notifyOnePractitioner(p)}
+                          className="text-[#534AB7] hover:text-[#534AB7] hover:bg-[#534AB7]/10"
+                        >
+                          {notifyingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
+                        </Button>
+                      )}
                       {isPendingValidation(p) && (
                         <Button
                           variant="default"
