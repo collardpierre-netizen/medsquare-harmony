@@ -51,6 +51,16 @@ const ProfileCompletionBanner = ({ demoMode = false }: { demoMode?: boolean }) =
   }, []);
 
   const fetchProfileData = useCallback(async () => {
+    if (demoMode) {
+      setScore(35);
+      setMissingFields([
+        "Tarifs INAMI", "Questions & Réponses publiées", "Photo de profil",
+        "Description / biographie", "Spécialités", "Langues parlées",
+        "Modes de paiement", "Convention INAMI", "Numéro d'agrément INAMI",
+        "Délai moyen de rendez-vous", "Horaires de consultation", "Collaborations avec d'autres praticiens"
+      ]);
+      return;
+    }
     if (!profile?.id) return;
     const { data } = await supabase
       .from("profiles")
@@ -65,7 +75,7 @@ const ProfileCompletionBanner = ({ demoMode = false }: { demoMode?: boolean }) =
           : []
       );
     }
-  }, [profile?.id]);
+  }, [profile?.id, demoMode]);
 
   useEffect(() => {
     fetchProfileData();
