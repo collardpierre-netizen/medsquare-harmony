@@ -119,7 +119,7 @@ const ProfileCompletionBanner = ({ demoMode = false }: { demoMode?: boolean }) =
     }
   }, [score]);
 
-  if (isAdmin || dismissed || score === null || score >= 80) return null;
+  if ((!demoMode && isAdmin) || dismissed || score === null || (!demoMode && score >= 80)) return null;
 
   const visibleActions = ALL_ACTIONS.filter((a) =>
     missingFields.some((f) => f === a.key)
