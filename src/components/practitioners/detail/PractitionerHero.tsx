@@ -28,6 +28,8 @@ interface PractitionerHeroProps {
   };
   hasBookableActivities: boolean;
   onBookClick: () => void;
+  onPdfClick: () => void;
+  isPdfLoading?: boolean;
 }
 
 const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: PractitionerHeroProps) => {
