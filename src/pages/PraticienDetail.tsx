@@ -274,10 +274,9 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="tarifs" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Tarifs & Remboursements"
-                  description="Le simulateur BIM/OMNIO avec les tarifs INAMI sera bientôt disponible."
-                  icon="💰"
+                <PractitionerTabTarifs
+                  practitionerId={practitioner.id}
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
                 />
               </TabsContent>
 
