@@ -132,7 +132,7 @@ export async function generatePractitionerPdf(practitioner: PractitionerPdfData)
 
   // Status badges line
   const badges: string[] = [];
-  if (practitioner.accepts_new_patients) badges.push("✓ Accepte nouveaux patients");
+  if (practitioner.accepts_new_patients) badges.push("Accepte nouveaux patients");
   if (practitioner.conventioned) badges.push("Conventionné(e)");
   if (practitioner.inami_number) badges.push(`INAMI ${practitioner.inami_number}`);
   if (badges.length) {
