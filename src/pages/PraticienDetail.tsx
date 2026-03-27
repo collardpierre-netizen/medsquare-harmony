@@ -13,6 +13,7 @@ import PractitionerTabPlaceholder from "@/components/practitioners/detail/Practi
 import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
+import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
 
 interface DaySchedule {
   day: string;
@@ -86,6 +87,18 @@ const PraticienDetail = () => {
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [showMobileContact, setShowMobileContact] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handlePdfExport = async () => {
+    if (!practitioner) return;
+    setPdfLoading(true);
+    try {
+      await generatePractitionerPdf(practitioner);
+    } catch (e) {
+      console.error("PDF export error:", e);
+    }
+    setPdfLoading(false);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -226,6 +239,8 @@ const PraticienDetail = () => {
             practitioner={practitioner}
             hasBookableActivities={hasBookable}
             onBookClick={() => setShowBooking(true)}
+            onPdfClick={handlePdfExport}
+            isPdfLoading={pdfLoading}
           />
         </motion.div>
 
@@ -349,14 +364,6 @@ const PraticienDetail = () => {
           practitionerEmail={practitioner.contact_email || ""}
         />
       </div>
-
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          nav, footer, .print\\:hidden { display: none !important; }
-          body { font-size: 12px; }
-        }
-      `}</style>
     </Layout>
   );
 };

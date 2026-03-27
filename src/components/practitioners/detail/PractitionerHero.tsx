@@ -1,4 +1,5 @@
-import { User, MapPin, Award, Video, Home, Accessibility, ParkingCircle, Share2, FileText, CalendarPlus } from "lucide-react";
+import { useState } from "react";
+import { User, MapPin, Award, Video, Home, Accessibility, ParkingCircle, Share2, FileText, CalendarPlus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +28,11 @@ interface PractitionerHeroProps {
   };
   hasBookableActivities: boolean;
   onBookClick: () => void;
+  onPdfClick: () => void;
+  isPdfLoading?: boolean;
 }
 
-const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: PractitionerHeroProps) => {
+const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, onPdfClick, isPdfLoading }: PractitionerHeroProps) => {
   const { toast } = useToast();
   const fullName = `${practitioner.first_name} ${practitioner.last_name}`;
   const initials = `${practitioner.first_name?.[0] || ""}${practitioner.last_name?.[0] || ""}`.toUpperCase();
@@ -52,7 +55,7 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: 
     }
   };
 
-  const handlePrint = () => window.print();
+  
 
   const badges: { label: string; icon?: React.ElementType; show: boolean }[] = [
     { label: "Conventionné(e)", show: !!practitioner.conventioned },
@@ -156,8 +159,8 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: 
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <FileText className="h-4 w-4 mr-1" />
+          <Button variant="outline" size="sm" onClick={onPdfClick} disabled={isPdfLoading}>
+            {isPdfLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
             PDF
           </Button>
         </div>
