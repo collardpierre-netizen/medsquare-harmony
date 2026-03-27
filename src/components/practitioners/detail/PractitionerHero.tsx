@@ -32,7 +32,7 @@ interface PractitionerHeroProps {
   isPdfLoading?: boolean;
 }
 
-const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: PractitionerHeroProps) => {
+const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, onPdfClick, isPdfLoading }: PractitionerHeroProps) => {
   const { toast } = useToast();
   const fullName = `${practitioner.first_name} ${practitioner.last_name}`;
   const initials = `${practitioner.first_name?.[0] || ""}${practitioner.last_name?.[0] || ""}`.toUpperCase();
