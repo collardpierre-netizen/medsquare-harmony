@@ -134,7 +134,7 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: 
           {hasBookableActivities && (
             <Button
               onClick={onBookClick}
-              className="bg-[hsl(250,40%,50%)] hover:bg-[hsl(250,40%,45%)] text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               size="lg"
             >
               <CalendarPlus className="h-4 w-4 mr-2" />
