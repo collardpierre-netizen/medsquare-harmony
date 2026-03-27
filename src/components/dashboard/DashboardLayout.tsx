@@ -43,6 +43,7 @@ const navItems: NavItem[] = [
   { label: "Documents", href: "/dashboard/documents", icon: FileText },
   { label: "Documents juridiques", href: "/dashboard/legal-documents", icon: Scale },
   { label: "Export journalier", href: "/dashboard/export", icon: Download },
+  { label: "Avis patients", href: "/dashboard/reviews", icon: Star },
   { label: "Guide praticien", href: "/dashboard/guide", icon: BookOpen },
   { label: "Praticiens", href: "/dashboard/admin/practitioners", icon: Users, adminOnly: true },
   { label: "Salles", href: "/dashboard/admin/rooms", icon: DoorOpen, adminOnly: true },
