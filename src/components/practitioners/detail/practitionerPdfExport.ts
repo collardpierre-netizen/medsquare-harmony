@@ -343,7 +343,7 @@ export async function generatePractitionerPdf(practitioner: PractitionerPdfData)
   doc.text("Meslin-l'Évêque · www.medsquare.be", MARGIN + qrSize + 8, footerY + 33);
 
   // Track which page has the QR footer band
-  const qrFooterPage = doc.getCurrentPageNumber();
+  const qrFooterPage = doc.getCurrentPageInfo().pageNumber;
   const skipFooterPages = new Set([qrFooterPage]);
 
   // Add page numbers
