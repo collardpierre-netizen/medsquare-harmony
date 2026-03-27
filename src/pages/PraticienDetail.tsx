@@ -11,6 +11,7 @@ import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfo
 import PractitionerTabProfile from "@/components/practitioners/detail/PractitionerTabProfile";
 import PractitionerTabPlaceholder from "@/components/practitioners/detail/PractitionerTabPlaceholder";
 import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
+import PractitionerTabAvis from "@/components/practitioners/detail/PractitionerTabAvis";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
@@ -296,10 +297,9 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="avis" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Avis patients"
-                  description="Les avis multi-critères seront bientôt disponibles."
-                  icon={Star}
+                <PractitionerTabAvis
+                  practitionerId={practitioner.id}
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
                 />
               </TabsContent>
 

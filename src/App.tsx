@@ -34,6 +34,7 @@ import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import LegalDocuments from "./pages/dashboard/LegalDocuments";
 import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
 import NotFound from "./pages/NotFound";
+import Reviews from "./pages/dashboard/Reviews";
 import GuestRegistration from "./pages/GuestRegistration";
 import Widget from "./pages/Widget";
 import ScrollToTop from "./components/ScrollToTop";
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/dashboard/export" element={<ProtectedRoute allowedRoles={["practitioner"]}><DailyExport /></ProtectedRoute>} />
             <Route path="/dashboard/guide" element={<ProtectedRoute allowedRoles={["practitioner"]}><PractitionerGuide /></ProtectedRoute>} />
             <Route path="/dashboard/legal-documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><LegalDocuments /></ProtectedRoute>} />
+            <Route path="/dashboard/reviews" element={<ProtectedRoute allowedRoles={["practitioner"]}><Reviews /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />
