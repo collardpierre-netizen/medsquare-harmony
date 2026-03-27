@@ -165,7 +165,7 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: 
 
       {/* Accepts new patients banner */}
       {practitioner.accepts_new_patients !== false && (
-        <div className="bg-green-50 dark:bg-green-950/30 border-t border-green-200 dark:border-green-900 px-6 py-2 text-sm text-green-700 dark:text-green-400 font-medium print:hidden">
+        <div className="bg-accent border-t border-border px-6 py-2 text-sm text-accent-foreground font-medium print:hidden">
           ● Accepte de nouveaux patients
         </div>
       )}
