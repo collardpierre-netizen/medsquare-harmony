@@ -5,8 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Stethoscope, Video, Home, Users, Baby, Receipt } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Stethoscope, Video, Home, Users, Baby } from "lucide-react";
 
 interface Rate {
   id: string;
