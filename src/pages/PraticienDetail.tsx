@@ -313,10 +313,11 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="parcours" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Parcours professionnel"
-                  description="La timeline du parcours sera bientôt disponible."
-                  icon={GraduationCap}
+                <PractitionerTabParcours
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
+                  experiences={practitioner.experiences}
+                  formations={practitioner.formations}
+                  associations={practitioner.associations}
                 />
               </TabsContent>
             </Tabs>
