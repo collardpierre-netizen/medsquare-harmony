@@ -3,6 +3,7 @@ import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -92,7 +93,8 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Welcome */}
+        {/* Profile completion banner */}
+        <ProfileCompletionBanner />
         <div>
           <h2 className="font-display text-2xl font-bold">
             Bonjour, {profile?.first_name || "Praticien"} 👋
