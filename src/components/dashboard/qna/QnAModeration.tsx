@@ -39,7 +39,10 @@ const QnAModeration = () => {
   const [saving, setSaving] = useState<string | null>(null);
 
   const fetchQnas = async () => {
-    if (!profile) return;
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("practitioner_qna")
       .select("*")
