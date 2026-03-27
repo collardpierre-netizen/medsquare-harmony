@@ -13,6 +13,7 @@ import PractitionerTabPlaceholder from "@/components/practitioners/detail/Practi
 import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
+import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
 
 interface DaySchedule {
   day: string;
