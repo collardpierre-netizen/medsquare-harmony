@@ -12,6 +12,7 @@ import PractitionerTabProfile from "@/components/practitioners/detail/Practition
 import PractitionerTabPlaceholder from "@/components/practitioners/detail/PractitionerTabPlaceholder";
 import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
 import PractitionerTabAvis from "@/components/practitioners/detail/PractitionerTabAvis";
+import PractitionerTabQR from "@/components/practitioners/detail/PractitionerTabQR";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
