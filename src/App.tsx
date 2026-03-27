@@ -33,6 +33,7 @@ import DailyExport from "./pages/dashboard/DailyExport";
 import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import LegalDocuments from "./pages/dashboard/LegalDocuments";
 import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
+import AdminNotifications from "./pages/dashboard/AdminNotifications";
 import NotFound from "./pages/NotFound";
 import Reviews from "./pages/dashboard/Reviews";
 import QnA from "./pages/dashboard/QnA";
