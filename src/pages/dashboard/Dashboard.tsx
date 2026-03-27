@@ -93,7 +93,8 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Welcome */}
+        {/* Profile completion banner */}
+        <ProfileCompletionBanner />
         <div>
           <h2 className="font-display text-2xl font-bold">
             Bonjour, {profile?.first_name || "Praticien"} 👋
