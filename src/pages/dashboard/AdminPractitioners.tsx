@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
-  AlertCircle, Trash2, Phone,
+  AlertCircle, Trash2, Phone, Bell, Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
