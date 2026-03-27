@@ -87,6 +87,18 @@ const PraticienDetail = () => {
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [showMobileContact, setShowMobileContact] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handlePdfExport = async () => {
+    if (!practitioner) return;
+    setPdfLoading(true);
+    try {
+      await generatePractitionerPdf(practitioner);
+    } catch (e) {
+      console.error("PDF export error:", e);
+    }
+    setPdfLoading(false);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
