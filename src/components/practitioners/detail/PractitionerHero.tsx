@@ -159,8 +159,8 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, on
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <FileText className="h-4 w-4 mr-1" />
+          <Button variant="outline" size="sm" onClick={onPdfClick} disabled={isPdfLoading}>
+            {isPdfLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
             PDF
           </Button>
         </div>
