@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ upcoming: 0, pending: 0, confirmed: 0 });
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [pendingLegalDocs, setPendingLegalDocs] = useState(0);
+  const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -94,7 +96,18 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Profile completion banner */}
-        <ProfileCompletionBanner />
+        {isAdmin && (
+          <Button
+            variant={demoMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDemoMode(!demoMode)}
+            className="gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            {demoMode ? "Masquer l'aperçu bannière" : "Prévisualiser la bannière praticien"}
+          </Button>
+        )}
+        {(!isAdmin || demoMode) && <ProfileCompletionBanner demoMode={demoMode} />}
         <div>
           <h2 className="font-display text-2xl font-bold">
             Bonjour, {profile?.first_name || "Praticien"} 👋

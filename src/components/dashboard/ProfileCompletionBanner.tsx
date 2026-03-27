@@ -31,7 +31,7 @@ const ALL_ACTIONS: MissingAction[] = [
 
 const DISMISS_KEY = "medsquare_banner_dismissed";
 
-const ProfileCompletionBanner = () => {
+const ProfileCompletionBanner = ({ demoMode = false }: { demoMode?: boolean }) => {
   const { profile, isAdmin } = useAuth();
   const [score, setScore] = useState<number | null>(null);
   const [missingFields, setMissingFields] = useState<string[]>([]);
@@ -51,6 +51,16 @@ const ProfileCompletionBanner = () => {
   }, []);
 
   const fetchProfileData = useCallback(async () => {
+    if (demoMode) {
+      setScore(35);
+      setMissingFields([
+        "Tarifs INAMI", "Questions & Réponses publiées", "Photo de profil",
+        "Description / biographie", "Spécialités", "Langues parlées",
+        "Modes de paiement", "Convention INAMI", "Numéro d'agrément INAMI",
+        "Délai moyen de rendez-vous", "Horaires de consultation", "Collaborations avec d'autres praticiens"
+      ]);
+      return;
+    }
     if (!profile?.id) return;
     const { data } = await supabase
       .from("profiles")
@@ -65,7 +75,7 @@ const ProfileCompletionBanner = () => {
           : []
       );
     }
-  }, [profile?.id]);
+  }, [profile?.id, demoMode]);
 
   useEffect(() => {
     fetchProfileData();
@@ -119,7 +129,7 @@ const ProfileCompletionBanner = () => {
     }
   }, [score]);
 
-  if (isAdmin || dismissed || score === null || score >= 80) return null;
+  if ((!demoMode && isAdmin) || dismissed || score === null || (!demoMode && score >= 80)) return null;
 
   const visibleActions = ALL_ACTIONS.filter((a) =>
     missingFields.some((f) => f === a.key)
