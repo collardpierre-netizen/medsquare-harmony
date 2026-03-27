@@ -96,7 +96,18 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Profile completion banner */}
-        <ProfileCompletionBanner />
+        {isAdmin && (
+          <Button
+            variant={demoMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDemoMode(!demoMode)}
+            className="gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            {demoMode ? "Masquer l'aperçu bannière" : "Prévisualiser la bannière praticien"}
+          </Button>
+        )}
+        {(!isAdmin || demoMode) && <ProfileCompletionBanner demoMode={demoMode} />}
         <div>
           <h2 className="font-display text-2xl font-bold">
             Bonjour, {profile?.first_name || "Praticien"} 👋
