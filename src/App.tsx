@@ -36,6 +36,7 @@ import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
 import NotFound from "./pages/NotFound";
 import Reviews from "./pages/dashboard/Reviews";
 import QnA from "./pages/dashboard/QnA";
+import Rates from "./pages/dashboard/Rates";
 import GuestRegistration from "./pages/GuestRegistration";
 import Widget from "./pages/Widget";
 import ScrollToTop from "./components/ScrollToTop";
@@ -82,6 +83,7 @@ const App = () => (
             <Route path="/dashboard/legal-documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><LegalDocuments /></ProtectedRoute>} />
             <Route path="/dashboard/reviews" element={<ProtectedRoute allowedRoles={["practitioner"]}><Reviews /></ProtectedRoute>} />
             <Route path="/dashboard/qna" element={<ProtectedRoute allowedRoles={["practitioner"]}><QnA /></ProtectedRoute>} />
+            <Route path="/dashboard/rates" element={<ProtectedRoute allowedRoles={["practitioner"]}><Rates /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />

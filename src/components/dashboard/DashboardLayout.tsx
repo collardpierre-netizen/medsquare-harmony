@@ -19,6 +19,7 @@ import {
   Scale,
   Star,
   MessageCircle,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { label: "Documents", href: "/dashboard/documents", icon: FileText },
   { label: "Documents juridiques", href: "/dashboard/legal-documents", icon: Scale },
   { label: "Export journalier", href: "/dashboard/export", icon: Download },
+  { label: "Mes tarifs", href: "/dashboard/rates", icon: Receipt },
   { label: "Avis patients", href: "/dashboard/reviews", icon: Star },
   { label: "Questions & Réponses", href: "/dashboard/qna", icon: MessageCircle },
   { label: "Guide praticien", href: "/dashboard/guide", icon: BookOpen },
