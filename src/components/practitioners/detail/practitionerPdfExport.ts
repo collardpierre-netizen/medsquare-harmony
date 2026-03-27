@@ -342,11 +342,15 @@ export async function generatePractitionerPdf(practitioner: PractitionerPdfData)
   doc.text("Medsquare — Centre médical pluridisciplinaire", MARGIN + qrSize + 8, footerY + 28);
   doc.text("Meslin-l'Évêque · www.medsquare.be", MARGIN + qrSize + 8, footerY + 33);
 
+  // Track which page has the QR footer band
+  const qrFooterPage = doc.getCurrentPageNumber();
+  const skipFooterPages = new Set([qrFooterPage]);
+
   // Add page numbers
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    addPageFooter(doc, i, totalPages);
+    addPageFooter(doc, i, totalPages, skipFooterPages);
   }
 
   // Save
