@@ -11,6 +11,7 @@ import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfo
 import PractitionerTabProfile from "@/components/practitioners/detail/PractitionerTabProfile";
 import PractitionerTabPlaceholder from "@/components/practitioners/detail/PractitionerTabPlaceholder";
 import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
+import PractitionerTabAvis from "@/components/practitioners/detail/PractitionerTabAvis";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
