@@ -323,6 +323,44 @@ const AdminPractitioners = () => {
   const isAccountPending = (p: any) =>
     p.roles.includes("practitioner") && !p.roles.includes("admin") && !p.last_sign_in_at;
 
+  const filteredPractitioners = useMemo(() => {
+    if (scoreFilter === "all") return practitioners;
+    if (scoreFilter === "incomplete") return practitioners.filter((p: any) => (p.profile_score ?? 0) < 50);
+    if (scoreFilter === "low") return practitioners.filter((p: any) => (p.profile_score ?? 0) < 70);
+    return practitioners;
+  }, [practitioners, scoreFilter]);
+
+  const notifyOnePractitioner = async (p: any) => {
+    setNotifyingId(p.id);
+    const score = p.profile_score ?? 0;
+    const missing = (p.missing_fields || []).slice(0, 3).join(", ");
+    await supabase.from("practitioner_notifications").insert({
+      practitioner_id: p.id,
+      type: "profile_incomplete",
+      title: `Complétez votre fiche (${score}%)`,
+      body: `Votre fiche n'est complète qu'à ${score}%.${missing ? ` Manquant : ${missing}.` : ""}`,
+      cta_label: "Compléter mon profil",
+      cta_url: "/dashboard/profile",
+    });
+    toast({ title: "Notification envoyée", description: `${p.first_name} ${p.last_name} a été notifié.` });
+    setNotifyingId(null);
+  };
+
+  const notifyAllLowScore = async () => {
+    const targets = practitioners.filter((p: any) => (p.profile_score ?? 0) < 70 && p.is_active);
+    if (targets.length === 0) { toast({ title: "Aucun praticien à notifier" }); return; }
+    const rows = targets.map((p: any) => ({
+      practitioner_id: p.id,
+      type: "profile_incomplete" as const,
+      title: `Complétez votre fiche (${p.profile_score ?? 0}%)`,
+      body: `Votre fiche n'est complète qu'à ${p.profile_score ?? 0}%. Renseignez les informations manquantes.`,
+      cta_label: "Compléter mon profil",
+      cta_url: "/dashboard/profile",
+    }));
+    await supabase.from("practitioner_notifications").insert(rows);
+    toast({ title: "Notifications envoyées", description: `${targets.length} praticien(s) notifié(s).` });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
