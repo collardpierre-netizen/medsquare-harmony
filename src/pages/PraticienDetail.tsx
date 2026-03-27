@@ -364,14 +364,6 @@ const PraticienDetail = () => {
           practitionerEmail={practitioner.contact_email || ""}
         />
       </div>
-
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          nav, footer, .print\\:hidden { display: none !important; }
-          body { font-size: 12px; }
-        }
-      `}</style>
     </Layout>
   );
 };
