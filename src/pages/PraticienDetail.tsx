@@ -284,7 +284,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Avis patients"
                   description="Les avis multi-critères seront bientôt disponibles."
-                  icon="⭐"
+                  icon={Star}
                 />
               </TabsContent>
 
