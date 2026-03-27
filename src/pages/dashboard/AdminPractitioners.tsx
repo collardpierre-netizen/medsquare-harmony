@@ -48,7 +48,8 @@ const AdminPractitioners = () => {
   const { toast } = useToast();
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [scoreFilter, setScoreFilter] = useState<"all" | "incomplete" | "low">("all");
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
   // Invite dialog
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
