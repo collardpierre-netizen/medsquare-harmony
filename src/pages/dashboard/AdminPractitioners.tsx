@@ -364,7 +364,7 @@ const AdminPractitioners = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-xl font-bold">Gestion des praticiens</h2>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -372,14 +372,33 @@ const AdminPractitioners = () => {
             </p>
           </div>
 
-          {/* Invite dialog */}
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetInviteForm(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Inviter un praticien
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Score filter */}
+            <Select value={scoreFilter} onValueChange={(v) => setScoreFilter(v as any)}>
+              <SelectTrigger className="w-48 h-9 text-xs">
+                <Filter className="h-3.5 w-3.5 mr-1.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les praticiens</SelectItem>
+                <SelectItem value="incomplete">Fiches incomplètes (&lt; 50%)</SelectItem>
+                <SelectItem value="low">Score &lt; 70%</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={notifyAllLowScore}>
+              <Bell className="h-3.5 w-3.5" />
+              Notifier tous &lt; 70%
+            </Button>
+
+            {/* Invite dialog */}
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetInviteForm(); }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Inviter un praticien
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Inviter un nouveau praticien</DialogTitle>
