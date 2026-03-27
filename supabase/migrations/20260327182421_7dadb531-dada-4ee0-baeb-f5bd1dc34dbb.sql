@@ -1,0 +1,1 @@
+UPDATE profiles SET is_active = true WHERE id = 'bb42a01d-f83d-4da2-ae61-12d7b4060ab1';
