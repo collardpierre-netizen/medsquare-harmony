@@ -584,11 +584,13 @@ export type Database = {
           is_active: boolean
           languages: string[] | null
           last_name: string
+          missing_fields: Json | null
           notification_preferences: Json
           parking: boolean
           payment_methods: string[] | null
           phone: string | null
           pmr_accessible: boolean
+          profile_score: number | null
           schedule: Json | null
           social_links: Json | null
           specialties: string[] | null
@@ -619,11 +621,13 @@ export type Database = {
           is_active?: boolean
           languages?: string[] | null
           last_name?: string
+          missing_fields?: Json | null
           notification_preferences?: Json
           parking?: boolean
           payment_methods?: string[] | null
           phone?: string | null
           pmr_accessible?: boolean
+          profile_score?: number | null
           schedule?: Json | null
           social_links?: Json | null
           specialties?: string[] | null
@@ -654,11 +658,13 @@ export type Database = {
           is_active?: boolean
           languages?: string[] | null
           last_name?: string
+          missing_fields?: Json | null
           notification_preferences?: Json
           parking?: boolean
           payment_methods?: string[] | null
           phone?: string | null
           pmr_accessible?: boolean
+          profile_score?: number | null
           schedule?: Json | null
           social_links?: Json | null
           specialties?: string[] | null
@@ -768,6 +774,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_profile_score: {
+        Args: { p_profile_id: string }
+        Returns: undefined
+      }
       count_session_registrations: {
         Args: { session_uuid: string }
         Returns: number
