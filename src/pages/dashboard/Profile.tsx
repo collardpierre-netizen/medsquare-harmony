@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   Save, User, Mail, BellRing, Coffee, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube,
-  Stethoscope, Languages, CreditCard, Accessibility, ParkingCircle, Video, Home, UserCheck, Clock, X, Plus, Award
+  Stethoscope, Languages, CreditCard, Accessibility, ParkingCircle, Video, Home, UserCheck, Clock, X, Plus, Award,
+  Briefcase, GraduationCap, Trash2,
 } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
@@ -52,6 +53,9 @@ const Profile = () => {
   const [newPayment, setNewPayment] = useState("");
   const [associations, setAssociations] = useState<string[]>([]);
   const [newAssociation, setNewAssociation] = useState("");
+
+  const [experiences, setExperiences] = useState<{ title: string; institution: string; location: string; start_year: string; end_year: string; description: string }[]>([]);
+  const [formations, setFormations] = useState<{ title: string; institution: string; location: string; start_year: string; end_year: string; description: string }[]>([]);
 
   const [socialLinks, setSocialLinks] = useState({
     website: "", facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "",
@@ -112,6 +116,8 @@ const Profile = () => {
       setSpecialties(p?.specialties || []);
       setPaymentMethods(p?.payment_methods || []);
       setAssociations(p?.associations || []);
+      setExperiences(Array.isArray(p?.experiences) ? p.experiences : []);
+      setFormations(Array.isArray(p?.formations) ? p.formations : []);
       const sl = p?.social_links || {};
       setSocialLinks({
         website: sl.website || "", facebook: sl.facebook || "", instagram: sl.instagram || "",
@@ -151,6 +157,8 @@ const Profile = () => {
         schedule: schedule as any,
         notification_preferences: notifPrefs as any,
         social_links: socialLinks as any,
+        experiences: experiences as any,
+        formations: formations as any,
       } as any)
       .eq("id", profile.id);
 
@@ -378,6 +386,70 @@ const Profile = () => {
               <div>
                 <Label htmlFor="bio">Biographie</Label>
                 <Textarea id="bio" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Présentez-vous en quelques lignes..." rows={5} className="mt-1.5" />
+              </div>
+
+              {/* Experiences */}
+              <div className="rounded-lg border border-border bg-accent/30 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                    Expériences professionnelles
+                  </p>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setExperiences([...experiences, { title: "", institution: "", location: "", start_year: "", end_year: "", description: "" }])}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
+                  </Button>
+                </div>
+                {experiences.map((exp, i) => (
+                  <div key={i} className="rounded border border-border p-3 space-y-2 bg-background">
+                    <div className="flex justify-between items-start">
+                      <p className="text-xs text-muted-foreground font-medium">Expérience {i + 1}</p>
+                      <button type="button" onClick={() => setExperiences(experiences.filter((_, j) => j !== i))} className="text-destructive hover:text-destructive/80">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <Input placeholder="Titre du poste" value={exp.title} onChange={(e) => { const u = [...experiences]; u[i] = { ...u[i], title: e.target.value }; setExperiences(u); }} />
+                    <Input placeholder="Institution / Établissement" value={exp.institution} onChange={(e) => { const u = [...experiences]; u[i] = { ...u[i], institution: e.target.value }; setExperiences(u); }} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input placeholder="Lieu" value={exp.location} onChange={(e) => { const u = [...experiences]; u[i] = { ...u[i], location: e.target.value }; setExperiences(u); }} />
+                      <Input placeholder="Année début" value={exp.start_year} onChange={(e) => { const u = [...experiences]; u[i] = { ...u[i], start_year: e.target.value }; setExperiences(u); }} maxLength={4} />
+                      <Input placeholder="Année fin" value={exp.end_year} onChange={(e) => { const u = [...experiences]; u[i] = { ...u[i], end_year: e.target.value }; setExperiences(u); }} maxLength={4} />
+                    </div>
+                    <Textarea placeholder="Description (optionnel)" value={exp.description} onChange={(e) => { const u = [...experiences]; u[i] = { ...u[i], description: e.target.value }; setExperiences(u); }} rows={2} />
+                  </div>
+                ))}
+                {experiences.length === 0 && <p className="text-xs text-muted-foreground">Ajoutez vos expériences pour enrichir votre onglet Parcours.</p>}
+              </div>
+
+              {/* Formations */}
+              <div className="rounded-lg border border-border bg-accent/30 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4 text-primary" />
+                    Formations & Diplômes
+                  </p>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setFormations([...formations, { title: "", institution: "", location: "", start_year: "", end_year: "", description: "" }])}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter
+                  </Button>
+                </div>
+                {formations.map((f, i) => (
+                  <div key={i} className="rounded border border-border p-3 space-y-2 bg-background">
+                    <div className="flex justify-between items-start">
+                      <p className="text-xs text-muted-foreground font-medium">Formation {i + 1}</p>
+                      <button type="button" onClick={() => setFormations(formations.filter((_, j) => j !== i))} className="text-destructive hover:text-destructive/80">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <Input placeholder="Titre / Diplôme" value={f.title} onChange={(e) => { const u = [...formations]; u[i] = { ...u[i], title: e.target.value }; setFormations(u); }} />
+                    <Input placeholder="Université / École" value={f.institution} onChange={(e) => { const u = [...formations]; u[i] = { ...u[i], institution: e.target.value }; setFormations(u); }} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input placeholder="Lieu" value={f.location} onChange={(e) => { const u = [...formations]; u[i] = { ...u[i], location: e.target.value }; setFormations(u); }} />
+                      <Input placeholder="Année début" value={f.start_year} onChange={(e) => { const u = [...formations]; u[i] = { ...u[i], start_year: e.target.value }; setFormations(u); }} maxLength={4} />
+                      <Input placeholder="Année fin" value={f.end_year} onChange={(e) => { const u = [...formations]; u[i] = { ...u[i], end_year: e.target.value }; setFormations(u); }} maxLength={4} />
+                    </div>
+                    <Textarea placeholder="Description (optionnel)" value={f.description} onChange={(e) => { const u = [...formations]; u[i] = { ...u[i], description: e.target.value }; setFormations(u); }} rows={2} />
+                  </div>
+                ))}
+                {formations.length === 0 && <p className="text-xs text-muted-foreground">Ajoutez vos formations pour enrichir votre onglet Parcours.</p>}
               </div>
 
               {/* Social links */}

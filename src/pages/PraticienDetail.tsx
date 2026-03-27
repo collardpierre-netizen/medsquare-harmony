@@ -13,6 +13,7 @@ import PractitionerTabPlaceholder from "@/components/practitioners/detail/Practi
 import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
 import PractitionerTabAvis from "@/components/practitioners/detail/PractitionerTabAvis";
 import PractitionerTabQR from "@/components/practitioners/detail/PractitionerTabQR";
+import PractitionerTabParcours from "@/components/practitioners/detail/PractitionerTabParcours";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
@@ -312,10 +313,11 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="parcours" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Parcours professionnel"
-                  description="La timeline du parcours sera bientôt disponible."
-                  icon={GraduationCap}
+                <PractitionerTabParcours
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
+                  experiences={practitioner.experiences}
+                  formations={practitioner.formations}
+                  associations={practitioner.associations}
                 />
               </TabsContent>
             </Tabs>
