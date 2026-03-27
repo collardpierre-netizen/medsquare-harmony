@@ -3,6 +3,7 @@ import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
