@@ -116,6 +116,8 @@ const Profile = () => {
       setSpecialties(p?.specialties || []);
       setPaymentMethods(p?.payment_methods || []);
       setAssociations(p?.associations || []);
+      setExperiences(Array.isArray(p?.experiences) ? p.experiences : []);
+      setFormations(Array.isArray(p?.formations) ? p.formations : []);
       const sl = p?.social_links || {};
       setSocialLinks({
         website: sl.website || "", facebook: sl.facebook || "", instagram: sl.instagram || "",
