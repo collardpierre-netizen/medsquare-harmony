@@ -297,10 +297,9 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="avis" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Avis patients"
-                  description="Les avis multi-critères seront bientôt disponibles."
-                  icon={Star}
+                <PractitionerTabAvis
+                  practitionerId={practitioner.id}
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
                 />
               </TabsContent>
 
