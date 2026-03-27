@@ -382,6 +382,44 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          channel: string
+          id: string
+          metadata: Json | null
+          practitioner_id: string
+          sent_at: string
+          status: string
+          template_id: string
+        }
+        Insert: {
+          channel?: string
+          id?: string
+          metadata?: Json | null
+          practitioner_id: string
+          sent_at?: string
+          status?: string
+          template_id: string
+        }
+        Update: {
+          channel?: string
+          id?: string
+          metadata?: Json | null
+          practitioner_id?: string
+          sent_at?: string
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -417,6 +455,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      practitioner_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          cta_label: string | null
+          cta_url: string | null
+          expires_at: string | null
+          id: string
+          is_read: boolean
+          practitioner_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          practitioner_id: string
+          title: string
+          type?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          practitioner_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_notifications_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       practitioner_qna: {
         Row: {
@@ -584,11 +669,13 @@ export type Database = {
           is_active: boolean
           languages: string[] | null
           last_name: string
+          missing_fields: Json | null
           notification_preferences: Json
           parking: boolean
           payment_methods: string[] | null
           phone: string | null
           pmr_accessible: boolean
+          profile_score: number | null
           schedule: Json | null
           social_links: Json | null
           specialties: string[] | null
@@ -619,11 +706,13 @@ export type Database = {
           is_active?: boolean
           languages?: string[] | null
           last_name?: string
+          missing_fields?: Json | null
           notification_preferences?: Json
           parking?: boolean
           payment_methods?: string[] | null
           phone?: string | null
           pmr_accessible?: boolean
+          profile_score?: number | null
           schedule?: Json | null
           social_links?: Json | null
           specialties?: string[] | null
@@ -654,11 +743,13 @@ export type Database = {
           is_active?: boolean
           languages?: string[] | null
           last_name?: string
+          missing_fields?: Json | null
           notification_preferences?: Json
           parking?: boolean
           payment_methods?: string[] | null
           phone?: string | null
           pmr_accessible?: boolean
+          profile_score?: number | null
           schedule?: Json | null
           social_links?: Json | null
           specialties?: string[] | null
@@ -768,6 +859,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_profile_score: {
+        Args: { p_profile_id: string }
+        Returns: undefined
+      }
       count_session_registrations: {
         Args: { session_uuid: string }
         Returns: number

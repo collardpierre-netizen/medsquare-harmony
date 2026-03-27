@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
-  AlertCircle, Trash2, Phone,
+  AlertCircle, Trash2, Phone, Bell, Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +48,8 @@ const AdminPractitioners = () => {
   const { toast } = useToast();
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [scoreFilter, setScoreFilter] = useState<"all" | "incomplete" | "low">("all");
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
   // Invite dialog
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -318,10 +323,48 @@ const AdminPractitioners = () => {
   const isAccountPending = (p: any) =>
     p.roles.includes("practitioner") && !p.roles.includes("admin") && !p.last_sign_in_at;
 
+  const filteredPractitioners = useMemo(() => {
+    if (scoreFilter === "all") return practitioners;
+    if (scoreFilter === "incomplete") return practitioners.filter((p: any) => (p.profile_score ?? 0) < 50);
+    if (scoreFilter === "low") return practitioners.filter((p: any) => (p.profile_score ?? 0) < 70);
+    return practitioners;
+  }, [practitioners, scoreFilter]);
+
+  const notifyOnePractitioner = async (p: any) => {
+    setNotifyingId(p.id);
+    const score = p.profile_score ?? 0;
+    const missing = (p.missing_fields || []).slice(0, 3).join(", ");
+    await supabase.from("practitioner_notifications").insert({
+      practitioner_id: p.id,
+      type: "profile_incomplete",
+      title: `Complétez votre fiche (${score}%)`,
+      body: `Votre fiche n'est complète qu'à ${score}%.${missing ? ` Manquant : ${missing}.` : ""}`,
+      cta_label: "Compléter mon profil",
+      cta_url: "/dashboard/profile",
+    });
+    toast({ title: "Notification envoyée", description: `${p.first_name} ${p.last_name} a été notifié.` });
+    setNotifyingId(null);
+  };
+
+  const notifyAllLowScore = async () => {
+    const targets = practitioners.filter((p: any) => (p.profile_score ?? 0) < 70 && p.is_active);
+    if (targets.length === 0) { toast({ title: "Aucun praticien à notifier" }); return; }
+    const rows = targets.map((p: any) => ({
+      practitioner_id: p.id,
+      type: "profile_incomplete" as const,
+      title: `Complétez votre fiche (${p.profile_score ?? 0}%)`,
+      body: `Votre fiche n'est complète qu'à ${p.profile_score ?? 0}%. Renseignez les informations manquantes.`,
+      cta_label: "Compléter mon profil",
+      cta_url: "/dashboard/profile",
+    }));
+    await supabase.from("practitioner_notifications").insert(rows);
+    toast({ title: "Notifications envoyées", description: `${targets.length} praticien(s) notifié(s).` });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-xl font-bold">Gestion des praticiens</h2>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -329,14 +372,33 @@ const AdminPractitioners = () => {
             </p>
           </div>
 
-          {/* Invite dialog */}
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetInviteForm(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Inviter un praticien
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Score filter */}
+            <Select value={scoreFilter} onValueChange={(v) => setScoreFilter(v as any)}>
+              <SelectTrigger className="w-48 h-9 text-xs">
+                <Filter className="h-3.5 w-3.5 mr-1.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les praticiens</SelectItem>
+                <SelectItem value="incomplete">Fiches incomplètes (&lt; 50%)</SelectItem>
+                <SelectItem value="low">Score &lt; 70%</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={notifyAllLowScore}>
+              <Bell className="h-3.5 w-3.5" />
+              Notifier tous &lt; 70%
+            </Button>
+
+            {/* Invite dialog */}
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetInviteForm(); }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Inviter un praticien
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Inviter un nouveau praticien</DialogTitle>
@@ -437,6 +499,7 @@ const AdminPractitioners = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Edit dialog */}
@@ -583,7 +646,7 @@ const AdminPractitioners = () => {
               </div>
             ) : (
               <div className="space-y-3">
-              {practitioners.map((p: any, index: number) => (
+              {filteredPractitioners.map((p: any, index: number) => (
                   <div
                     key={p.id}
                     className="flex items-center justify-between p-4 rounded-lg border border-border"
@@ -662,8 +725,38 @@ const AdminPractitioners = () => {
                           )}
                         </div>
                       </div>
+                      {/* Score bar */}
+                      <div className="hidden md:flex flex-col items-center gap-1 min-w-[80px]">
+                        <div className="flex items-center gap-1">
+                          {(p.profile_score ?? 0) < 50 && <AlertCircle className="h-3 w-3 text-destructive" />}
+                          <span className={`text-xs font-bold ${(p.profile_score ?? 0) < 40 ? 'text-destructive' : (p.profile_score ?? 0) < 70 ? 'text-orange-500' : 'text-emerald-600'}`}>
+                            {p.profile_score ?? 0}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={p.profile_score ?? 0}
+                          className="h-1.5 w-16"
+                          style={{
+                            // @ts-ignore
+                            '--progress-foreground': (p.profile_score ?? 0) < 40 ? 'var(--destructive)' : (p.profile_score ?? 0) < 70 ? '#f59e0b' : '#22c55e'
+                          } as any}
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Notify button */}
+                      {(p.profile_score ?? 0) < 70 && !p.roles.includes("admin") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Envoyer une notification de complétion"
+                          disabled={notifyingId === p.id}
+                          onClick={() => notifyOnePractitioner(p)}
+                          className="text-[#534AB7] hover:text-[#534AB7] hover:bg-[#534AB7]/10"
+                        >
+                          {notifyingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
+                        </Button>
+                      )}
                       {isPendingValidation(p) && (
                         <Button
                           variant="default"
