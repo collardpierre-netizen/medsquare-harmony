@@ -25,6 +25,7 @@ const MODE_ICONS: Record<string, React.ElementType> = {
   cabinet: Stethoscope,
   video: Video,
   home: Home,
+  domicile: Home,
   couple: Users,
   child: Baby,
 };
@@ -33,6 +34,7 @@ const MODE_LABELS: Record<string, string> = {
   cabinet: "Cabinet",
   video: "Vidéo",
   home: "Domicile",
+  domicile: "Domicile",
   couple: "Couple",
   child: "Enfant",
 };
