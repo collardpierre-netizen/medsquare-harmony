@@ -292,7 +292,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Questions & Réponses"
                   description="La section Q&R sera bientôt disponible."
-                  icon="💬"
+                  icon={MessageCircle}
                 />
               </TabsContent>
 
