@@ -157,6 +157,8 @@ const Profile = () => {
         schedule: schedule as any,
         notification_preferences: notifPrefs as any,
         social_links: socialLinks as any,
+        experiences: experiences as any,
+        formations: formations as any,
       } as any)
       .eq("id", profile.id);
 
