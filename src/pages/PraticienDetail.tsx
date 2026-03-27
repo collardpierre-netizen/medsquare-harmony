@@ -10,6 +10,7 @@ import PractitionerHero from "@/components/practitioners/detail/PractitionerHero
 import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfoSidebar";
 import PractitionerTabProfile from "@/components/practitioners/detail/PractitionerTabProfile";
 import PractitionerTabPlaceholder from "@/components/practitioners/detail/PractitionerTabPlaceholder";
+import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 
