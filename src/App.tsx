@@ -36,6 +36,7 @@ import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
 import NotFound from "./pages/NotFound";
 import Reviews from "./pages/dashboard/Reviews";
 import QnA from "./pages/dashboard/QnA";
+import Rates from "./pages/dashboard/Rates";
 import GuestRegistration from "./pages/GuestRegistration";
 import Widget from "./pages/Widget";
 import ScrollToTop from "./components/ScrollToTop";
