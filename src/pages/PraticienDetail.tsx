@@ -305,10 +305,9 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="qr" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Questions & Réponses"
-                  description="La section Q&R sera bientôt disponible."
-                  icon={MessageCircle}
+                <PractitionerTabQR
+                  practitionerId={practitioner.id}
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
                 />
               </TabsContent>
 
