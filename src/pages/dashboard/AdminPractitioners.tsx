@@ -646,7 +646,7 @@ const AdminPractitioners = () => {
               </div>
             ) : (
               <div className="space-y-3">
-              {practitioners.map((p: any, index: number) => (
+              {filteredPractitioners.map((p: any, index: number) => (
                   <div
                     key={p.id}
                     className="flex items-center justify-between p-4 rounded-lg border border-border"
