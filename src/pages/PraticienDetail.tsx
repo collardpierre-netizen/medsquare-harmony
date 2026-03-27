@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarDays, Star, MessageCircle, GraduationCap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -269,7 +269,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Réservation en ligne"
                   description="Le système de réservation avancé avec créneaux en temps réel sera bientôt disponible."
-                  icon="📅"
+                  icon={CalendarDays}
                 />
               </TabsContent>
 
@@ -284,7 +284,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Avis patients"
                   description="Les avis multi-critères seront bientôt disponibles."
-                  icon="⭐"
+                  icon={Star}
                 />
               </TabsContent>
 
@@ -292,7 +292,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Questions & Réponses"
                   description="La section Q&R sera bientôt disponible."
-                  icon="💬"
+                  icon={MessageCircle}
                 />
               </TabsContent>
 
@@ -300,7 +300,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Parcours professionnel"
                   description="La timeline du parcours sera bientôt disponible."
-                  icon="🎓"
+                  icon={GraduationCap}
                 />
               </TabsContent>
             </Tabs>

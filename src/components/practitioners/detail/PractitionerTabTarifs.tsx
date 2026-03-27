@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Stethoscope, Video, Home, Users, Baby } from "lucide-react";
+import { Stethoscope, Video, Home, Users, Baby, Receipt } from "lucide-react";
 
 interface Rate {
   id: string;
@@ -66,7 +66,9 @@ const PractitionerTabTarifs = ({ practitionerId, practitionerName }: Props) => {
   if (rates.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-4xl mb-3">💰</p>
+        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+          <Receipt className="h-6 w-6 text-primary" />
+        </div>
         <h3 className="font-display text-lg font-semibold mb-1">Tarifs & Remboursements</h3>
         <p className="text-muted-foreground text-sm">
           {practitionerName} n'a pas encore renseigné ses tarifs.
