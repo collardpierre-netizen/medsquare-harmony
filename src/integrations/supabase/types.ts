@@ -418,6 +418,150 @@ export type Database = {
         }
         Relationships: []
       }
+      practitioner_qna: {
+        Row: {
+          answer: string | null
+          author_name: string | null
+          category: string | null
+          created_at: string
+          id: string
+          is_published: boolean
+          practitioner_id: string
+          question: string
+        }
+        Insert: {
+          answer?: string | null
+          author_name?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          practitioner_id: string
+          question: string
+        }
+        Update: {
+          answer?: string | null
+          author_name?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          practitioner_id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_qna_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practitioner_rates: {
+        Row: {
+          act_label: string
+          consult_mode: string
+          created_at: string
+          duration_minutes: number | null
+          effective_date: string
+          id: string
+          inami_total: number | null
+          patient_bim: number | null
+          patient_normal: number | null
+          practitioner_id: string
+        }
+        Insert: {
+          act_label: string
+          consult_mode?: string
+          created_at?: string
+          duration_minutes?: number | null
+          effective_date?: string
+          id?: string
+          inami_total?: number | null
+          patient_bim?: number | null
+          patient_normal?: number | null
+          practitioner_id: string
+        }
+        Update: {
+          act_label?: string
+          consult_mode?: string
+          created_at?: string
+          duration_minutes?: number | null
+          effective_date?: string
+          id?: string
+          inami_total?: number | null
+          patient_bim?: number | null
+          patient_normal?: number | null
+          practitioner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_rates_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practitioner_reviews: {
+        Row: {
+          author_email: string | null
+          author_name: string
+          created_at: string
+          id: string
+          is_approved: boolean
+          is_verified: boolean
+          practitioner_id: string
+          review_text: string | null
+          score_explanation: number | null
+          score_global: number
+          score_listening: number | null
+          score_premises: number | null
+          score_punctuality: number | null
+        }
+        Insert: {
+          author_email?: string | null
+          author_name?: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_verified?: boolean
+          practitioner_id: string
+          review_text?: string | null
+          score_explanation?: number | null
+          score_global: number
+          score_listening?: number | null
+          score_premises?: number | null
+          score_punctuality?: number | null
+        }
+        Update: {
+          author_email?: string | null
+          author_name?: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_verified?: boolean
+          practitioner_id?: string
+          review_text?: string | null
+          score_explanation?: number | null
+          score_global?: number
+          score_listening?: number | null
+          score_premises?: number | null
+          score_punctuality?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_reviews_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           accepts_new_patients: boolean

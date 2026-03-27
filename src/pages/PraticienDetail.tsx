@@ -10,6 +10,7 @@ import PractitionerHero from "@/components/practitioners/detail/PractitionerHero
 import PractitionerInfoSidebar from "@/components/practitioners/PractitionerInfoSidebar";
 import PractitionerTabProfile from "@/components/practitioners/detail/PractitionerTabProfile";
 import PractitionerTabPlaceholder from "@/components/practitioners/detail/PractitionerTabPlaceholder";
+import PractitionerTabTarifs from "@/components/practitioners/detail/PractitionerTabTarifs";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
 import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 
@@ -273,10 +274,9 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="tarifs" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Tarifs & Remboursements"
-                  description="Le simulateur BIM/OMNIO avec les tarifs INAMI sera bientôt disponible."
-                  icon="💰"
+                <PractitionerTabTarifs
+                  practitionerId={practitioner.id}
+                  practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
                 />
               </TabsContent>
 
