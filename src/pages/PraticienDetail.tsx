@@ -269,7 +269,7 @@ const PraticienDetail = () => {
                 <PractitionerTabPlaceholder
                   title="Réservation en ligne"
                   description="Le système de réservation avancé avec créneaux en temps réel sera bientôt disponible."
-                  icon="📅"
+                  icon={CalendarDays}
                 />
               </TabsContent>
 
