@@ -78,8 +78,8 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick }: 
           </div>
           {practitioner.accepts_new_patients !== false && (
             <span className="absolute -bottom-1 -right-1 flex h-5 w-5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500 border-2 border-card" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+              <span className="relative inline-flex rounded-full h-5 w-5 bg-primary border-2 border-card" />
             </span>
           )}
         </div>
