@@ -81,6 +81,7 @@ const App = () => (
             <Route path="/dashboard/guide" element={<ProtectedRoute allowedRoles={["practitioner"]}><PractitionerGuide /></ProtectedRoute>} />
             <Route path="/dashboard/legal-documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><LegalDocuments /></ProtectedRoute>} />
             <Route path="/dashboard/reviews" element={<ProtectedRoute allowedRoles={["practitioner"]}><Reviews /></ProtectedRoute>} />
+            <Route path="/dashboard/qna" element={<ProtectedRoute allowedRoles={["practitioner"]}><QnA /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />
