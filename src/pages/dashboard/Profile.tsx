@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   Save, User, Mail, BellRing, Coffee, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube,
-  Stethoscope, Languages, CreditCard, Accessibility, ParkingCircle, Video, Home, UserCheck, Clock, X, Plus, Award
+  Stethoscope, Languages, CreditCard, Accessibility, ParkingCircle, Video, Home, UserCheck, Clock, X, Plus, Award,
+  Briefcase, GraduationCap, Trash2,
 } from "lucide-react";
 import ScheduleEditor, { type DaySchedule } from "@/components/dashboard/profile/ScheduleEditor";
 import ImageUpload from "@/components/dashboard/ImageUpload";
