@@ -17,6 +17,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ upcoming: 0, pending: 0, confirmed: 0 });
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [pendingLegalDocs, setPendingLegalDocs] = useState(0);
+  const [demoMode, setDemoMode] = useState(false);
+  const [pendingLegalDocs, setPendingLegalDocs] = useState(0);
 
   useEffect(() => {
     if (!profile) return;
