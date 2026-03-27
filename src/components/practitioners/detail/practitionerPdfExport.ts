@@ -54,7 +54,8 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
-function addPageFooter(doc: jsPDF, pageNum: number, totalPages: number) {
+function addPageFooter(doc: jsPDF, pageNum: number, totalPages: number, skipFooterPages: Set<number>) {
+  if (skipFooterPages.has(pageNum)) return;
   const y = PAGE_H - 10;
   doc.setFontSize(7);
   doc.setTextColor(...TEXT_MUTED);
