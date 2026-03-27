@@ -54,6 +54,9 @@ const Profile = () => {
   const [associations, setAssociations] = useState<string[]>([]);
   const [newAssociation, setNewAssociation] = useState("");
 
+  const [experiences, setExperiences] = useState<{ title: string; institution: string; location: string; start_year: string; end_year: string; description: string }[]>([]);
+  const [formations, setFormations] = useState<{ title: string; institution: string; location: string; start_year: string; end_year: string; description: string }[]>([]);
+
   const [socialLinks, setSocialLinks] = useState({
     website: "", facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "",
   });
