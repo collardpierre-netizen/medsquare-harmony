@@ -18,6 +18,7 @@ type PeriodRange = "4w" | "8w" | "12w" | "3m" | "6m";
 const AdminAnalytics = () => {
   const { toast } = useToast();
   const [periodRange, setPeriodRange] = useState<PeriodRange>("4w");
+  const [selectedRoomId, setSelectedRoomId] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
 
@@ -159,9 +160,12 @@ const AdminAnalytics = () => {
   const { chartData, roomOccupancyData } = useMemo(() => {
     if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [] };
 
+    const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
+    const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
+    const filteredSessions = selectedRoomId === "all" ? sessions : sessions.filter((s) => s.room_id === selectedRoomId);
     const chartData = periods.map(({ start, end, label }) => {
       let revenue = 0;
-      const periodBookings = bookings.filter(
+      const periodBookings = filteredBookings.filter(
         (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
       );
       for (const b of periodBookings) {
@@ -178,18 +182,17 @@ const AdminAnalytics = () => {
         const offset = getBrusselsOffset(day);
         const { start: oS, end: oE } = getOpeningHours(day);
         const daySlots = oE - oS;
-        totalSlots += daySlots * rooms.length;
+        totalSlots += daySlots * filteredRooms.length;
 
-        for (const room of rooms) {
+        for (const room of filteredRooms) {
           for (let h = oS; h < oE; h++) {
-            // Convert Brussels hour to UTC
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
             const slotEndUTC = new Date(day);
             slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
 
             const isOccupied =
-              bookings.some(
+              filteredBookings.some(
                 (b) =>
                   b.room_id === room.id &&
                   new Date(b.start_time) >= start &&
@@ -197,7 +200,7 @@ const AdminAnalytics = () => {
                   new Date(b.start_time) < slotEndUTC &&
                   new Date(b.end_time) > slotStartUTC
               ) ||
-              sessions.some(
+              filteredSessions.some(
                 (s) =>
                   s.room_id === room.id &&
                   new Date(s.start_time) >= start &&
@@ -212,7 +215,7 @@ const AdminAnalytics = () => {
       const occupancy = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
 
       const periodSessionIds = new Set(
-        sessions
+        filteredSessions
           .filter((s) => new Date(s.start_time) >= start && new Date(s.start_time) < end)
           .map((s) => s.id)
       );
@@ -236,7 +239,7 @@ const AdminAnalytics = () => {
       const row: Record<string, string | number> = { period: label };
       const days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
 
-      for (const room of rooms) {
+      for (const room of filteredRooms) {
         let total = 0;
         let occupied = 0;
         for (let d = 0; d < days; d++) {
@@ -250,7 +253,7 @@ const AdminAnalytics = () => {
             const slotEndUTC = new Date(day);
             slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
             const has =
-              bookings.some(
+              filteredBookings.some(
                 (b) =>
                   b.room_id === room.id &&
                   new Date(b.start_time) >= start &&
@@ -258,7 +261,7 @@ const AdminAnalytics = () => {
                   new Date(b.start_time) < slotEndUTC &&
                   new Date(b.end_time) > slotStartUTC
               ) ||
-              sessions.some(
+              filteredSessions.some(
                 (s) =>
                   s.room_id === room.id &&
                   new Date(s.start_time) >= start &&
@@ -275,7 +278,7 @@ const AdminAnalytics = () => {
     });
 
     return { chartData, roomOccupancyData };
-  }, [periods, rooms, bookings, sessions, registrations]);
+  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
 
   // Current period summary (last period)
   const current = chartData[chartData.length - 1];
@@ -327,14 +330,13 @@ const AdminAnalytics = () => {
   const practitionersChartConfig = {
     practitioners: { label: "Praticiens actifs", color: "hsl(var(--chart-4))" },
   };
-  const roomOccupancyChartConfig = rooms
-    ? Object.fromEntries(
-        rooms.map((room, i) => [
-          room.name,
-          { label: room.name, color: `hsl(var(--chart-${(i % 5) + 1}))` },
-        ])
-      )
-    : {};
+  const filteredRoomsForChart = selectedRoomId === "all" ? (rooms || []) : (rooms || []).filter((r) => r.id === selectedRoomId);
+  const roomOccupancyChartConfig = Object.fromEntries(
+    filteredRoomsForChart.map((room, i) => [
+      room.name,
+      { label: room.name, color: `hsl(var(--chart-${(i % 5) + 1}))` },
+    ])
+  );
 
   return (
     <DashboardLayout>
@@ -357,6 +359,18 @@ const AdminAnalytics = () => {
               <FileDown className="h-3.5 w-3.5" />
               {isExporting ? "Export…" : "Export PDF"}
             </Button>
+            <Select value={selectedRoomId} onValueChange={setSelectedRoomId}>
+              <SelectTrigger className="w-[180px] h-9 text-xs">
+                <MapPin className="h-3.5 w-3.5 mr-1 shrink-0" />
+                <SelectValue placeholder="Toutes les salles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les salles</SelectItem>
+                {(rooms || []).map((room) => (
+                  <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={periodRange} onValueChange={(v) => setPeriodRange(v as PeriodRange)}>
               <SelectTrigger className="w-[160px] h-9 text-xs">
                 <SelectValue />
@@ -425,10 +439,10 @@ const AdminAnalytics = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
-                Taux d'occupation global
+                Taux d'occupation {selectedRoomId !== "all" && filteredRoomsForChart[0] ? `— ${filteredRoomsForChart[0].name}` : "global"}
               </CardTitle>
               <CardDescription className="text-xs">
-                Toutes salles confondues
+                {selectedRoomId === "all" ? "Toutes salles confondues" : "Salle sélectionnée"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -494,7 +508,7 @@ const AdminAnalytics = () => {
         </div>
 
         {/* Per-room occupancy chart */}
-        {rooms && rooms.length > 0 && roomOccupancyData.length > 0 && (
+        {filteredRoomsForChart.length > 0 && roomOccupancyData.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
@@ -502,7 +516,9 @@ const AdminAnalytics = () => {
                 Occupation par salle
               </CardTitle>
               <CardDescription className="text-xs">
-                Taux d'occupation (%) individuel par salle et par période
+                {selectedRoomId === "all"
+                  ? "Taux d'occupation (%) individuel par salle et par période"
+                  : `Taux d'occupation de ${filteredRoomsForChart[0]?.name}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -512,7 +528,7 @@ const AdminAnalytics = () => {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
-                  {rooms.map((room, i) => (
+                  {filteredRoomsForChart.map((room, i) => (
                     <Bar
                       key={room.id}
                       dataKey={room.name}
