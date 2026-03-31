@@ -32,7 +32,7 @@ interface SlotInfo {
 
 const MyRoomsView = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [rooms, setRooms] = useState<RoomWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -48,33 +48,49 @@ const MyRoomsView = () => {
 
   useEffect(() => {
     if (!profile) return;
-    const fetchMyRooms = async () => {
+    const fetchRooms = async () => {
       setLoading(true);
-      const { data: bookings } = await supabase
-        .from("bookings")
-        .select("room_id")
-        .eq("practitioner_id", profile.id)
-        .neq("status", "cancelled");
-      const { data: sessions } = await supabase
-        .from("activity_sessions")
-        .select("room_id, activities!inner(practitioner_id)")
-        .eq("activities.practitioner_id", profile.id);
-      const roomIds = new Set<string>();
-      (bookings || []).forEach((b) => { if (b.room_id) roomIds.add(b.room_id); });
-      (sessions || []).forEach((s: any) => { if (s.room_id) roomIds.add(s.room_id); });
-      if (roomIds.size === 0) { setRooms([]); setLoading(false); return; }
-      const { data: roomsData } = await supabase
-        .from("rooms").select("*").in("id", Array.from(roomIds)).order("name");
-      const roomsWithStats: RoomWithStats[] = (roomsData || []).map((room) => ({
-        id: room.id, name: room.name, capacity: room.capacity, floor: room.floor,
-        photos: room.photos, equipment: room.equipment,
-        bookingCount: (bookings || []).filter((b) => b.room_id === room.id).length,
-      }));
-      setRooms(roomsWithStats);
+
+      if (isAdmin) {
+        // Admin sees all rooms
+        const { data: roomsData } = await supabase
+          .from("rooms").select("*").order("name");
+        const { data: allBookings } = await supabase
+          .from("bookings").select("room_id").neq("status", "cancelled");
+        const roomsWithStats: RoomWithStats[] = (roomsData || []).map((room) => ({
+          id: room.id, name: room.name, capacity: room.capacity, floor: room.floor,
+          photos: room.photos, equipment: room.equipment,
+          bookingCount: (allBookings || []).filter((b) => b.room_id === room.id).length,
+        }));
+        setRooms(roomsWithStats);
+      } else {
+        // Practitioner: only rooms where they have bookings/sessions
+        const { data: bookings } = await supabase
+          .from("bookings")
+          .select("room_id")
+          .eq("practitioner_id", profile.id)
+          .neq("status", "cancelled");
+        const { data: sessions } = await supabase
+          .from("activity_sessions")
+          .select("room_id, activities!inner(practitioner_id)")
+          .eq("activities.practitioner_id", profile.id);
+        const roomIds = new Set<string>();
+        (bookings || []).forEach((b) => { if (b.room_id) roomIds.add(b.room_id); });
+        (sessions || []).forEach((s: any) => { if (s.room_id) roomIds.add(s.room_id); });
+        if (roomIds.size === 0) { setRooms([]); setLoading(false); return; }
+        const { data: roomsData } = await supabase
+          .from("rooms").select("*").in("id", Array.from(roomIds)).order("name");
+        const roomsWithStats: RoomWithStats[] = (roomsData || []).map((room) => ({
+          id: room.id, name: room.name, capacity: room.capacity, floor: room.floor,
+          photos: room.photos, equipment: room.equipment,
+          bookingCount: (bookings || []).filter((b) => b.room_id === room.id).length,
+        }));
+        setRooms(roomsWithStats);
+      }
       setLoading(false);
     };
-    fetchMyRooms();
-  }, [profile]);
+    fetchRooms();
+  }, [profile, isAdmin]);
 
   useEffect(() => {
     if (rooms.length === 0 || !profile) return;
