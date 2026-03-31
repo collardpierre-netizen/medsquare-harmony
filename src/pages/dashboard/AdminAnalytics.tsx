@@ -369,10 +369,11 @@ const AdminAnalytics = () => {
     practitioners: { label: "Praticiens actifs", color: "hsl(var(--chart-4))" },
   };
   const filteredRoomsForChart = selectedRoomId === "all" ? (rooms || []) : (rooms || []).filter((r) => r.id === selectedRoomId);
+  const roomColors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
   const roomOccupancyChartConfig = Object.fromEntries(
     filteredRoomsForChart.map((room, i) => [
       room.name,
-      { label: room.name, color: `hsl(var(--chart-${(i % 5) + 1}))` },
+      { label: room.name, color: roomColors[i % roomColors.length] },
     ])
   );
 
