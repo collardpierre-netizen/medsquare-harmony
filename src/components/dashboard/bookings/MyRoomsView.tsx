@@ -381,10 +381,27 @@ const MyRoomsView = () => {
                 <div className="grid grid-cols-7 sm:grid-cols-14 gap-1">
                   {slots.map((slot) => {
                     const cfg = statusConfig[slot.status];
+                    const isFree = slot.status === "free";
                     return (
-                      <div key={slot.hour} className={cn("rounded-md px-1.5 py-1.5 text-center text-[10px] font-medium border border-border/50 transition-colors", cfg.bg, cfg.text)} title={slot.label || cfg.label}>
+                      <div
+                        key={slot.hour}
+                        onClick={isFree ? () => {
+                          const dateStr = format(selectedDate, "yyyy-MM-dd");
+                          navigate(`/dashboard/bookings?room=${room.id}&date=${dateStr}&hour=${slot.hour}`);
+                        } : undefined}
+                        className={cn(
+                          "rounded-md px-1.5 py-1.5 text-center text-[10px] font-medium border border-border/50 transition-colors",
+                          cfg.bg, cfg.text,
+                          isFree && "cursor-pointer hover:ring-2 hover:ring-primary/40 hover:bg-emerald-500/25"
+                        )}
+                        title={isFree ? `Réserver ${slot.hour}h – ${slot.hour + 1}h` : (slot.label || cfg.label)}
+                      >
                         <div className="font-semibold">{`${slot.hour}h`}</div>
-                        {slot.label && <div className="text-[8px] truncate opacity-80 mt-0.5">{slot.label.length > 8 ? slot.label.slice(0, 8) + "…" : slot.label}</div>}
+                        {isFree ? (
+                          <div className="text-[8px] opacity-60 mt-0.5">+ Réserver</div>
+                        ) : slot.label ? (
+                          <div className="text-[8px] truncate opacity-80 mt-0.5">{slot.label.length > 8 ? slot.label.slice(0, 8) + "…" : slot.label}</div>
+                        ) : null}
                       </div>
                     );
                   })}
