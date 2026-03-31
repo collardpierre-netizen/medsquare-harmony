@@ -225,6 +225,11 @@ const AdminAnalytics = () => {
         totalSlots += daySlots * filteredRooms.length;
 
         for (const room of filteredRooms) {
+          // Privatized rooms (is_available === false) count as 100% occupied
+          if (!room.is_available) {
+            occupiedSlots += daySlots;
+            continue;
+          }
           for (let h = oS; h < oE; h++) {
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
