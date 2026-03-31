@@ -244,14 +244,33 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
                 </button>
               );
 
-              if (!isOccupied && freeSlotTooltip) {
+              // Build tooltip content for all slot types
+              let tooltipContent = "";
+              if (booking && !activity) {
+                const name = `${booking.profiles?.first_name || ""} ${booking.profiles?.last_name || ""}`.trim();
+                const room = rooms.find((r: any) => r.id === booking.room_id);
+                const ratePart = room?.hourly_rate ? ` — ${room.hourly_rate} €/h` : "";
+                const roomPart = room?.name ? `${room.name}${ratePart}` : "";
+                tooltipContent = [name, roomPart].filter(Boolean).join("\n");
+              } else if (actSession) {
+                const title = actSession.activities?.title || "Activité";
+                const practName = `${actSession.activities?.profiles?.first_name || ""} ${actSession.activities?.profiles?.last_name || ""}`.trim();
+                const room = rooms.find((r: any) => r.id === actSession.room_id);
+                const ratePart = room?.hourly_rate ? ` — ${room.hourly_rate} €/h` : "";
+                const roomPart = room?.name ? `${room.name}${ratePart}` : "";
+                tooltipContent = [title, practName, roomPart].filter(Boolean).join("\n");
+              } else if (freeSlotTooltip) {
+                tooltipContent = freeSlotTooltip;
+              }
+
+              if (tooltipContent) {
                 return (
                   <Tooltip key={timeStr}>
                     <TooltipTrigger asChild>
                       {slotButton}
                     </TooltipTrigger>
                     <TooltipContent className="whitespace-pre-line text-xs">
-                      {freeSlotTooltip}
+                      {tooltipContent}
                     </TooltipContent>
                   </Tooltip>
                 );
