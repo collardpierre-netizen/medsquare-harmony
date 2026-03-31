@@ -126,7 +126,7 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     ? [...activities, ...activities]
     : activities;
 
-  const duration = activities.length * 5;
+  const duration = activities.length * 8;
 
   if (config.template === "carousel") {
     return (

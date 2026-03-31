@@ -82,7 +82,7 @@ const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
     ? [...practitioners, ...practitioners]
     : practitioners;
 
-  const duration = practitioners.length * 5; // ~5s per card
+  const duration = practitioners.length * 8; // ~8s per card for comfortable speed
 
   if (config.template === "carousel") {
     return (
