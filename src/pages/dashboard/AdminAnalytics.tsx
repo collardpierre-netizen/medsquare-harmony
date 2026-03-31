@@ -11,7 +11,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 
 type PeriodRange = "4w" | "8w" | "12w" | "3m" | "6m";
@@ -566,6 +566,7 @@ const AdminAnalytics = () => {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                   {filteredRoomsForChart.map((room, i) => (
                     <Bar
                       key={room.id}
@@ -599,6 +600,7 @@ const AdminAnalytics = () => {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                   {filteredRoomsForChart.map((room, i) => (
                     <Line
                       key={room.id}
