@@ -439,10 +439,10 @@ const AdminAnalytics = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
-                Taux d'occupation global
+                Taux d'occupation {selectedRoomId !== "all" && filteredRoomsForChart[0] ? `— ${filteredRoomsForChart[0].name}` : "global"}
               </CardTitle>
               <CardDescription className="text-xs">
-                Toutes salles confondues
+                {selectedRoomId === "all" ? "Toutes salles confondues" : "Salle sélectionnée"}
               </CardDescription>
             </CardHeader>
             <CardContent>
