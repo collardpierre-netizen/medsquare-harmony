@@ -564,7 +564,7 @@ const Bookings = () => {
             )}
           >
             <BarChart3 className="h-4 w-4" />
-            Occupation
+            Occupation & Stats
           </button>
         </div>
 
