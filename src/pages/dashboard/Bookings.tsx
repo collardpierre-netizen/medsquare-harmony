@@ -23,6 +23,7 @@ import ActivityDetailDialog from "@/components/dashboard/bookings/ActivityDetail
 import MyPlanningView from "@/components/dashboard/bookings/MyPlanningView";
 import AllRoomsOverview from "@/components/dashboard/bookings/AllRoomsOverview";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
+import MyRoomsView from "@/components/dashboard/bookings/MyRoomsView";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
