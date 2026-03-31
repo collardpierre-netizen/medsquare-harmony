@@ -197,8 +197,8 @@ const AdminAnalytics = () => {
     return (isAfterMarchSwitch && isBeforeOctoberSwitch) ? 2 : 1;
   };
 
-  const { chartData, roomOccupancyData, roomSummaryData } = useMemo(() => {
-    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [], roomSummaryData: [] };
+  const { chartData, roomOccupancyData, roomSummaryData, roomRevenueData } = useMemo(() => {
+    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [], roomSummaryData: [], roomRevenueData: [] };
 
     const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
     const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
