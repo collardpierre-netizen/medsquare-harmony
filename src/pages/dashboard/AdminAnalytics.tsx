@@ -580,7 +580,42 @@ const AdminAnalytics = () => {
           </Card>
         )}
 
-        {/* Summary table: booked vs available hours */}
+        {/* Trend lines per room */}
+        {filteredRoomsForChart.length > 0 && roomOccupancyData.length > 1 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Tendance d'occupation par salle
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Évolution du taux d'occupation (%) par période
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={roomOccupancyChartConfig} className="h-[280px] w-full">
+                <LineChart data={roomOccupancyData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
+                  {filteredRoomsForChart.map((room, i) => (
+                    <Line
+                      key={room.id}
+                      type="monotone"
+                      dataKey={room.name}
+                      stroke={`hsl(var(--chart-${(i % 5) + 1}))`}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  ))}
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
         {roomSummaryData && roomSummaryData.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
