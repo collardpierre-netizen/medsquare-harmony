@@ -4,6 +4,7 @@ import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { WidgetConfig } from "@/pages/Widget";
+import WidgetQRCode from "./WidgetQRCode";
 
 interface Activity {
   id: string;
@@ -18,6 +19,8 @@ interface Activity {
   practitioner: { first_name: string; last_name: string; specialty: string | null } | null;
   next_session?: { start_time: string } | null;
 }
+
+const SITE_URL = "https://medsquare-harmony.lovable.app";
 
 const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -61,10 +64,10 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     fetch();
   }, [config.settings.maxItems]);
 
-  // Infinite seamless scroll for carousel
+  // Infinite seamless scroll — always active for carousel
   const startInfiniteScroll = useCallback(() => {
-    if (config.template !== "carousel" || !config.settings.autoScroll || !scrollRef.current) return;
-    const speed = 0.5;
+    if (config.template !== "carousel" || !scrollRef.current) return;
+    const speed = 0.4;
     const el = scrollRef.current;
 
     const step = () => {
@@ -77,24 +80,26 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
       animRef.current = requestAnimationFrame(step);
     };
     animRef.current = requestAnimationFrame(step);
-  }, [config.template, config.settings.autoScroll]);
+  }, [config.template]);
 
   useEffect(() => {
     if (activities.length === 0) return;
-    startInfiniteScroll();
+    const timer = setTimeout(() => startInfiniteScroll(), 100);
     return () => {
+      clearTimeout(timer);
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
   }, [activities, startInfiniteScroll]);
 
-  const loopItems = config.template === "carousel" && config.settings.autoScroll && activities.length > 0
-    ? [...activities, ...activities]
+  // Always duplicate for carousel
+  const loopItems = config.template === "carousel" && activities.length > 0
+    ? [...activities, ...activities, ...activities]
     : activities;
 
   const ActivityCard = ({ a }: { a: Activity }) => {
     const imgUrl = a.photo_url || a.photos?.[0] || null;
     return (
-    <div className="rounded-2xl overflow-hidden shadow-sm bg-card flex flex-col" style={{ height: "380px" }}>
+    <div className="rounded-2xl overflow-hidden shadow-sm bg-card flex flex-col" style={{ height: "420px" }}>
       <div className="h-[180px] bg-muted shrink-0">
         {imgUrl ? (
           <img src={imgUrl} alt={a.title} className="w-full h-full object-cover" />
@@ -115,12 +120,17 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
           {a.max_participants && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{a.max_participants} places</span>}
           {a.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{a.location}</span>}
         </div>
-        {a.next_session && (
-          <p className="text-xs font-medium text-primary mt-1 flex items-center gap-1 truncate">
-            <Calendar className="h-3 w-3 shrink-0" />
-            Prochaine : {format(new Date(a.next_session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
-          </p>
-        )}
+        <div className="flex items-end justify-between mt-1">
+          <div className="min-w-0">
+            {a.next_session && (
+              <p className="text-xs font-medium text-primary flex items-center gap-1 truncate">
+                <Calendar className="h-3 w-3 shrink-0" />
+                Prochaine : {format(new Date(a.next_session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
+              </p>
+            )}
+          </div>
+          <WidgetQRCode url={`${SITE_URL}/activites/${a.id}`} size={48} className="shrink-0 ml-2" />
+        </div>
       </div>
     </div>
     );
@@ -158,6 +168,7 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
                 </p>
               )}
             </div>
+            <WidgetQRCode url={`${SITE_URL}/activites/${a.id}`} size={48} />
           </div>
         ))}
       </div>
