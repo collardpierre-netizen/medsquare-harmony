@@ -1,9 +1,9 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
-import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend } from "date-fns";
+import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend, differenceInDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, endOfDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,12 +13,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
-
-type PeriodRange = "4w" | "8w" | "12w" | "3m" | "6m";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const AdminAnalytics = () => {
   const { toast } = useToast();
-  const [periodRange, setPeriodRange] = useState<PeriodRange>("4w");
+  const today = new Date();
+  const [dateFrom, setDateFrom] = useState<Date>(subWeeks(startOfWeek(today, { weekStartsOn: 1 }), 3));
+  const [dateTo, setDateTo] = useState<Date>(addDays(startOfWeek(today, { weekStartsOn: 1 }), 7));
   const [selectedRoomId, setSelectedRoomId] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -71,33 +75,68 @@ const AdminAnalytics = () => {
     }
   }, [toast]);
 
-  // Compute period boundaries
-  const periods = useMemo(() => {
-    const now = new Date();
-    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+  // Auto-granularity based on date range span
+  const granularity = useMemo(() => {
+    const days = differenceInDays(dateTo, dateFrom);
+    if (days <= 14) return "day" as const;
+    if (days <= 90) return "week" as const;
+    return "month" as const;
+  }, [dateFrom, dateTo]);
 
-    if (periodRange === "3m" || periodRange === "6m") {
-      const count = periodRange === "3m" ? 3 : 6;
-      return Array.from({ length: count }, (_, i) => {
-        const start = startOfMonth(subMonths(now, count - 1 - i));
-        const end = i === count - 1 ? addDays(endOfMonth(start), 1) : startOfMonth(subMonths(now, count - 2 - i));
+  const granularityLabel = granularity === "day" ? "Jour" : granularity === "week" ? "Semaine" : "Mois";
+
+  // Compute period boundaries from dateFrom/dateTo
+  const periods = useMemo(() => {
+    if (granularity === "month") {
+      const months = eachMonthOfInterval({ start: dateFrom, end: dateTo });
+      return months.map((m, i) => {
+        const start = startOfMonth(m);
+        const end = i < months.length - 1 ? startOfMonth(months[i + 1]) : addDays(endOfMonth(m), 1);
         return { start, end, label: format(start, "MMM yyyy", { locale: fr }) };
       });
-    } else {
-      const weekCount = periodRange === "4w" ? 4 : periodRange === "8w" ? 8 : 12;
-      // Include current week + past weeks, and 1 future week
-      const futureWeeks = 1;
-      const pastWeeks = weekCount - 1 - futureWeeks;
-      return Array.from({ length: weekCount }, (_, i) => {
-        const start = subWeeks(currentWeekStart, pastWeeks - i);
-        const end = addDays(start, 7);
+    } else if (granularity === "week") {
+      const weeks = eachWeekOfInterval({ start: dateFrom, end: dateTo }, { weekStartsOn: 1 });
+      return weeks.map((w) => {
+        const start = w;
+        const end = addDays(w, 7);
         return { start, end, label: `Sem. ${format(start, "d MMM", { locale: fr })}` };
       });
+    } else {
+      const days = eachDayOfInterval({ start: dateFrom, end: addDays(dateTo, -1) });
+      return days.map((d) => {
+        const start = startOfDay(d);
+        const end = addDays(start, 1);
+        return { start, end, label: format(d, "EEE d MMM", { locale: fr }) };
+      });
     }
-  }, [periodRange]);
+  }, [dateFrom, dateTo, granularity]);
 
-  const globalStart = periods[0].start.toISOString();
-  const globalEnd = periods[periods.length - 1].end.toISOString();
+  const globalStart = periods.length > 0 ? periods[0].start.toISOString() : dateFrom.toISOString();
+  const globalEnd = periods.length > 0 ? periods[periods.length - 1].end.toISOString() : dateTo.toISOString();
+
+  // Preset handlers
+  const applyPreset = (preset: string) => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    switch (preset) {
+      case "4w":
+        setDateFrom(subWeeks(weekStart, 3));
+        setDateTo(addDays(weekStart, 7));
+        break;
+      case "3m":
+        setDateFrom(startOfMonth(subMonths(now, 2)));
+        setDateTo(addDays(endOfMonth(now), 1));
+        break;
+      case "6m":
+        setDateFrom(startOfMonth(subMonths(now, 5)));
+        setDateTo(addDays(endOfMonth(now), 1));
+        break;
+      case "12m":
+        setDateFrom(startOfMonth(subMonths(now, 11)));
+        setDateTo(addDays(endOfMonth(now), 1));
+        break;
+    }
+  };
 
   // Fetch all data
   const { data: rooms } = useQuery({
@@ -410,18 +449,56 @@ const AdminAnalytics = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={periodRange} onValueChange={(v) => setPeriodRange(v as PeriodRange)}>
-              <SelectTrigger className="w-[160px] h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="4w">4 semaines</SelectItem>
-                <SelectItem value="8w">8 semaines</SelectItem>
-                <SelectItem value="12w">12 semaines</SelectItem>
-                <SelectItem value="3m">3 mois</SelectItem>
-                <SelectItem value="6m">6 mois</SelectItem>
-              </SelectContent>
-            </Select>
+          </div>
+        </div>
+
+        {/* Date range picker with presets */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            {[
+              { label: "4 sem.", value: "4w" },
+              { label: "3 mois", value: "3m" },
+              { label: "6 mois", value: "6m" },
+              { label: "12 mois", value: "12m" },
+            ].map((p) => (
+              <Button
+                key={p.value}
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 px-3"
+                onClick={() => applyPreset(p.value)}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {format(dateFrom, "d MMM yyyy", { locale: fr })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-xs text-muted-foreground">→</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {format(dateTo, "d MMM yyyy", { locale: fr })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar mode="single" selected={dateTo} onSelect={(d) => d && setDateTo(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <Badge variant="secondary" className="text-[10px] h-6">
+              {granularityLabel}
+            </Badge>
           </div>
         </div>
 
