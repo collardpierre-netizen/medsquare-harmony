@@ -45,6 +45,13 @@
     --sidebar-border: 35 15% 90%;
     --sidebar-ring: 160 93% 16%;
 
+    /* Chart colors */
+    --chart-1: 160 93% 16%;
+    --chart-2: 25 95% 53%;
+    --chart-3: 200 80% 50%;
+    --chart-4: 280 65% 55%;
+    --chart-5: 45 93% 47%;
+
     /* Custom tokens */
     --warm: 35 40% 96%;
     --sage: 133 20% 70%;
