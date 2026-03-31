@@ -118,7 +118,20 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
     onSlotClick(slot);
   };
 
+  const freeSlotTooltip = useMemo(() => {
+    if (rooms.length === 0) return "";
+    if (rooms.length === 1) {
+      const r = rooms[0];
+      return r.hourly_rate ? `${r.name} — ${r.hourly_rate} €/h` : r.name;
+    }
+    return rooms
+      .filter((r: any) => r.hourly_rate != null)
+      .map((r: any) => `${r.name}: ${r.hourly_rate} €/h`)
+      .join("\n") || "Créneaux disponibles";
+  }, [rooms]);
+
   return (
+    <TooltipProvider delayDuration={200}>
     <>
       {/* SVG pattern for diagonal hatching */}
       <svg width="0" height="0" className="absolute">
@@ -175,7 +188,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
               const timeStr = format(slot, "HH:mm");
               const isOccupied = booked || activity;
 
-              return (
+              const slotButton = (
                 <button
                   key={timeStr}
                   onClick={() => handleSlotClick(slot)}
@@ -230,12 +243,28 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
                   )}
                 </button>
               );
+
+              if (!isOccupied && freeSlotTooltip) {
+                return (
+                  <Tooltip key={timeStr}>
+                    <TooltipTrigger asChild>
+                      {slotButton}
+                    </TooltipTrigger>
+                    <TooltipContent className="whitespace-pre-line text-xs">
+                      {freeSlotTooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return slotButton;
             })}
           </div>
         )}
       </CardContent>
     </Card>
     </>
+    </TooltipProvider>
   );
 };
 
