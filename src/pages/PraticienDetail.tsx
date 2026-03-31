@@ -371,8 +371,8 @@ const PraticienDetail = () => {
           }))}
         />
         <ContactPractitionerDialog
-          open={showMobileContact}
-          onOpenChange={setShowMobileContact}
+          open={showContact}
+          onOpenChange={setShowContact}
           practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
           practitionerEmail={practitioner.contact_email || ""}
         />
