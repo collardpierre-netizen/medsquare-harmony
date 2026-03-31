@@ -278,7 +278,44 @@ const AdminAnalytics = () => {
       return row;
     });
 
-    return { chartData, roomOccupancyData };
+    // Room summary: booked vs available hours over entire period
+    const periodStart = periods[0]?.start;
+    const periodEnd = periods[periods.length - 1]?.end;
+    const roomSummaryData = filteredRooms.map((room) => {
+      let totalHours = 0;
+      let bookedHours = 0;
+      if (periodStart && periodEnd) {
+        const totalDays = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / 86400000);
+        for (let d = 0; d < totalDays; d++) {
+          const day = addDays(periodStart, d);
+          const offset = getBrusselsOffset(day);
+          const { start: oS, end: oE } = getOpeningHours(day);
+          totalHours += oE - oS;
+          for (let h = oS; h < oE; h++) {
+            const slotStartUTC = new Date(day);
+            slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
+            const slotEndUTC = new Date(day);
+            slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
+            const occupied =
+              filteredBookings.some(
+                (b) => b.room_id === room.id && new Date(b.start_time) < slotEndUTC && new Date(b.end_time) > slotStartUTC
+              ) ||
+              filteredSessions.some(
+                (s) => s.room_id === room.id && new Date(s.start_time) < slotEndUTC && new Date(s.end_time) > slotStartUTC
+              );
+            if (occupied) bookedHours++;
+          }
+        }
+      }
+      return {
+        name: room.name,
+        bookedHours,
+        totalHours,
+        occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
+      };
+    });
+
+    return { chartData, roomOccupancyData, roomSummaryData };
   }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
 
   // Current period summary (last period)
