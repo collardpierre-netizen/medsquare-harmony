@@ -11,6 +11,7 @@ import {
   Award,
   Calendar,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -22,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import ActivityDetailSessions from "@/components/activities/ActivityDetailSessions";
 import SessionRegistrationDialog from "@/components/activities/SessionRegistrationDialog";
+import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 
 const STOCK_PHOTOS: Record<string, string> = {
   yoga: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=600&fit=crop",
@@ -66,6 +68,7 @@ interface Activity {
     last_name: string;
     specialty: string | null;
     avatar_url: string | null;
+    contact_email: string | null;
   } | null;
 }
 
@@ -92,6 +95,7 @@ const ActiviteDetail = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [showRegDialog, setShowRegDialog] = useState(false);
+  const [showContact, setShowContact] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,7 +104,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-          "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url)"
+        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url, contact_email)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -474,9 +478,17 @@ const ActiviteDetail = () => {
                       )}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Voir le profil
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      Voir le profil
+                    </Button>
+                    {practitioner.contact_email && (
+                      <Button size="sm" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); setShowContact(true); }}>
+                        <Mail className="h-3.5 w-3.5" />
+                        Contacter
+                      </Button>
+                    )}
+                  </div>
                 </Link>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
@@ -554,6 +566,12 @@ const ActiviteDetail = () => {
                   {practitioner.first_name} {practitioner.last_name}
                 </p>
               </div>
+              {practitioner.contact_email && (
+                <Button size="sm" onClick={() => setShowContact(true)}>
+                  <Mail className="h-3.5 w-3.5 mr-1" />
+                  Contacter
+                </Button>
+              )}
               <Link to={`/praticiens/${practitioner.id}`}>
                 <Button size="sm" variant="outline">
                   Praticien
@@ -561,6 +579,16 @@ const ActiviteDetail = () => {
               </Link>
             </div>
           </div>
+        )}
+
+        {/* Contact dialog */}
+        {practitioner && practitioner.contact_email && (
+          <ContactPractitionerDialog
+            open={showContact}
+            onOpenChange={setShowContact}
+            practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
+            practitionerEmail={practitioner.contact_email}
+          />
         )}
       </div>
     </Layout>

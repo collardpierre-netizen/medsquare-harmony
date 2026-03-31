@@ -89,7 +89,7 @@ const PraticienDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-  const [showMobileContact, setShowMobileContact] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const handlePdfExport = async () => {
@@ -251,6 +251,8 @@ const PraticienDetail = () => {
             practitioner={practitioner}
             hasBookableActivities={hasBookable}
             onBookClick={() => setShowBooking(true)}
+            onContactClick={() => setShowContact(true)}
+            hasContactEmail={!!practitioner.contact_email}
             onPdfClick={handlePdfExport}
             isPdfLoading={pdfLoading}
           />
@@ -350,7 +352,7 @@ const PraticienDetail = () => {
               <p className="font-display font-semibold text-sm">{practitioner.first_name} {practitioner.last_name}</p>
               {practitioner.specialty && <p className="text-xs text-muted-foreground">{practitioner.specialty}</p>}
             </div>
-            <Button size="sm" onClick={() => setShowMobileContact(true)}>Contacter</Button>
+            <Button size="sm" onClick={() => setShowContact(true)}>Contacter</Button>
             {hasBookable && (
               <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>Réserver</Button>
             )}
@@ -369,8 +371,8 @@ const PraticienDetail = () => {
           }))}
         />
         <ContactPractitionerDialog
-          open={showMobileContact}
-          onOpenChange={setShowMobileContact}
+          open={showContact}
+          onOpenChange={setShowContact}
           practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
           practitionerEmail={practitioner.contact_email || ""}
         />

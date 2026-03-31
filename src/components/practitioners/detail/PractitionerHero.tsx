@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, MapPin, Award, Video, Home, Accessibility, ParkingCircle, Share2, FileText, CalendarPlus, Loader2 } from "lucide-react";
+import { User, MapPin, Award, Video, Home, Accessibility, ParkingCircle, Share2, FileText, CalendarPlus, Loader2, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,11 +28,13 @@ interface PractitionerHeroProps {
   };
   hasBookableActivities: boolean;
   onBookClick: () => void;
+  onContactClick: () => void;
+  hasContactEmail: boolean;
   onPdfClick: () => void;
   isPdfLoading?: boolean;
 }
 
-const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, onPdfClick, isPdfLoading }: PractitionerHeroProps) => {
+const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, onContactClick, hasContactEmail, onPdfClick, isPdfLoading }: PractitionerHeroProps) => {
   const { toast } = useToast();
   const fullName = `${practitioner.first_name} ${practitioner.last_name}`;
   const initials = `${practitioner.first_name?.[0] || ""}${practitioner.last_name?.[0] || ""}`.toUpperCase();
@@ -134,10 +136,20 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, on
 
         {/* CTA column */}
         <div className="flex flex-row md:flex-col gap-2 flex-shrink-0 print:hidden">
+          {hasContactEmail && (
+            <Button
+              onClick={onContactClick}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="lg"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Contacter
+            </Button>
+          )}
           {hasBookableActivities && (
             <Button
               onClick={onBookClick}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              variant="outline"
               size="lg"
             >
               <CalendarPlus className="h-4 w-4 mr-2" />
