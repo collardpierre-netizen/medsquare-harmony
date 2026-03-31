@@ -1,6 +1,24 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 
+interface TimelineItem {
+  title: string;
+  institution?: string;
+  location?: string;
+  start_year?: string | number;
+  end_year?: string | number;
+  description?: string;
+}
+
+interface RateItem {
+  act_label: string;
+  duration_minutes: number | null;
+  inami_total: number | null;
+  patient_normal: number | null;
+  patient_bim: number | null;
+  consult_mode: string;
+}
+
 interface PractitionerPdfData {
   id: string;
   first_name: string;
@@ -24,6 +42,9 @@ interface PractitionerPdfData {
   contact_email: string | null;
   associations: string[];
   schedule: { day: string; start: string; end: string }[] | null;
+  experiences?: TimelineItem[];
+  formations?: TimelineItem[];
+  rates?: RateItem[];
 }
 
 // Brand colors
