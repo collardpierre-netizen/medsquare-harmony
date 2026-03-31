@@ -34,33 +34,39 @@ const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
     fetch();
   }, [config.settings.maxItems]);
 
-  // Infinite seamless scroll for carousel — always active
-  const startInfiniteScroll = useCallback(() => {
-    if (config.template !== "carousel" || !scrollRef.current) return;
-    const speed = 0.4;
-    const el = scrollRef.current;
-
-    const step = () => {
-      if (!el) return;
-      el.scrollLeft += speed;
-      const halfWidth = el.scrollWidth / 2;
-      if (el.scrollLeft >= halfWidth) {
-        el.scrollLeft -= halfWidth;
-      }
-      animRef.current = requestAnimationFrame(step);
-    };
-    animRef.current = requestAnimationFrame(step);
-  }, [config.template]);
-
+  // Infinite seamless scroll for carousel
   useEffect(() => {
-    if (practitioners.length === 0) return;
-    // Small delay to ensure DOM is rendered with duplicated items
-    const timer = setTimeout(() => startInfiniteScroll(), 100);
-    return () => {
-      clearTimeout(timer);
-      if (animRef.current) cancelAnimationFrame(animRef.current);
+    if (config.template !== "carousel" || practitioners.length === 0) return;
+    
+    let running = true;
+    let rafId: number;
+    const speed = 0.4;
+
+    const startScroll = () => {
+      const el = scrollRef.current;
+      if (!el || !running) return;
+      
+      const step = () => {
+        if (!running || !scrollRef.current) return;
+        scrollRef.current.scrollLeft += speed;
+        const thirdWidth = scrollRef.current.scrollWidth / 3;
+        if (scrollRef.current.scrollLeft >= thirdWidth * 2) {
+          scrollRef.current.scrollLeft -= thirdWidth;
+        }
+        rafId = requestAnimationFrame(step);
+      };
+      rafId = requestAnimationFrame(step);
     };
-  }, [practitioners, startInfiniteScroll]);
+
+    // Delay to ensure DOM is fully laid out
+    const timer = setTimeout(startScroll, 300);
+    
+    return () => {
+      running = false;
+      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+    };
+  }, [config.template, practitioners]);
 
   // Always duplicate for carousel
   const loopItems = config.template === "carousel" && practitioners.length > 0
