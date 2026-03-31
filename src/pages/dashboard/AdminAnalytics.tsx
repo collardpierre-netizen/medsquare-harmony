@@ -160,6 +160,9 @@ const AdminAnalytics = () => {
   const { chartData, roomOccupancyData } = useMemo(() => {
     if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [] };
 
+    const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
+    const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
+    const filteredSessions = selectedRoomId === "all" ? sessions : sessions.filter((s) => s.room_id === selectedRoomId);
     const chartData = periods.map(({ start, end, label }) => {
       let revenue = 0;
       const periodBookings = bookings.filter(
