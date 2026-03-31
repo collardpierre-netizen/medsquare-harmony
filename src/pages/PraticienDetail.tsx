@@ -352,7 +352,7 @@ const PraticienDetail = () => {
               <p className="font-display font-semibold text-sm">{practitioner.first_name} {practitioner.last_name}</p>
               {practitioner.specialty && <p className="text-xs text-muted-foreground">{practitioner.specialty}</p>}
             </div>
-            <Button size="sm" onClick={() => setShowMobileContact(true)}>Contacter</Button>
+            <Button size="sm" onClick={() => setShowContact(true)}>Contacter</Button>
             {hasBookable && (
               <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>Réserver</Button>
             )}
