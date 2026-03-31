@@ -96,7 +96,16 @@ const PraticienDetail = () => {
     if (!practitioner) return;
     setPdfLoading(true);
     try {
-      await generatePractitionerPdf(practitioner);
+      // Fetch rates for PDF
+      const { data: ratesData } = await supabase
+        .from("practitioner_rates")
+        .select("act_label, duration_minutes, inami_total, patient_normal, patient_bim, consult_mode")
+        .eq("practitioner_id", practitioner.id)
+        .order("act_label");
+      await generatePractitionerPdf({
+        ...practitioner,
+        rates: ratesData || [],
+      });
     } catch (e) {
       console.error("PDF export error:", e);
     }
