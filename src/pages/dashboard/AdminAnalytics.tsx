@@ -142,7 +142,7 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available");
       return data || [];
     },
   });
@@ -225,6 +225,11 @@ const AdminAnalytics = () => {
         totalSlots += daySlots * filteredRooms.length;
 
         for (const room of filteredRooms) {
+          // Privatized rooms (is_available === false) count as 100% occupied
+          if (!room.is_available) {
+            occupiedSlots += daySlots;
+            continue;
+          }
           for (let h = oS; h < oE; h++) {
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
@@ -286,7 +291,13 @@ const AdminAnalytics = () => {
           const day = addDays(start, d);
           const offset = getBrusselsOffset(day);
           const { start: oS, end: oE } = getOpeningHours(day);
-          total += oE - oS;
+          const daySlots = oE - oS;
+          total += daySlots;
+          // Privatized rooms count as 100% occupied
+          if (!room.is_available) {
+            occupied += daySlots;
+            continue;
+          }
           for (let h = oS; h < oE; h++) {
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
@@ -329,7 +340,13 @@ const AdminAnalytics = () => {
           const day = addDays(periodStart, d);
           const offset = getBrusselsOffset(day);
           const { start: oS, end: oE } = getOpeningHours(day);
-          totalHours += oE - oS;
+          const daySlots = oE - oS;
+          totalHours += daySlots;
+          // Privatized rooms count as 100% occupied
+          if (!room.is_available) {
+            bookedHours += daySlots;
+            continue;
+          }
           for (let h = oS; h < oE; h++) {
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
@@ -351,6 +368,7 @@ const AdminAnalytics = () => {
         bookedHours,
         totalHours,
         occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
+        isPrivatized: !room.is_available,
       };
     });
 
@@ -721,7 +739,12 @@ const AdminAnalytics = () => {
                 <TableBody>
                   {roomSummaryData.map((row) => (
                     <TableRow key={row.name}>
-                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {row.name}
+                        {row.isPrivatized && (
+                          <Badge variant="outline" className="ml-2 text-[10px] py-0">🔒 Privatisé</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">{row.totalHours}h</TableCell>
                       <TableCell className="text-right font-semibold text-primary">{row.bookedHours}h</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.totalHours - row.bookedHours}h</TableCell>
