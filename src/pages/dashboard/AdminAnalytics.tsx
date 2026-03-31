@@ -372,7 +372,24 @@ const AdminAnalytics = () => {
       };
     });
 
-    return { chartData, roomOccupancyData, roomSummaryData };
+    // Per-room revenue data
+    const roomRevenueData = periods.map(({ start, end, label }) => {
+      const row: Record<string, string | number> = { period: label };
+      for (const room of filteredRooms) {
+        let rev = 0;
+        const roomBookings = filteredBookings.filter(
+          (b) => b.room_id === room.id && new Date(b.start_time) >= start && new Date(b.start_time) < end
+        );
+        for (const b of roomBookings) {
+          const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+          rev += (room.hourly_rate || 0) * hours;
+        }
+        row[room.name] = Math.round(rev);
+      }
+      return row;
+    });
+
+    return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
   }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
 
   // Current period summary (last period)
