@@ -700,7 +700,42 @@ const AdminAnalytics = () => {
           </Card>
         )}
 
-        {/* Trend lines per room */}
+        {/* Revenue per room */}
+        {filteredRoomsForChart.length > 0 && roomRevenueData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+                Revenus par salle
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {selectedRoomId === "all"
+                  ? "Revenus (€) par salle et par période"
+                  : `Revenus de ${filteredRoomsForChart[0]?.name}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={roomRevenueChartConfig} className="h-[260px] w-full">
+                <BarChart data={roomRevenueData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v} €`} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v} €`} />} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                  {filteredRoomsForChart.map((room, i) => (
+                    <Bar
+                      key={room.id}
+                      dataKey={room.name}
+                      fill={roomColors[i % roomColors.length]}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
         {filteredRoomsForChart.length > 0 && roomOccupancyData.length > 1 && (
           <Card>
             <CardHeader className="pb-2">
