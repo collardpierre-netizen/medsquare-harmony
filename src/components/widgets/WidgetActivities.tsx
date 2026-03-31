@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import { format } from "date-fns";
@@ -22,10 +22,51 @@ interface Activity {
 
 const SITE_URL = "https://medsquare-harmony.lovable.app";
 
+const ActivityCard = ({ a }: { a: Activity }) => {
+  const imgUrl = a.photo_url || a.photos?.[0] || null;
+  return (
+    <div className="rounded-2xl overflow-hidden shadow-sm bg-card flex flex-col" style={{ height: "420px" }}>
+      <div className="h-[180px] bg-muted shrink-0">
+        {imgUrl ? (
+          <img src={imgUrl} alt={a.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center"><Calendar className="h-12 w-12 text-muted-foreground/20" /></div>
+        )}
+      </div>
+      <div className="p-4 flex-1 flex flex-col gap-1 min-h-0">
+        <span className="text-[10px] uppercase tracking-widest text-primary font-semibold">{a.category}</span>
+        <h3 className="font-display font-bold text-base truncate">{a.title}</h3>
+        {a.practitioner && (
+          <p className="text-xs text-muted-foreground truncate">
+            {a.practitioner.first_name} {a.practitioner.last_name}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-auto pt-2">
+          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{a.duration_minutes} min</span>
+          {a.max_participants && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{a.max_participants} places</span>}
+          {a.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{a.location}</span>}
+        </div>
+        <div className="flex items-end justify-between mt-1">
+          <div className="min-w-0">
+            {a.next_session && (
+              <p className="text-xs font-medium text-primary flex items-center gap-1 truncate">
+                <Calendar className="h-3 w-3 shrink-0" />
+                Prochaine : {format(new Date(a.next_session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
+              </p>
+            )}
+          </div>
+          <WidgetQRCode url={`${SITE_URL}/activites/${a.id}`} size={48} className="shrink-0 ml-2" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<number | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -64,86 +105,58 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     fetch();
   }, [config.settings.maxItems]);
 
-  // Infinite seamless scroll — always active for carousel
-  const startInfiniteScroll = useCallback(() => {
-    if (config.template !== "carousel" || !scrollRef.current) return;
-    const speed = 0.4;
-    const el = scrollRef.current;
-
-    const step = () => {
-      if (!el) return;
-      el.scrollLeft += speed;
-      const halfWidth = el.scrollWidth / 2;
-      if (el.scrollLeft >= halfWidth) {
-        el.scrollLeft -= halfWidth;
-      }
-      animRef.current = requestAnimationFrame(step);
-    };
-    animRef.current = requestAnimationFrame(step);
-  }, [config.template]);
-
+  // Measure one set width for CSS animation
   useEffect(() => {
-    if (activities.length === 0) return;
-    const timer = setTimeout(() => startInfiniteScroll(), 100);
-    return () => {
-      clearTimeout(timer);
-      if (animRef.current) cancelAnimationFrame(animRef.current);
+    if (config.template !== "carousel" || activities.length === 0) return;
+    const measure = () => {
+      if (!trackRef.current) return;
+      const children = Array.from(trackRef.current.children);
+      const half = children.length / 2;
+      let width = 0;
+      for (let i = 0; i < half; i++) {
+        width += (children[i] as HTMLElement).offsetWidth + 24;
+      }
+      setTrackWidth(width);
     };
-  }, [activities, startInfiniteScroll]);
+    const timer = setTimeout(measure, 200);
+    return () => clearTimeout(timer);
+  }, [config.template, activities]);
 
-  // Always duplicate for carousel
   const loopItems = config.template === "carousel" && activities.length > 0
-    ? [...activities, ...activities, ...activities]
+    ? [...activities, ...activities]
     : activities;
 
-  const ActivityCard = ({ a }: { a: Activity }) => {
-    const imgUrl = a.photo_url || a.photos?.[0] || null;
-    return (
-    <div className="rounded-2xl overflow-hidden shadow-sm bg-card flex flex-col" style={{ height: "420px" }}>
-      <div className="h-[180px] bg-muted shrink-0">
-        {imgUrl ? (
-          <img src={imgUrl} alt={a.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center"><Calendar className="h-12 w-12 text-muted-foreground/20" /></div>
-        )}
-      </div>
-      <div className="p-4 flex-1 flex flex-col gap-1 min-h-0">
-        <span className="text-[10px] uppercase tracking-widest text-primary font-semibold">{a.category}</span>
-        <h3 className="font-display font-bold text-base truncate">{a.title}</h3>
-        {a.practitioner && (
-          <p className="text-xs text-muted-foreground truncate">
-            {a.practitioner.first_name} {a.practitioner.last_name}
-          </p>
-        )}
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-auto pt-2">
-          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{a.duration_minutes} min</span>
-          {a.max_participants && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{a.max_participants} places</span>}
-          {a.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{a.location}</span>}
-        </div>
-        <div className="flex items-end justify-between mt-1">
-          <div className="min-w-0">
-            {a.next_session && (
-              <p className="text-xs font-medium text-primary flex items-center gap-1 truncate">
-                <Calendar className="h-3 w-3 shrink-0" />
-                Prochaine : {format(new Date(a.next_session.start_time), "EEE d MMM · HH:mm", { locale: fr })}
-              </p>
-            )}
-          </div>
-          <WidgetQRCode url={`${SITE_URL}/activites/${a.id}`} size={48} className="shrink-0 ml-2" />
-        </div>
-      </div>
-    </div>
-    );
-  };
+  const duration = activities.length * 5;
 
   if (config.template === "carousel") {
     return (
-      <div ref={scrollRef} className="flex gap-6 overflow-x-auto h-full items-center scrollbar-hide" style={{ scrollBehavior: "auto" }}>
-        {loopItems.map((a, i) => (
-          <div key={`${a.id}-${i}`} className="shrink-0 w-[300px] md:w-[360px]">
-            <ActivityCard a={a} />
-          </div>
-        ))}
+      <div
+        className="overflow-hidden h-full flex items-center"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        <div
+          ref={trackRef}
+          className="flex gap-6 items-center"
+          style={{
+            animation: trackWidth > 0 ? `widgetScrollAct ${duration}s linear infinite` : "none",
+            animationPlayState: paused ? "paused" : "running",
+          }}
+        >
+          {loopItems.map((a, i) => (
+            <div key={`${a.id}-${i}`} className="shrink-0 w-[300px] md:w-[360px]">
+              <ActivityCard a={a} />
+            </div>
+          ))}
+        </div>
+        {trackWidth > 0 && (
+          <style>{`
+            @keyframes widgetScrollAct {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-${trackWidth}px); }
+            }
+          `}</style>
+        )}
       </div>
     );
   }
