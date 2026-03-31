@@ -78,6 +78,24 @@ const Bookings = () => {
     fetchRooms();
   }, []);
 
+  // Auto-open booking dialog from occupation view shortcut
+  useEffect(() => {
+    if (!dateFromUrl || !hourFromUrl || !roomFromUrl || rooms.length === 0) return;
+    const targetRoom = rooms.find((r: any) => r.id === roomFromUrl);
+    if (!targetRoom) return;
+    const date = new Date(dateFromUrl);
+    const hour = parseInt(hourFromUrl, 10);
+    if (isNaN(hour) || isNaN(date.getTime())) return;
+    setSelectedRoom(roomFromUrl);
+    setSelectedDate(date);
+    setPlanningMode("by-room");
+    const slotDate = setMinutes(setHours(date, hour), 0);
+    setSelectedSlot(slotDate);
+    setShowNewBooking(true);
+    // Clear params to avoid re-triggering
+    setSearchParams({}, { replace: true });
+  }, [rooms, dateFromUrl, hourFromUrl, roomFromUrl]);
+
   // Fetch practitioners (admin only)
   useEffect(() => {
     if (!isAdmin) return;
