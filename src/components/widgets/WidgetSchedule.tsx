@@ -90,6 +90,20 @@ const WidgetSchedule = ({ config }: { config: WidgetConfig }) => {
     return () => clearInterval(refreshInterval);
   }, []);
 
+  const TZ = "Europe/Brussels";
+  const fmtBrussels = (isoStr: string, opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("fr-BE", { timeZone: TZ, ...opts }).format(new Date(isoStr));
+
+  const toBrusselsDateStr = (isoStr: string) => {
+    const parts = new Intl.DateTimeFormat("fr-BE", {
+      timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(new Date(isoStr));
+    const y = parts.find(p => p.type === "year")!.value;
+    const m = parts.find(p => p.type === "month")!.value;
+    const d = parts.find(p => p.type === "day")!.value;
+    return `${y}-${m}-${d}`;
+  };
+
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -97,7 +111,7 @@ const WidgetSchedule = ({ config }: { config: WidgetConfig }) => {
 
   const getSessionsForDay = (day: Date) => {
     const dayStr = format(day, "yyyy-MM-dd");
-    return sessions.filter((s) => s.start_time.startsWith(dayStr));
+    return sessions.filter((s) => toBrusselsDateStr(s.start_time) === dayStr);
   };
 
   const isCurrentSession = (s: SessionWithActivity) => {
