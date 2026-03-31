@@ -449,18 +449,56 @@ const AdminAnalytics = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={periodRange} onValueChange={(v) => setPeriodRange(v as PeriodRange)}>
-              <SelectTrigger className="w-[160px] h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="4w">4 semaines</SelectItem>
-                <SelectItem value="8w">8 semaines</SelectItem>
-                <SelectItem value="12w">12 semaines</SelectItem>
-                <SelectItem value="3m">3 mois</SelectItem>
-                <SelectItem value="6m">6 mois</SelectItem>
-              </SelectContent>
-            </Select>
+          </div>
+        </div>
+
+        {/* Date range picker with presets */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            {[
+              { label: "4 sem.", value: "4w" },
+              { label: "3 mois", value: "3m" },
+              { label: "6 mois", value: "6m" },
+              { label: "12 mois", value: "12m" },
+            ].map((p) => (
+              <Button
+                key={p.value}
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 px-3"
+                onClick={() => applyPreset(p.value)}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {format(dateFrom, "d MMM yyyy", { locale: fr })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-xs text-muted-foreground">→</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[140px] justify-start", !dateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {format(dateTo, "d MMM yyyy", { locale: fr })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar mode="single" selected={dateTo} onSelect={(d) => d && setDateTo(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <Badge variant="secondary" className="text-[10px] h-6">
+              {granularityLabel}
+            </Badge>
           </div>
         </div>
 
