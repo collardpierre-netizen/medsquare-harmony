@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import WidgetPractitioners from "@/components/widgets/WidgetPractitioners";
 import WidgetActivities from "@/components/widgets/WidgetActivities";
 import WidgetRooms from "@/components/widgets/WidgetRooms";
+import WidgetSchedule from "@/components/widgets/WidgetSchedule";
 
 export interface WidgetConfig {
   id: string;
