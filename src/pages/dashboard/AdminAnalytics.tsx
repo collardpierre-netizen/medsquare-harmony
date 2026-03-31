@@ -600,6 +600,7 @@ const AdminAnalytics = () => {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                   {filteredRoomsForChart.map((room, i) => (
                     <Line
                       key={room.id}
