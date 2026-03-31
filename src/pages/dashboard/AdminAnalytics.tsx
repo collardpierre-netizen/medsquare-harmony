@@ -340,7 +340,13 @@ const AdminAnalytics = () => {
           const day = addDays(periodStart, d);
           const offset = getBrusselsOffset(day);
           const { start: oS, end: oE } = getOpeningHours(day);
-          totalHours += oE - oS;
+          const daySlots = oE - oS;
+          totalHours += daySlots;
+          // Privatized rooms count as 100% occupied
+          if (!room.is_available) {
+            bookedHours += daySlots;
+            continue;
+          }
           for (let h = oS; h < oE; h++) {
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
