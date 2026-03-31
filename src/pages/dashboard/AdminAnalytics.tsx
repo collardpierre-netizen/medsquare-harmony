@@ -368,6 +368,7 @@ const AdminAnalytics = () => {
         bookedHours,
         totalHours,
         occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
+        isPrivatized: !room.is_available,
       };
     });
 
