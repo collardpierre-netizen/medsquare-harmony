@@ -330,14 +330,13 @@ const AdminAnalytics = () => {
   const practitionersChartConfig = {
     practitioners: { label: "Praticiens actifs", color: "hsl(var(--chart-4))" },
   };
-  const roomOccupancyChartConfig = rooms
-    ? Object.fromEntries(
-        rooms.map((room, i) => [
-          room.name,
-          { label: room.name, color: `hsl(var(--chart-${(i % 5) + 1}))` },
-        ])
-      )
-    : {};
+  const filteredRoomsForChart = selectedRoomId === "all" ? (rooms || []) : (rooms || []).filter((r) => r.id === selectedRoomId);
+  const roomOccupancyChartConfig = Object.fromEntries(
+    filteredRoomsForChart.map((room, i) => [
+      room.name,
+      { label: room.name, color: `hsl(var(--chart-${(i % 5) + 1}))` },
+    ])
+  );
 
   return (
     <DashboardLayout>
