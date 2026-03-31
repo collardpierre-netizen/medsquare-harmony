@@ -184,7 +184,7 @@ const WidgetSchedule = ({ config }: { config: WidgetConfig }) => {
                       </p>
                       <p className="flex items-center gap-1 opacity-80">
                         <Clock className="h-2.5 w-2.5 shrink-0" />
-                        {format(parseISO(s.start_time), "HH:mm")}–{format(parseISO(s.end_time), "HH:mm")}
+                        {fmtBrussels(s.start_time, { hour: "2-digit", minute: "2-digit" })}–{fmtBrussels(s.end_time, { hour: "2-digit", minute: "2-digit" })}
                       </p>
                       {s.practitioner && (
                         <p className="truncate opacity-80">
