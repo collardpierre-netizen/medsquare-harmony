@@ -253,7 +253,7 @@ const AdminAnalytics = () => {
             const slotEndUTC = new Date(day);
             slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
             const has =
-              bookings.some(
+              filteredBookings.some(
                 (b) =>
                   b.room_id === room.id &&
                   new Date(b.start_time) >= start &&
@@ -261,7 +261,7 @@ const AdminAnalytics = () => {
                   new Date(b.start_time) < slotEndUTC &&
                   new Date(b.end_time) > slotStartUTC
               ) ||
-              sessions.some(
+              filteredSessions.some(
                 (s) =>
                   s.room_id === room.id &&
                   new Date(s.start_time) >= start &&
@@ -278,7 +278,7 @@ const AdminAnalytics = () => {
     });
 
     return { chartData, roomOccupancyData };
-  }, [periods, rooms, bookings, sessions, registrations]);
+  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
 
   // Current period summary (last period)
   const current = chartData[chartData.length - 1];
