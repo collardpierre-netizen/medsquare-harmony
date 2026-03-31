@@ -489,6 +489,7 @@ const ActiviteDetail = () => {
                       </Button>
                     )}
                   </div>
+                </Link>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
                   Praticien non renseigné
