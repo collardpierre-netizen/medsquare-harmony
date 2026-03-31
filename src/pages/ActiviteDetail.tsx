@@ -566,6 +566,12 @@ const ActiviteDetail = () => {
                   {practitioner.first_name} {practitioner.last_name}
                 </p>
               </div>
+              {practitioner.contact_email && (
+                <Button size="sm" onClick={() => setShowContact(true)}>
+                  <Mail className="h-3.5 w-3.5 mr-1" />
+                  Contacter
+                </Button>
+              )}
               <Link to={`/praticiens/${practitioner.id}`}>
                 <Button size="sm" variant="outline">
                   Praticien
@@ -573,6 +579,16 @@ const ActiviteDetail = () => {
               </Link>
             </div>
           </div>
+        )}
+
+        {/* Contact dialog */}
+        {practitioner && practitioner.contact_email && (
+          <ContactPractitionerDialog
+            open={showContact}
+            onOpenChange={setShowContact}
+            practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
+            practitionerEmail={practitioner.contact_email}
+          />
         )}
       </div>
     </Layout>
