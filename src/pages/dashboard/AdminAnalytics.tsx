@@ -739,7 +739,12 @@ const AdminAnalytics = () => {
                 <TableBody>
                   {roomSummaryData.map((row) => (
                     <TableRow key={row.name}>
-                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {row.name}
+                        {row.isPrivatized && (
+                          <Badge variant="outline" className="ml-2 text-[10px] py-0">🔒 Privatisé</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">{row.totalHours}h</TableCell>
                       <TableCell className="text-right font-semibold text-primary">{row.bookedHours}h</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.totalHours - row.bookedHours}h</TableCell>
