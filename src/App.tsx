@@ -22,7 +22,7 @@ import Profile from "./pages/dashboard/Profile";
 import Bookings from "./pages/dashboard/Bookings";
 import Activities from "./pages/dashboard/Activities";
 import Documents from "./pages/dashboard/Documents";
-import MyRooms from "./pages/dashboard/MyRooms";
+import { Navigate } from "react-router-dom";
 import AdminPractitioners from "./pages/dashboard/AdminPractitioners";
 import AdminRooms from "./pages/dashboard/AdminRooms";
 import AdminBookings from "./pages/dashboard/AdminBookings";
