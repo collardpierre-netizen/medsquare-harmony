@@ -32,8 +32,10 @@ type PlanningMode = "my-planning" | "by-room" | "all-rooms" | "occupation";
 const Bookings = () => {
   const { profile, isAdmin } = useAuth();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const roomFromUrl = searchParams.get("room");
+  const dateFromUrl = searchParams.get("date");
+  const hourFromUrl = searchParams.get("hour");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [rooms, setRooms] = useState<any[]>([]);
