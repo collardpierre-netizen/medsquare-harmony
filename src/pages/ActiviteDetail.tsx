@@ -11,6 +11,7 @@ import {
   Award,
   Calendar,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
