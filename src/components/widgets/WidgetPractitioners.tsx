@@ -13,7 +13,7 @@ interface Practitioner {
   bio: string | null;
 }
 
-const SITE_URL = "https://medsquare-harmony.lovable.app";
+const SITE_URL = "https://www.medsquare.be";
 
 const PractitionerCard = ({ p, height = "480px", qrSize = 56, nameSize = "text-lg" }: { p: Practitioner; height?: string; qrSize?: number; nameSize?: string }) => (
   <div className="shrink-0 w-[280px] md:w-[320px] lg:w-[360px]">

@@ -20,7 +20,7 @@ interface Activity {
   next_session?: { start_time: string } | null;
 }
 
-const SITE_URL = "https://medsquare-harmony.lovable.app";
+const SITE_URL = "https://www.medsquare.be";
 
 const ActivityCard = ({ a }: { a: Activity }) => {
   const imgUrl = a.photo_url || a.photos?.[0] || null;
