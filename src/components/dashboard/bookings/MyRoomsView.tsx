@@ -32,7 +32,7 @@ interface SlotInfo {
 
 const MyRoomsView = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [rooms, setRooms] = useState<RoomWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
