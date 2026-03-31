@@ -554,6 +554,18 @@ const Bookings = () => {
             <Columns3 className="h-4 w-4" />
             Toutes les salles
           </button>
+          <button
+            onClick={() => setPlanningMode("occupation")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all",
+              planningMode === "occupation"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Occupation
+          </button>
         </div>
 
         {planningMode === "my-planning" ? (
