@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -157,8 +158,8 @@ const AdminAnalytics = () => {
     return (isAfterMarchSwitch && isBeforeOctoberSwitch) ? 2 : 1;
   };
 
-  const { chartData, roomOccupancyData } = useMemo(() => {
-    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [] };
+  const { chartData, roomOccupancyData, roomSummaryData } = useMemo(() => {
+    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [], roomSummaryData: [] };
 
     const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
     const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
@@ -277,7 +278,44 @@ const AdminAnalytics = () => {
       return row;
     });
 
-    return { chartData, roomOccupancyData };
+    // Room summary: booked vs available hours over entire period
+    const periodStart = periods[0]?.start;
+    const periodEnd = periods[periods.length - 1]?.end;
+    const roomSummaryData = filteredRooms.map((room) => {
+      let totalHours = 0;
+      let bookedHours = 0;
+      if (periodStart && periodEnd) {
+        const totalDays = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / 86400000);
+        for (let d = 0; d < totalDays; d++) {
+          const day = addDays(periodStart, d);
+          const offset = getBrusselsOffset(day);
+          const { start: oS, end: oE } = getOpeningHours(day);
+          totalHours += oE - oS;
+          for (let h = oS; h < oE; h++) {
+            const slotStartUTC = new Date(day);
+            slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
+            const slotEndUTC = new Date(day);
+            slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
+            const occupied =
+              filteredBookings.some(
+                (b) => b.room_id === room.id && new Date(b.start_time) < slotEndUTC && new Date(b.end_time) > slotStartUTC
+              ) ||
+              filteredSessions.some(
+                (s) => s.room_id === room.id && new Date(s.start_time) < slotEndUTC && new Date(s.end_time) > slotStartUTC
+              );
+            if (occupied) bookedHours++;
+          }
+        }
+      }
+      return {
+        name: room.name,
+        bookedHours,
+        totalHours,
+        occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
+      };
+    });
+
+    return { chartData, roomOccupancyData, roomSummaryData };
   }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
 
   // Current period summary (last period)
@@ -538,6 +576,65 @@ const AdminAnalytics = () => {
                   ))}
                 </BarChart>
               </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Summary table: booked vs available hours */}
+        {roomSummaryData && roomSummaryData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4 text-primary" />
+                Récapitulatif par salle
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Heures réservées vs heures disponibles sur la période sélectionnée
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Salle</TableHead>
+                    <TableHead className="text-right">Heures disponibles</TableHead>
+                    <TableHead className="text-right">Heures réservées</TableHead>
+                    <TableHead className="text-right">Heures libres</TableHead>
+                    <TableHead className="text-right">Taux d'occupation</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roomSummaryData.map((row) => (
+                    <TableRow key={row.name}>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="text-right">{row.totalHours}h</TableCell>
+                      <TableCell className="text-right font-semibold text-primary">{row.bookedHours}h</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.totalHours - row.bookedHours}h</TableCell>
+                      <TableCell className="text-right">
+                        <span className={row.occupancy >= 70 ? "text-emerald-600 font-semibold" : row.occupancy >= 40 ? "text-orange-600 font-semibold" : "text-destructive font-semibold"}>
+                          {row.occupancy}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {roomSummaryData.length > 1 && (
+                    <TableRow className="bg-muted/30 font-semibold">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-right">{roomSummaryData.reduce((s, r) => s + r.totalHours, 0)}h</TableCell>
+                      <TableCell className="text-right text-primary">{roomSummaryData.reduce((s, r) => s + r.bookedHours, 0)}h</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{roomSummaryData.reduce((s, r) => s + (r.totalHours - r.bookedHours), 0)}h</TableCell>
+                      <TableCell className="text-right">
+                        {(() => {
+                          const totH = roomSummaryData.reduce((s, r) => s + r.totalHours, 0);
+                          const totB = roomSummaryData.reduce((s, r) => s + r.bookedHours, 0);
+                          const pct = totH > 0 ? Math.round((totB / totH) * 100) : 0;
+                          return <span className={pct >= 70 ? "text-emerald-600" : pct >= 40 ? "text-orange-600" : "text-destructive"}>{pct}%</span>;
+                        })()}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         )}
