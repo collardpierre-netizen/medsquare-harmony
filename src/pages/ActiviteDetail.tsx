@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import ActivityDetailSessions from "@/components/activities/ActivityDetailSessions";
 import SessionRegistrationDialog from "@/components/activities/SessionRegistrationDialog";
+import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
 
 const STOCK_PHOTOS: Record<string, string> = {
   yoga: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=600&fit=crop",
