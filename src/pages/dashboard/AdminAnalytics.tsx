@@ -359,6 +359,18 @@ const AdminAnalytics = () => {
               <FileDown className="h-3.5 w-3.5" />
               {isExporting ? "Export…" : "Export PDF"}
             </Button>
+            <Select value={selectedRoomId} onValueChange={setSelectedRoomId}>
+              <SelectTrigger className="w-[180px] h-9 text-xs">
+                <MapPin className="h-3.5 w-3.5 mr-1 shrink-0" />
+                <SelectValue placeholder="Toutes les salles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les salles</SelectItem>
+                {(rooms || []).map((room) => (
+                  <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={periodRange} onValueChange={(v) => setPeriodRange(v as PeriodRange)}>
               <SelectTrigger className="w-[160px] h-9 text-xs">
                 <SelectValue />
