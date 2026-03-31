@@ -27,7 +27,7 @@ import MyRoomsView from "@/components/dashboard/bookings/MyRoomsView";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
-type PlanningMode = "my-planning" | "by-room" | "all-rooms";
+type PlanningMode = "my-planning" | "by-room" | "all-rooms" | "occupation";
 
 const Bookings = () => {
   const { profile, isAdmin } = useAuth();
