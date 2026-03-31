@@ -18,6 +18,7 @@ type PeriodRange = "4w" | "8w" | "12w" | "3m" | "6m";
 const AdminAnalytics = () => {
   const { toast } = useToast();
   const [periodRange, setPeriodRange] = useState<PeriodRange>("4w");
+  const [selectedRoomId, setSelectedRoomId] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
 
