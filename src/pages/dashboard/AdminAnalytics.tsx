@@ -579,6 +579,65 @@ const AdminAnalytics = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Summary table: booked vs available hours */}
+        {roomSummaryData && roomSummaryData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4 text-primary" />
+                Récapitulatif par salle
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Heures réservées vs heures disponibles sur la période sélectionnée
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Salle</TableHead>
+                    <TableHead className="text-right">Heures disponibles</TableHead>
+                    <TableHead className="text-right">Heures réservées</TableHead>
+                    <TableHead className="text-right">Heures libres</TableHead>
+                    <TableHead className="text-right">Taux d'occupation</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roomSummaryData.map((row) => (
+                    <TableRow key={row.name}>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="text-right">{row.totalHours}h</TableCell>
+                      <TableCell className="text-right font-semibold text-primary">{row.bookedHours}h</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.totalHours - row.bookedHours}h</TableCell>
+                      <TableCell className="text-right">
+                        <span className={row.occupancy >= 70 ? "text-emerald-600 font-semibold" : row.occupancy >= 40 ? "text-orange-600 font-semibold" : "text-destructive font-semibold"}>
+                          {row.occupancy}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {roomSummaryData.length > 1 && (
+                    <TableRow className="bg-muted/30 font-semibold">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-right">{roomSummaryData.reduce((s, r) => s + r.totalHours, 0)}h</TableCell>
+                      <TableCell className="text-right text-primary">{roomSummaryData.reduce((s, r) => s + r.bookedHours, 0)}h</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{roomSummaryData.reduce((s, r) => s + (r.totalHours - r.bookedHours), 0)}h</TableCell>
+                      <TableCell className="text-right">
+                        {(() => {
+                          const totH = roomSummaryData.reduce((s, r) => s + r.totalHours, 0);
+                          const totB = roomSummaryData.reduce((s, r) => s + r.bookedHours, 0);
+                          const pct = totH > 0 ? Math.round((totB / totH) * 100) : 0;
+                          return <span className={pct >= 70 ? "text-emerald-600" : pct >= 40 ? "text-orange-600" : "text-destructive"}>{pct}%</span>;
+                        })()}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
