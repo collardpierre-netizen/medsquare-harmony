@@ -572,7 +572,7 @@ const AdminAnalytics = () => {
                     <Bar
                       key={room.id}
                       dataKey={room.name}
-                      fill={`hsl(var(--chart-${(i % 5) + 1}))`}
+                      fill={roomColors[i % roomColors.length]}
                       radius={[4, 4, 0, 0]}
                     />
                   ))}
