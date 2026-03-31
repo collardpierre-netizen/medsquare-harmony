@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Award } from "lucide-react";
 import type { WidgetConfig } from "@/pages/Widget";
