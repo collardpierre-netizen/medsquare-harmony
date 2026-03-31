@@ -333,6 +333,134 @@ export async function generatePractitionerPdf(practitioner: PractitionerPdfData)
     y += 8;
   }
 
+  // ========== TARIFS INAMI ==========
+  const rates = practitioner.rates || [];
+  if (rates.length > 0) {
+    y = checkPageBreak(doc, y, 25);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...PRIMARY);
+    doc.text("Tarifs INAMI", MARGIN, y);
+    y += 7;
+
+    // Table header
+    const colWidths = [55, 20, 30, 30, 30];
+    const headers = ["Acte", "Durée", "INAMI", "Patient", "Patient BIM"];
+    doc.setFillColor(...PRIMARY);
+    doc.rect(MARGIN, y - 4, CONTENT_W, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...WHITE);
+    let hx = MARGIN + 2;
+    for (let i = 0; i < headers.length; i++) {
+      doc.text(headers[i], hx, y);
+      hx += colWidths[i];
+    }
+    y += 5;
+
+    // Table rows
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    for (let r = 0; r < rates.length; r++) {
+      y = checkPageBreak(doc, y, 7);
+      const rate = rates[r];
+      if (r % 2 === 0) {
+        doc.setFillColor(...BG_LIGHT);
+        doc.rect(MARGIN, y - 3.5, CONTENT_W, 6.5, "F");
+      }
+      doc.setTextColor(...TEXT_DARK);
+      let rx = MARGIN + 2;
+      const modeLabel: Record<string, string> = { cabinet: "Cabinet", video: "Vidéo", home: "Domicile", domicile: "Domicile", couple: "Couple", child: "Enfant" };
+      const label = rate.act_label + (rate.consult_mode !== "cabinet" ? ` (${modeLabel[rate.consult_mode] || rate.consult_mode})` : "");
+      doc.text(label.slice(0, 35), rx, y);
+      rx += colWidths[0];
+      doc.text(rate.duration_minutes ? `${rate.duration_minutes} min` : "-", rx, y);
+      rx += colWidths[1];
+      doc.text(rate.inami_total != null ? `${rate.inami_total.toFixed(2)} €` : "-", rx, y);
+      rx += colWidths[2];
+      doc.text(rate.patient_normal != null ? `${rate.patient_normal.toFixed(2)} €` : "-", rx, y);
+      rx += colWidths[3];
+      doc.text(rate.patient_bim != null ? `${rate.patient_bim.toFixed(2)} €` : "-", rx, y);
+      y += 6;
+    }
+    y += 5;
+  }
+
+  // ========== PARCOURS PROFESSIONNEL ==========
+  const experiences = practitioner.experiences || [];
+  const formations = practitioner.formations || [];
+  if (experiences.length > 0 || formations.length > 0) {
+    y = checkPageBreak(doc, y, 20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...PRIMARY);
+    doc.text("Parcours professionnel", MARGIN, y);
+    y += 8;
+
+    const renderTimeline = (items: TimelineItem[], sectionTitle: string, accentColor: readonly [number, number, number]) => {
+      if (items.length === 0) return;
+      y = checkPageBreak(doc, y, 15);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...accentColor);
+      doc.text(sectionTitle, MARGIN, y);
+      y += 6;
+
+      for (const item of items) {
+        y = checkPageBreak(doc, y, 18);
+
+        // Timeline dot
+        doc.setFillColor(...accentColor);
+        doc.circle(MARGIN + 2, y - 1, 1.2, "F");
+
+        // Years
+        const years = [item.start_year, item.end_year].filter(Boolean).join(" - ");
+        if (years) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(...TEXT_MUTED);
+          doc.text(years, MARGIN + 6, y - 1);
+        }
+
+        // Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...TEXT_DARK);
+        doc.text(item.title || "", MARGIN + 6, y + 3.5);
+
+        // Institution + location
+        const sub = [item.institution, item.location].filter(Boolean).join(" — ");
+        if (sub) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(...TEXT_MUTED);
+          doc.text(sub.slice(0, 80), MARGIN + 6, y + 7.5);
+        }
+
+        // Description
+        if (item.description) {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(7.5);
+          doc.setTextColor(...TEXT_MUTED);
+          const descLines = doc.splitTextToSize(item.description, CONTENT_W - 10);
+          let dy = y + 11;
+          for (const line of descLines.slice(0, 3)) {
+            dy = checkPageBreak(doc, dy, 4);
+            doc.text(line, MARGIN + 6, dy);
+            dy += 3.5;
+          }
+          y = dy + 2;
+        } else {
+          y += sub ? 12 : 8;
+        }
+      }
+      y += 3;
+    };
+
+    renderTimeline(experiences, "Expériences", PRIMARY);
+    renderTimeline(formations, "Formations", PRIMARY_LIGHT);
+  }
+
   // ========== QR CODE FOOTER ==========
   y = checkPageBreak(doc, y, 45);
 
