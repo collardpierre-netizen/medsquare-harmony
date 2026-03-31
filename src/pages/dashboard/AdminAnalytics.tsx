@@ -75,33 +75,68 @@ const AdminAnalytics = () => {
     }
   }, [toast]);
 
-  // Compute period boundaries
-  const periods = useMemo(() => {
-    const now = new Date();
-    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+  // Auto-granularity based on date range span
+  const granularity = useMemo(() => {
+    const days = differenceInDays(dateTo, dateFrom);
+    if (days <= 14) return "day" as const;
+    if (days <= 90) return "week" as const;
+    return "month" as const;
+  }, [dateFrom, dateTo]);
 
-    if (periodRange === "3m" || periodRange === "6m") {
-      const count = periodRange === "3m" ? 3 : 6;
-      return Array.from({ length: count }, (_, i) => {
-        const start = startOfMonth(subMonths(now, count - 1 - i));
-        const end = i === count - 1 ? addDays(endOfMonth(start), 1) : startOfMonth(subMonths(now, count - 2 - i));
+  const granularityLabel = granularity === "day" ? "Jour" : granularity === "week" ? "Semaine" : "Mois";
+
+  // Compute period boundaries from dateFrom/dateTo
+  const periods = useMemo(() => {
+    if (granularity === "month") {
+      const months = eachMonthOfInterval({ start: dateFrom, end: dateTo });
+      return months.map((m, i) => {
+        const start = startOfMonth(m);
+        const end = i < months.length - 1 ? startOfMonth(months[i + 1]) : addDays(endOfMonth(m), 1);
         return { start, end, label: format(start, "MMM yyyy", { locale: fr }) };
       });
-    } else {
-      const weekCount = periodRange === "4w" ? 4 : periodRange === "8w" ? 8 : 12;
-      // Include current week + past weeks, and 1 future week
-      const futureWeeks = 1;
-      const pastWeeks = weekCount - 1 - futureWeeks;
-      return Array.from({ length: weekCount }, (_, i) => {
-        const start = subWeeks(currentWeekStart, pastWeeks - i);
-        const end = addDays(start, 7);
+    } else if (granularity === "week") {
+      const weeks = eachWeekOfInterval({ start: dateFrom, end: dateTo }, { weekStartsOn: 1 });
+      return weeks.map((w) => {
+        const start = w;
+        const end = addDays(w, 7);
         return { start, end, label: `Sem. ${format(start, "d MMM", { locale: fr })}` };
       });
+    } else {
+      const days = eachDayOfInterval({ start: dateFrom, end: addDays(dateTo, -1) });
+      return days.map((d) => {
+        const start = startOfDay(d);
+        const end = addDays(start, 1);
+        return { start, end, label: format(d, "EEE d MMM", { locale: fr }) };
+      });
     }
-  }, [periodRange]);
+  }, [dateFrom, dateTo, granularity]);
 
-  const globalStart = periods[0].start.toISOString();
-  const globalEnd = periods[periods.length - 1].end.toISOString();
+  const globalStart = periods.length > 0 ? periods[0].start.toISOString() : dateFrom.toISOString();
+  const globalEnd = periods.length > 0 ? periods[periods.length - 1].end.toISOString() : dateTo.toISOString();
+
+  // Preset handlers
+  const applyPreset = (preset: string) => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    switch (preset) {
+      case "4w":
+        setDateFrom(subWeeks(weekStart, 3));
+        setDateTo(addDays(weekStart, 7));
+        break;
+      case "3m":
+        setDateFrom(startOfMonth(subMonths(now, 2)));
+        setDateTo(addDays(endOfMonth(now), 1));
+        break;
+      case "6m":
+        setDateFrom(startOfMonth(subMonths(now, 5)));
+        setDateTo(addDays(endOfMonth(now), 1));
+        break;
+      case "12m":
+        setDateFrom(startOfMonth(subMonths(now, 11)));
+        setDateTo(addDays(endOfMonth(now), 1));
+        break;
+    }
+  };
 
   // Fetch all data
   const { data: rooms } = useQuery({
