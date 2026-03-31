@@ -508,7 +508,7 @@ const AdminAnalytics = () => {
         </div>
 
         {/* Per-room occupancy chart */}
-        {rooms && rooms.length > 0 && roomOccupancyData.length > 0 && (
+        {filteredRoomsForChart.length > 0 && roomOccupancyData.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
@@ -516,7 +516,9 @@ const AdminAnalytics = () => {
                 Occupation par salle
               </CardTitle>
               <CardDescription className="text-xs">
-                Taux d'occupation (%) individuel par salle et par période
+                {selectedRoomId === "all"
+                  ? "Taux d'occupation (%) individuel par salle et par période"
+                  : `Taux d'occupation de ${filteredRoomsForChart[0]?.name}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -526,7 +528,7 @@ const AdminAnalytics = () => {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
-                  {rooms.map((room, i) => (
+                  {filteredRoomsForChart.map((room, i) => (
                     <Bar
                       key={room.id}
                       dataKey={room.name}
