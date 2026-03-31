@@ -3,6 +3,7 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Clock, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { generateTimeSlotsForDate, getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
 
