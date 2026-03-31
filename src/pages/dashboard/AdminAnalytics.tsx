@@ -165,7 +165,7 @@ const AdminAnalytics = () => {
     const filteredSessions = selectedRoomId === "all" ? sessions : sessions.filter((s) => s.room_id === selectedRoomId);
     const chartData = periods.map(({ start, end, label }) => {
       let revenue = 0;
-      const periodBookings = bookings.filter(
+      const periodBookings = filteredBookings.filter(
         (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
       );
       for (const b of periodBookings) {
@@ -182,18 +182,17 @@ const AdminAnalytics = () => {
         const offset = getBrusselsOffset(day);
         const { start: oS, end: oE } = getOpeningHours(day);
         const daySlots = oE - oS;
-        totalSlots += daySlots * rooms.length;
+        totalSlots += daySlots * filteredRooms.length;
 
-        for (const room of rooms) {
+        for (const room of filteredRooms) {
           for (let h = oS; h < oE; h++) {
-            // Convert Brussels hour to UTC
             const slotStartUTC = new Date(day);
             slotStartUTC.setUTCHours(h - offset, 0, 0, 0);
             const slotEndUTC = new Date(day);
             slotEndUTC.setUTCHours(h - offset + 1, 0, 0, 0);
 
             const isOccupied =
-              bookings.some(
+              filteredBookings.some(
                 (b) =>
                   b.room_id === room.id &&
                   new Date(b.start_time) >= start &&
@@ -201,7 +200,7 @@ const AdminAnalytics = () => {
                   new Date(b.start_time) < slotEndUTC &&
                   new Date(b.end_time) > slotStartUTC
               ) ||
-              sessions.some(
+              filteredSessions.some(
                 (s) =>
                   s.room_id === room.id &&
                   new Date(s.start_time) >= start &&
@@ -216,7 +215,7 @@ const AdminAnalytics = () => {
       const occupancy = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
 
       const periodSessionIds = new Set(
-        sessions
+        filteredSessions
           .filter((s) => new Date(s.start_time) >= start && new Date(s.start_time) < end)
           .map((s) => s.id)
       );
@@ -240,7 +239,7 @@ const AdminAnalytics = () => {
       const row: Record<string, string | number> = { period: label };
       const days = Math.ceil((end.getTime() - start.getTime()) / 86400000);
 
-      for (const room of rooms) {
+      for (const room of filteredRooms) {
         let total = 0;
         let occupied = 0;
         for (let d = 0; d < days; d++) {
