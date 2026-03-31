@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import WidgetPractitioners from "@/components/widgets/WidgetPractitioners";
 import WidgetActivities from "@/components/widgets/WidgetActivities";
 import WidgetRooms from "@/components/widgets/WidgetRooms";
+import WidgetSchedule from "@/components/widgets/WidgetSchedule";
 
 export interface WidgetConfig {
   id: string;
   name: string;
-  type: "practitioners" | "activities" | "rooms";
+  type: "practitioners" | "activities" | "rooms" | "schedule";
   template: string;
   settings: {
     autoScroll?: boolean;
@@ -78,6 +79,7 @@ const Widget = () => {
         {widget.type === "practitioners" && <WidgetPractitioners config={widget} />}
         {widget.type === "activities" && <WidgetActivities config={widget} />}
         {widget.type === "rooms" && <WidgetRooms config={widget} />}
+        {widget.type === "schedule" && <WidgetSchedule config={widget} />}
       </div>
     </div>
   );
