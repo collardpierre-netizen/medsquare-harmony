@@ -136,10 +136,20 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, on
 
         {/* CTA column */}
         <div className="flex flex-row md:flex-col gap-2 flex-shrink-0 print:hidden">
+          {hasContactEmail && (
+            <Button
+              onClick={onContactClick}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="lg"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Contacter
+            </Button>
+          )}
           {hasBookableActivities && (
             <Button
               onClick={onBookClick}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              variant="outline"
               size="lg"
             >
               <CalendarPlus className="h-4 w-4 mr-2" />
