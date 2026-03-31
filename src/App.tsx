@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
@@ -22,7 +22,7 @@ import Profile from "./pages/dashboard/Profile";
 import Bookings from "./pages/dashboard/Bookings";
 import Activities from "./pages/dashboard/Activities";
 import Documents from "./pages/dashboard/Documents";
-import MyRooms from "./pages/dashboard/MyRooms";
+
 import AdminPractitioners from "./pages/dashboard/AdminPractitioners";
 import AdminRooms from "./pages/dashboard/AdminRooms";
 import AdminBookings from "./pages/dashboard/AdminBookings";
@@ -77,7 +77,7 @@ const App = () => (
             {/* Protected practitioner-only pages */}
             <Route path="/dashboard/bookings" element={<ProtectedRoute allowedRoles={["practitioner"]}><Bookings /></ProtectedRoute>} />
             <Route path="/dashboard/activities" element={<ProtectedRoute allowedRoles={["practitioner"]}><Activities /></ProtectedRoute>} />
-            <Route path="/dashboard/rooms" element={<ProtectedRoute allowedRoles={["practitioner"]}><MyRooms /></ProtectedRoute>} />
+            <Route path="/dashboard/rooms" element={<Navigate to="/dashboard/bookings" replace />} />
             <Route path="/dashboard/documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><Documents /></ProtectedRoute>} />
             <Route path="/dashboard/export" element={<ProtectedRoute allowedRoles={["practitioner"]}><DailyExport /></ProtectedRoute>} />
             <Route path="/dashboard/guide" element={<ProtectedRoute allowedRoles={["practitioner"]}><PractitionerGuide /></ProtectedRoute>} />

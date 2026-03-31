@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
-import { MapPin, CalendarDays, LayoutGrid, User, Building2, Columns3 } from "lucide-react";
+import { MapPin, CalendarDays, LayoutGrid, User, Building2, Columns3, BarChart3 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,10 +23,11 @@ import ActivityDetailDialog from "@/components/dashboard/bookings/ActivityDetail
 import MyPlanningView from "@/components/dashboard/bookings/MyPlanningView";
 import AllRoomsOverview from "@/components/dashboard/bookings/AllRoomsOverview";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
+import MyRoomsView from "@/components/dashboard/bookings/MyRoomsView";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
 type ViewMode = "day" | "week";
-type PlanningMode = "my-planning" | "by-room" | "all-rooms";
+type PlanningMode = "my-planning" | "by-room" | "all-rooms" | "occupation";
 
 const Bookings = () => {
   const { profile, isAdmin } = useAuth();
@@ -553,6 +554,18 @@ const Bookings = () => {
             <Columns3 className="h-4 w-4" />
             Toutes les salles
           </button>
+          <button
+            onClick={() => setPlanningMode("occupation")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all",
+              planningMode === "occupation"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Occupation
+          </button>
         </div>
 
         {planningMode === "my-planning" ? (
@@ -594,6 +607,8 @@ const Bookings = () => {
               onActivityClick={handleActivityClick}
             />
           </>
+        ) : planningMode === "occupation" ? (
+          <MyRoomsView />
         ) : (
           <>
             {/* Header with room selector and view toggle */}

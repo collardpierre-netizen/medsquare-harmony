@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
   { label: "Mon profil", href: "/dashboard/profile", icon: User },
   { label: "Réservations", href: "/dashboard/bookings", icon: CalendarDays },
   { label: "Mes activités", href: "/dashboard/activities", icon: Activity },
-  { label: "Mes espaces", href: "/dashboard/rooms", icon: DoorOpen },
+  
   { label: "Mes inscriptions", href: "/dashboard/registrations", icon: ClipboardList },
   { label: "Documents", href: "/dashboard/documents", icon: FileText },
   { label: "Documents juridiques", href: "/dashboard/legal-documents", icon: Scale },
