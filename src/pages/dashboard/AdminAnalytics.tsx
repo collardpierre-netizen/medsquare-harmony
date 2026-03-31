@@ -197,8 +197,8 @@ const AdminAnalytics = () => {
     return (isAfterMarchSwitch && isBeforeOctoberSwitch) ? 2 : 1;
   };
 
-  const { chartData, roomOccupancyData, roomSummaryData } = useMemo(() => {
-    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [], roomSummaryData: [] };
+  const { chartData, roomOccupancyData, roomSummaryData, roomRevenueData } = useMemo(() => {
+    if (!rooms || !bookings || !sessions || !registrations) return { chartData: [], roomOccupancyData: [], roomSummaryData: [], roomRevenueData: [] };
 
     const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
     const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
@@ -372,7 +372,24 @@ const AdminAnalytics = () => {
       };
     });
 
-    return { chartData, roomOccupancyData, roomSummaryData };
+    // Per-room revenue data
+    const roomRevenueData = periods.map(({ start, end, label }) => {
+      const row: Record<string, string | number> = { period: label };
+      for (const room of filteredRooms) {
+        let rev = 0;
+        const roomBookings = filteredBookings.filter(
+          (b) => b.room_id === room.id && new Date(b.start_time) >= start && new Date(b.start_time) < end
+        );
+        for (const b of roomBookings) {
+          const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+          rev += (room.hourly_rate || 0) * hours;
+        }
+        row[room.name] = Math.round(rev);
+      }
+      return row;
+    });
+
+    return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
   }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
 
   // Current period summary (last period)
@@ -428,6 +445,12 @@ const AdminAnalytics = () => {
   const filteredRoomsForChart = selectedRoomId === "all" ? (rooms || []) : (rooms || []).filter((r) => r.id === selectedRoomId);
   const roomColors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
   const roomOccupancyChartConfig = Object.fromEntries(
+    filteredRoomsForChart.map((room, i) => [
+      room.name,
+      { label: room.name, color: roomColors[i % roomColors.length] },
+    ])
+  );
+  const roomRevenueChartConfig = Object.fromEntries(
     filteredRoomsForChart.map((room, i) => [
       room.name,
       { label: room.name, color: roomColors[i % roomColors.length] },
@@ -677,7 +700,42 @@ const AdminAnalytics = () => {
           </Card>
         )}
 
-        {/* Trend lines per room */}
+        {/* Revenue per room */}
+        {filteredRoomsForChart.length > 0 && roomRevenueData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+                Revenus par salle
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {selectedRoomId === "all"
+                  ? "Revenus (€) par salle et par période"
+                  : `Revenus de ${filteredRoomsForChart[0]?.name}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={roomRevenueChartConfig} className="h-[260px] w-full">
+                <BarChart data={roomRevenueData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v} €`} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v} €`} />} />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                  {filteredRoomsForChart.map((room, i) => (
+                    <Bar
+                      key={room.id}
+                      dataKey={room.name}
+                      fill={roomColors[i % roomColors.length]}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
+
         {filteredRoomsForChart.length > 0 && roomOccupancyData.length > 1 && (
           <Card>
             <CardHeader className="pb-2">
