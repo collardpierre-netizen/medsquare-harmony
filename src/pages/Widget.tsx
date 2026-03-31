@@ -9,7 +9,7 @@ import WidgetSchedule from "@/components/widgets/WidgetSchedule";
 export interface WidgetConfig {
   id: string;
   name: string;
-  type: "practitioners" | "activities" | "rooms";
+  type: "practitioners" | "activities" | "rooms" | "schedule";
   template: string;
   settings: {
     autoScroll?: boolean;
