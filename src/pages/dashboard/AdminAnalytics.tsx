@@ -607,7 +607,7 @@ const AdminAnalytics = () => {
                       key={room.id}
                       type="monotone"
                       dataKey={room.name}
-                      stroke={`hsl(var(--chart-${(i % 5) + 1}))`}
+                      stroke={roomColors[i % roomColors.length]}
                       strokeWidth={2}
                       dot={{ r: 3 }}
                       activeDot={{ r: 5 }}
