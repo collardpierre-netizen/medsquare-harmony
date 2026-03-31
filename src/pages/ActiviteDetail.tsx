@@ -68,6 +68,7 @@ interface Activity {
     last_name: string;
     specialty: string | null;
     avatar_url: string | null;
+    contact_email: string | null;
   } | null;
 }
 
