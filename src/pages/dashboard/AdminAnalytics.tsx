@@ -450,6 +450,12 @@ const AdminAnalytics = () => {
       { label: room.name, color: roomColors[i % roomColors.length] },
     ])
   );
+  const roomRevenueChartConfig = Object.fromEntries(
+    filteredRoomsForChart.map((room, i) => [
+      room.name,
+      { label: room.name, color: roomColors[i % roomColors.length] },
+    ])
+  );
 
   return (
     <DashboardLayout>
