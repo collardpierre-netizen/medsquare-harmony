@@ -28,6 +28,8 @@ interface PractitionerHeroProps {
   };
   hasBookableActivities: boolean;
   onBookClick: () => void;
+  onContactClick: () => void;
+  hasContactEmail: boolean;
   onPdfClick: () => void;
   isPdfLoading?: boolean;
 }
