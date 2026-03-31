@@ -77,7 +77,7 @@ const App = () => (
             {/* Protected practitioner-only pages */}
             <Route path="/dashboard/bookings" element={<ProtectedRoute allowedRoles={["practitioner"]}><Bookings /></ProtectedRoute>} />
             <Route path="/dashboard/activities" element={<ProtectedRoute allowedRoles={["practitioner"]}><Activities /></ProtectedRoute>} />
-            <Route path="/dashboard/rooms" element={<ProtectedRoute allowedRoles={["practitioner"]}><MyRooms /></ProtectedRoute>} />
+            <Route path="/dashboard/rooms" element={<Navigate to="/dashboard/bookings" replace />} />
             <Route path="/dashboard/documents" element={<ProtectedRoute allowedRoles={["practitioner"]}><Documents /></ProtectedRoute>} />
             <Route path="/dashboard/export" element={<ProtectedRoute allowedRoles={["practitioner"]}><DailyExport /></ProtectedRoute>} />
             <Route path="/dashboard/guide" element={<ProtectedRoute allowedRoles={["practitioner"]}><PractitionerGuide /></ProtectedRoute>} />
