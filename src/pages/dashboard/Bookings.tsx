@@ -607,6 +607,8 @@ const Bookings = () => {
               onActivityClick={handleActivityClick}
             />
           </>
+        ) : planningMode === "occupation" ? (
+          <MyRoomsView />
         ) : (
           <>
             {/* Header with room selector and view toggle */}
