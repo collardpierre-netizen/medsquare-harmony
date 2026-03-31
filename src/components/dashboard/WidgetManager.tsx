@@ -14,6 +14,7 @@ const WIDGET_TYPES = [
   { value: "practitioners", label: "Praticiens" },
   { value: "activities", label: "Activités" },
   { value: "rooms", label: "Espaces / Salles" },
+  { value: "schedule", label: "Planning semaine" },
 ] as const;
 
 const TEMPLATES = [

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Award } from "lucide-react";
 import type { WidgetConfig } from "@/pages/Widget";
@@ -15,6 +15,7 @@ interface Practitioner {
 const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<number | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -30,29 +31,43 @@ const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
     fetch();
   }, [config.settings.maxItems]);
 
-  // Auto-scroll for carousel
-  useEffect(() => {
+  // Infinite seamless scroll for carousel
+  const startInfiniteScroll = useCallback(() => {
     if (config.template !== "carousel" || !config.settings.autoScroll || !scrollRef.current) return;
-    const interval = setInterval(() => {
-      const el = scrollRef.current;
+    const speed = 0.5; // px per frame
+    const el = scrollRef.current;
+
+    const step = () => {
       if (!el) return;
-      // Scroll by exactly one viewport width (batch mode)
-      const nextPos = el.scrollLeft + el.clientWidth;
-      if (nextPos >= el.scrollWidth - 10) {
-        // Loop back to start
-        el.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        el.scrollTo({ left: nextPos, behavior: "smooth" });
+      el.scrollLeft += speed;
+      // When we've scrolled past the first set, jump back seamlessly
+      const halfWidth = el.scrollWidth / 2;
+      if (el.scrollLeft >= halfWidth) {
+        el.scrollLeft -= halfWidth;
       }
-    }, (config.settings.scrollInterval || 5) * 1000);
-    return () => clearInterval(interval);
-  }, [config.template, config.settings.autoScroll, config.settings.scrollInterval]);
+      animRef.current = requestAnimationFrame(step);
+    };
+    animRef.current = requestAnimationFrame(step);
+  }, [config.template, config.settings.autoScroll]);
+
+  useEffect(() => {
+    if (practitioners.length === 0) return;
+    startInfiniteScroll();
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [practitioners, startInfiniteScroll]);
+
+  // Duplicate items for seamless loop
+  const loopItems = config.template === "carousel" && config.settings.autoScroll && practitioners.length > 0
+    ? [...practitioners, ...practitioners]
+    : practitioners;
 
   if (config.template === "carousel") {
     return (
-      <div ref={scrollRef} className="flex gap-6 overflow-x-auto h-full items-center scrollbar-hide snap-x snap-mandatory">
-        {practitioners.map((p) => (
-          <div key={p.id} className="snap-start shrink-0 w-[280px] md:w-[320px] lg:w-[360px]">
+      <div ref={scrollRef} className="flex gap-6 overflow-x-auto h-full items-center scrollbar-hide" style={{ scrollBehavior: "auto" }}>
+        {loopItems.map((p, i) => (
+          <div key={`${p.id}-${i}`} className="shrink-0 w-[280px] md:w-[320px] lg:w-[360px]">
             <div className="rounded-2xl overflow-hidden shadow-lg bg-card flex flex-col" style={{ height: "420px" }}>
               <div className="flex-1 bg-muted relative min-h-0">
                 {p.avatar_url ? (

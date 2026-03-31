@@ -79,6 +79,7 @@ const Widget = () => {
         {widget.type === "practitioners" && <WidgetPractitioners config={widget} />}
         {widget.type === "activities" && <WidgetActivities config={widget} />}
         {widget.type === "rooms" && <WidgetRooms config={widget} />}
+        {widget.type === "schedule" && <WidgetSchedule config={widget} />}
       </div>
     </div>
   );
