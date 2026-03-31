@@ -85,6 +85,9 @@ const WidgetSchedule = ({ config }: { config: WidgetConfig }) => {
       setSessions(enriched);
     };
     fetchSessions();
+    // Auto-refresh every 5 minutes
+    const refreshInterval = setInterval(fetchSessions, 5 * 60_000);
+    return () => clearInterval(refreshInterval);
   }, []);
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
