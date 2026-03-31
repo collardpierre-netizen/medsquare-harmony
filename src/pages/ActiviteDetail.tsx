@@ -478,10 +478,17 @@ const ActiviteDetail = () => {
                       )}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Voir le profil
-                  </Button>
-                </Link>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      Voir le profil
+                    </Button>
+                    {practitioner.contact_email && (
+                      <Button size="sm" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); setShowContact(true); }}>
+                        <Mail className="h-3.5 w-3.5" />
+                        Contacter
+                      </Button>
+                    )}
+                  </div>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
                   Praticien non renseigné
