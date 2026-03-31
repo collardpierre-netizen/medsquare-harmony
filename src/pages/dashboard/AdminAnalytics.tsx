@@ -142,7 +142,7 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available");
       return data || [];
     },
   });
