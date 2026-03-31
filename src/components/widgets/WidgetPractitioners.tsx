@@ -18,7 +18,7 @@ const SITE_URL = "https://medsquare-harmony.lovable.app";
 const WidgetPractitioners = ({ config }: { config: WidgetConfig }) => {
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<number | null>(null);
+  
 
   useEffect(() => {
     const fetch = async () => {
