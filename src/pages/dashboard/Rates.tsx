@@ -56,7 +56,7 @@ const RatesManagement = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchRates = async () => {
-    if (!profile) return;
+    if (!profile) { setLoading(false); return; }
     const { data } = await supabase
       .from("practitioner_rates")
       .select("*")
