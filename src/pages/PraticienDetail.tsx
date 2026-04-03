@@ -352,7 +352,13 @@ const PraticienDetail = () => {
               <p className="font-display font-semibold text-sm">{practitioner.first_name} {practitioner.last_name}</p>
               {practitioner.specialty && <p className="text-xs text-muted-foreground">{practitioner.specialty}</p>}
             </div>
-            <Button size="sm" onClick={() => setShowContact(true)}>Contacter</Button>
+            <Button size="sm" onClick={() => {
+              if (practitioner.contact_email) {
+                window.location.href = `mailto:${practitioner.contact_email}`;
+              } else if (practitioner.phone) {
+                window.location.href = `tel:${practitioner.phone}`;
+              }
+            }}>Contacter</Button>
             {hasBookable && (
               <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>Réserver</Button>
             )}
