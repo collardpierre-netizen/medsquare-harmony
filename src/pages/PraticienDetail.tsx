@@ -15,7 +15,7 @@ import PractitionerTabAvis from "@/components/practitioners/detail/PractitionerT
 import PractitionerTabQR from "@/components/practitioners/detail/PractitionerTabQR";
 import PractitionerTabParcours from "@/components/practitioners/detail/PractitionerTabParcours";
 import PatientBookingDialog from "@/components/booking/PatientBookingDialog";
-import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
+
 import { generatePractitionerPdf } from "@/components/practitioners/detail/practitionerPdfExport";
 
 interface DaySchedule {
@@ -89,7 +89,7 @@ const PraticienDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-  const [showContact, setShowContact] = useState(false);
+  
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const handlePdfExport = async () => {
@@ -251,8 +251,8 @@ const PraticienDetail = () => {
             practitioner={practitioner}
             hasBookableActivities={hasBookable}
             onBookClick={() => setShowBooking(true)}
-            onContactClick={() => setShowContact(true)}
-            hasContactEmail={!!practitioner.contact_email}
+            contactEmail={practitioner.contact_email}
+            contactPhone={practitioner.phone}
             onPdfClick={handlePdfExport}
             isPdfLoading={pdfLoading}
           />
@@ -352,7 +352,13 @@ const PraticienDetail = () => {
               <p className="font-display font-semibold text-sm">{practitioner.first_name} {practitioner.last_name}</p>
               {practitioner.specialty && <p className="text-xs text-muted-foreground">{practitioner.specialty}</p>}
             </div>
-            <Button size="sm" onClick={() => setShowContact(true)}>Contacter</Button>
+            <Button size="sm" onClick={() => {
+              if (practitioner.contact_email) {
+                window.location.href = `mailto:${practitioner.contact_email}`;
+              } else if (practitioner.phone) {
+                window.location.href = `tel:${practitioner.phone}`;
+              }
+            }}>Contacter</Button>
             {hasBookable && (
               <Button size="sm" variant="default" onClick={() => setShowBooking(true)}>Réserver</Button>
             )}
@@ -369,12 +375,6 @@ const PraticienDetail = () => {
             id: a.id, title: a.title, duration_minutes: a.duration_minutes,
             price: a.price, is_free: a.is_free, max_participants: a.max_participants, category: a.category,
           }))}
-        />
-        <ContactPractitionerDialog
-          open={showContact}
-          onOpenChange={setShowContact}
-          practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
-          practitionerEmail={practitioner.contact_email || ""}
         />
       </div>
     </Layout>

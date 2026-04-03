@@ -12,6 +12,7 @@ import {
   Calendar,
   ExternalLink,
   Mail,
+  Phone,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import ActivityDetailSessions from "@/components/activities/ActivityDetailSessions";
 import SessionRegistrationDialog from "@/components/activities/SessionRegistrationDialog";
-import ContactPractitionerDialog from "@/components/practitioners/ContactPractitionerDialog";
+
 
 const STOCK_PHOTOS: Record<string, string> = {
   yoga: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&h=600&fit=crop",
@@ -69,6 +70,7 @@ interface Activity {
     specialty: string | null;
     avatar_url: string | null;
     contact_email: string | null;
+    phone: string | null;
   } | null;
 }
 
@@ -95,7 +97,7 @@ const ActiviteDetail = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [showRegDialog, setShowRegDialog] = useState(false);
-  const [showContact, setShowContact] = useState(false);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,7 +106,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url, contact_email)"
+        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url, contact_email, phone)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -482,11 +484,21 @@ const ActiviteDetail = () => {
                     <Button variant="outline" size="sm" className="flex-1">
                       Voir le profil
                     </Button>
-                    {practitioner.contact_email && (
-                      <Button size="sm" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); setShowContact(true); }}>
-                        <Mail className="h-3.5 w-3.5" />
-                        Contacter
-                      </Button>
+                    {(practitioner.contact_email || practitioner.phone) && (
+                      <>
+                        {practitioner.contact_email && (
+                          <Button size="sm" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); window.location.href = `mailto:${practitioner.contact_email}`; }}>
+                            <Mail className="h-3.5 w-3.5" />
+                            Email
+                          </Button>
+                        )}
+                        {practitioner.phone && (
+                          <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); window.location.href = `tel:${practitioner.phone}`; }}>
+                            <Phone className="h-3.5 w-3.5" />
+                            Appeler
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </Link>
@@ -567,9 +579,15 @@ const ActiviteDetail = () => {
                 </p>
               </div>
               {practitioner.contact_email && (
-                <Button size="sm" onClick={() => setShowContact(true)}>
+                <Button size="sm" onClick={() => window.location.href = `mailto:${practitioner.contact_email}`}>
                   <Mail className="h-3.5 w-3.5 mr-1" />
-                  Contacter
+                  Email
+                </Button>
+              )}
+              {practitioner.phone && (
+                <Button size="sm" variant="outline" onClick={() => window.location.href = `tel:${practitioner.phone}`}>
+                  <Phone className="h-3.5 w-3.5 mr-1" />
+                  Appeler
                 </Button>
               )}
               <Link to={`/praticiens/${practitioner.id}`}>
@@ -581,15 +599,6 @@ const ActiviteDetail = () => {
           </div>
         )}
 
-        {/* Contact dialog */}
-        {practitioner && practitioner.contact_email && (
-          <ContactPractitionerDialog
-            open={showContact}
-            onOpenChange={setShowContact}
-            practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
-            practitionerEmail={practitioner.contact_email}
-          />
-        )}
       </div>
     </Layout>
   );
