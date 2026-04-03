@@ -579,9 +579,15 @@ const ActiviteDetail = () => {
                 </p>
               </div>
               {practitioner.contact_email && (
-                <Button size="sm" onClick={() => setShowContact(true)}>
+                <Button size="sm" onClick={() => window.location.href = `mailto:${practitioner.contact_email}`}>
                   <Mail className="h-3.5 w-3.5 mr-1" />
-                  Contacter
+                  Email
+                </Button>
+              )}
+              {practitioner.phone && (
+                <Button size="sm" variant="outline" onClick={() => window.location.href = `tel:${practitioner.phone}`}>
+                  <Phone className="h-3.5 w-3.5 mr-1" />
+                  Appeler
                 </Button>
               )}
               <Link to={`/praticiens/${practitioner.id}`}>
