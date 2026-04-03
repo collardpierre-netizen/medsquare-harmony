@@ -251,8 +251,8 @@ const PraticienDetail = () => {
             practitioner={practitioner}
             hasBookableActivities={hasBookable}
             onBookClick={() => setShowBooking(true)}
-            onContactClick={() => setShowContact(true)}
-            hasContactEmail={!!practitioner.contact_email}
+            contactEmail={practitioner.contact_email}
+            contactPhone={practitioner.phone}
             onPdfClick={handlePdfExport}
             isPdfLoading={pdfLoading}
           />
