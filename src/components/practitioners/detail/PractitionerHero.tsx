@@ -136,15 +136,29 @@ const PractitionerHero = ({ practitioner, hasBookableActivities, onBookClick, co
 
         {/* CTA column */}
         <div className="flex flex-row md:flex-col gap-2 flex-shrink-0 print:hidden">
-          {hasContactEmail && (
-            <Button
-              onClick={onContactClick}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              size="lg"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Contacter
-            </Button>
+          {(contactEmail || contactPhone) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" size="lg">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Contacter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {contactEmail && (
+                  <DropdownMenuItem onClick={() => window.location.href = `mailto:${contactEmail}`}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Envoyer un email
+                  </DropdownMenuItem>
+                )}
+                {contactPhone && (
+                  <DropdownMenuItem onClick={() => window.location.href = `tel:${contactPhone}`}>
+                    <Phone className="h-4 w-4 mr-2" />
+                    Appeler
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {hasBookableActivities && (
             <Button
