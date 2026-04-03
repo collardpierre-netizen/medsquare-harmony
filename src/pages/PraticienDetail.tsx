@@ -89,7 +89,7 @@ const PraticienDetail = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-  const [showContact, setShowContact] = useState(false);
+  
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const handlePdfExport = async () => {
