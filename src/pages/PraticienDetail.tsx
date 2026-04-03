@@ -376,12 +376,6 @@ const PraticienDetail = () => {
             price: a.price, is_free: a.is_free, max_participants: a.max_participants, category: a.category,
           }))}
         />
-        <ContactPractitionerDialog
-          open={showContact}
-          onOpenChange={setShowContact}
-          practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
-          practitionerEmail={practitioner.contact_email || ""}
-        />
       </div>
     </Layout>
   );
