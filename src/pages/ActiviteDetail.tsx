@@ -106,7 +106,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url, contact_email)"
+        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url, contact_email, phone)"
         )
         .eq("id", id)
         .eq("is_active", true)
