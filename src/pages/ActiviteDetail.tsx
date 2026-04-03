@@ -97,7 +97,7 @@ const ActiviteDetail = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [showRegDialog, setShowRegDialog] = useState(false);
-  const [showContact, setShowContact] = useState(false);
+  
 
   useEffect(() => {
     const fetchData = async () => {
