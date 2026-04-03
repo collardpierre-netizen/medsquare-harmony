@@ -599,15 +599,6 @@ const ActiviteDetail = () => {
           </div>
         )}
 
-        {/* Contact dialog */}
-        {practitioner && practitioner.contact_email && (
-          <ContactPractitionerDialog
-            open={showContact}
-            onOpenChange={setShowContact}
-            practitionerName={`${practitioner.first_name} ${practitioner.last_name}`}
-            practitionerEmail={practitioner.contact_email}
-          />
-        )}
       </div>
     </Layout>
   );
