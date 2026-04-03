@@ -70,6 +70,7 @@ interface Activity {
     specialty: string | null;
     avatar_url: string | null;
     contact_email: string | null;
+    phone: string | null;
   } | null;
 }
 
