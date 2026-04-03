@@ -484,11 +484,21 @@ const ActiviteDetail = () => {
                     <Button variant="outline" size="sm" className="flex-1">
                       Voir le profil
                     </Button>
-                    {practitioner.contact_email && (
-                      <Button size="sm" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); setShowContact(true); }}>
-                        <Mail className="h-3.5 w-3.5" />
-                        Contacter
-                      </Button>
+                    {(practitioner.contact_email || practitioner.phone) && (
+                      <>
+                        {practitioner.contact_email && (
+                          <Button size="sm" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); window.location.href = `mailto:${practitioner.contact_email}`; }}>
+                            <Mail className="h-3.5 w-3.5" />
+                            Email
+                          </Button>
+                        )}
+                        {practitioner.phone && (
+                          <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={(e) => { e.preventDefault(); window.location.href = `tel:${practitioner.phone}`; }}>
+                            <Phone className="h-3.5 w-3.5" />
+                            Appeler
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </Link>
