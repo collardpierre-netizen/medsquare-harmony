@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Clock, MapPin, Phone, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
+import { Mail, Clock, MapPin, Phone, Globe, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ContactPractitionerDialog from "./ContactPractitionerDialog";
@@ -26,6 +26,7 @@ interface PractitionerInfoSidebarProps {
     specialty: string | null;
     phone: string | null;
     contact_email?: string | null;
+    external_booking_url?: string | null;
     social_links?: SocialLinks | null;
   };
   scheduleSlots: { day: string; hours: string }[];
@@ -55,10 +56,19 @@ const PractitionerInfoSidebar = ({ practitioner, scheduleSlots }: PractitionerIn
         Contactez {practitioner.first_name} pour organiser une consultation.
       </p>
 
-      <Button size="lg" className="w-full" onClick={() => setShowContact(true)}>
-        <Mail className="h-4 w-4 mr-2" />
-        Contacter
-      </Button>
+      {practitioner.external_booking_url ? (
+        <a href={practitioner.external_booking_url} target="_blank" rel="noopener noreferrer">
+          <Button size="lg" className="w-full">
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Réserver en ligne
+          </Button>
+        </a>
+      ) : (
+        <Button size="lg" className="w-full" onClick={() => setShowContact(true)}>
+          <Mail className="h-4 w-4 mr-2" />
+          Contacter
+        </Button>
+      )}
 
       <ContactPractitionerDialog
         open={showContact}
