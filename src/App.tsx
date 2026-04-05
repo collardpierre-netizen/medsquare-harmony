@@ -34,6 +34,7 @@ import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import LegalDocuments from "./pages/dashboard/LegalDocuments";
 import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
 import AdminNotifications from "./pages/dashboard/AdminNotifications";
+import AdminRegistrations from "./pages/dashboard/AdminRegistrations";
 import NotFound from "./pages/NotFound";
 import Reviews from "./pages/dashboard/Reviews";
 import QnA from "./pages/dashboard/QnA";
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/dashboard/admin/site-settings" element={<ProtectedRoute requireAdmin><AdminSiteSettings /></ProtectedRoute>} />
             <Route path="/dashboard/admin/legal-documents" element={<ProtectedRoute requireAdmin><AdminLegalDocuments /></ProtectedRoute>} />
             <Route path="/dashboard/admin/notifications" element={<ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/registrations" element={<ProtectedRoute requireAdmin><AdminRegistrations /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
