@@ -251,6 +251,8 @@ const AdminPractitioners = () => {
       phone: p.phone || "",
       contact_email: p.contact_email || "",
       avatar_url: p.avatar_url || "",
+      inami_number: p.inami_number || "",
+      avg_appointment_delay_days: p.avg_appointment_delay_days != null ? String(p.avg_appointment_delay_days) : "",
       social_links: {
         website: sl.website || "",
         facebook: sl.facebook || "",
@@ -260,6 +262,22 @@ const AdminPractitioners = () => {
         youtube: sl.youtube || "",
       },
     });
+    setEditToggles({
+      accepts_new_patients: p.accepts_new_patients ?? true,
+      conventioned: p.conventioned ?? false,
+      tiers_payant: p.tiers_payant ?? false,
+      video_available: p.video_available ?? false,
+      home_visit: p.home_visit ?? false,
+      pmr_accessible: p.pmr_accessible ?? false,
+      parking: p.parking ?? false,
+    });
+    setEditLanguages(p.languages?.length ? p.languages : ["français"]);
+    setEditSpecialties(p.specialties || []);
+    setEditPaymentMethods(p.payment_methods || []);
+    setEditAssociations(p.associations || []);
+    setEditExperiences(p.experiences || []);
+    setEditFormations(p.formations || []);
+    setNewEditTag({ language: "", specialty: "", payment: "", association: "" });
     try {
       const raw = typeof p.schedule === "string" ? JSON.parse(p.schedule) : p.schedule;
       setEditSchedule(Array.isArray(raw) ? raw : []);
@@ -283,8 +301,23 @@ const AdminPractitioners = () => {
         phone: editForm.phone,
         contact_email: editForm.contact_email || null,
         avatar_url: editForm.avatar_url || null,
+        inami_number: editForm.inami_number || null,
+        avg_appointment_delay_days: editForm.avg_appointment_delay_days ? parseInt(editForm.avg_appointment_delay_days) : null,
         schedule: editSchedule as any,
         social_links: editForm.social_links as any,
+        accepts_new_patients: editToggles.accepts_new_patients,
+        conventioned: editToggles.conventioned,
+        tiers_payant: editToggles.tiers_payant,
+        video_available: editToggles.video_available,
+        home_visit: editToggles.home_visit,
+        pmr_accessible: editToggles.pmr_accessible,
+        parking: editToggles.parking,
+        languages: editLanguages,
+        specialties: editSpecialties,
+        payment_methods: editPaymentMethods,
+        associations: editAssociations,
+        experiences: editExperiences as any,
+        formations: editFormations as any,
       } as any)
       .eq("id", editingId);
 
