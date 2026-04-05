@@ -1,0 +1,1 @@
+UPDATE public.profiles SET external_booking_url = 'https://www.doctolib.be/veronique-durand' WHERE id = 'bc6252c9-b758-42be-8259-af2d6e240b9a';
