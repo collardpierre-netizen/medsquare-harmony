@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,15 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Search, Download, Users, UserCheck, Clock, XCircle } from "lucide-react";
+import { Search, Download, Users, UserCheck, Clock, XCircle, MoreHorizontal, CheckCircle, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 const AdminRegistrations = () => {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [practitionerFilter, setPractitionerFilter] = useState("all");
   const [activityFilter, setActivityFilter] = useState("all");
+  const [confirmAction, setConfirmAction] = useState<{ id: string; newStatus: string; name: string } | null>(null);
 
   // Fetch all registrations with session + activity + practitioner info
   const { data: registrations = [], isLoading } = useQuery({
@@ -113,6 +118,35 @@ const AdminRegistrations = () => {
     URL.revokeObjectURL(url);
   };
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
+      const { error } = await supabase
+        .from("activity_registrations")
+        .update({ status: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { newStatus }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-registrations"] });
+      const label = newStatus === "registered" ? "inscrit" : newStatus === "waitlisted" ? "en liste d'attente" : "annulé";
+      toast.success(`Statut mis à jour : ${label}`);
+    },
+    onError: () => {
+      toast.error("Erreur lors de la mise à jour du statut");
+    },
+  });
+
+  const handleStatusChange = (id: string, newStatus: string, name: string) => {
+    setConfirmAction({ id, newStatus, name });
+  };
+
+  const confirmStatusChange = () => {
+    if (confirmAction) {
+      updateStatusMutation.mutate({ id: confirmAction.id, newStatus: confirmAction.newStatus });
+      setConfirmAction(null);
+    }
+  };
+
   const statusBadge = (status: string) => {
     switch (status) {
       case "registered":
@@ -123,6 +157,15 @@ const AdminRegistrations = () => {
         return <Badge variant="secondary">Annulé</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "registered": return "Inscrit";
+      case "waitlisted": return "Liste d'attente";
+      case "cancelled": return "Annulé";
+      default: return status;
     }
   };
 
@@ -247,6 +290,7 @@ const AdminRegistrations = () => {
                       <TableHead>Séance</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Inscrit le</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -254,10 +298,12 @@ const AdminRegistrations = () => {
                       const session = r.activity_sessions;
                       const activity = session?.activities;
                       const practitioner = activity?.profiles;
+                      const participantName = r.guest_name || "Utilisateur inscrit";
+                      const otherStatuses = ["registered", "waitlisted", "cancelled"].filter(s => s !== r.status);
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="font-medium">
-                            {r.guest_name || "Utilisateur inscrit"}
+                            {participantName}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-0.5">
@@ -293,6 +339,28 @@ const AdminRegistrations = () => {
                           <TableCell className="text-sm text-muted-foreground">
                             {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
                           </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {otherStatuses.map((s) => (
+                                  <DropdownMenuItem
+                                    key={s}
+                                    onClick={() => handleStatusChange(r.id, s, participantName)}
+                                  >
+                                    {s === "registered" && <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />}
+                                    {s === "waitlisted" && <Clock className="h-4 w-4 mr-2 text-amber-600" />}
+                                    {s === "cancelled" && <XCircle className="h-4 w-4 mr-2 text-destructive" />}
+                                    Passer en « {statusLabel(s)} »
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -305,6 +373,29 @@ const AdminRegistrations = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Confirmation dialog */}
+        <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer le changement de statut</AlertDialogTitle>
+              <AlertDialogDescription>
+                Voulez-vous passer l'inscription de <strong>{confirmAction?.name}</strong> en « <strong>{confirmAction ? statusLabel(confirmAction.newStatus) : ""}</strong> » ?
+                {confirmAction?.newStatus === "cancelled" && (
+                  <span className="block mt-2 text-destructive">
+                    ⚠️ Le participant sera considéré comme annulé et ne sera plus comptabilisé.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmStatusChange}>
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
