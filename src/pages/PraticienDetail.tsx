@@ -158,6 +158,7 @@ const PraticienDetail = () => {
         experiences: (profile as any).experiences || [],
         formations: (profile as any).formations || [],
         associations: (profile as any).associations || [],
+        external_booking_url: (profile as any).external_booking_url || null,
       };
 
       setPractitioner(p);
