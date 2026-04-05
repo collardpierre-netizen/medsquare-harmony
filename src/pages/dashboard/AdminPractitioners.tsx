@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
-  ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
+  ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram, ExternalLink,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
   AlertCircle, Trash2, Phone, Bell, Filter,
 } from "lucide-react";
