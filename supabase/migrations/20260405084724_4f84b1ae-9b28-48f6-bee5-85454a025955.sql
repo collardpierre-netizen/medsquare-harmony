@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN external_booking_url text DEFAULT NULL;

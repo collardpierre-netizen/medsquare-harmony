@@ -74,6 +74,7 @@ const AdminPractitioners = () => {
     first_name: "", last_name: "", specialty: "", bio: "",
     phone: "", contact_email: "", avatar_url: "",
     inami_number: "", avg_appointment_delay_days: "" as string,
+    external_booking_url: "",
     social_links: { website: "", facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "" },
   });
   const [editToggles, setEditToggles] = useState({
@@ -253,6 +254,7 @@ const AdminPractitioners = () => {
       avatar_url: p.avatar_url || "",
       inami_number: p.inami_number || "",
       avg_appointment_delay_days: p.avg_appointment_delay_days != null ? String(p.avg_appointment_delay_days) : "",
+      external_booking_url: (p as any).external_booking_url || "",
       social_links: {
         website: sl.website || "",
         facebook: sl.facebook || "",
@@ -303,6 +305,7 @@ const AdminPractitioners = () => {
         avatar_url: editForm.avatar_url || null,
         inami_number: editForm.inami_number || null,
         avg_appointment_delay_days: editForm.avg_appointment_delay_days ? parseInt(editForm.avg_appointment_delay_days) : null,
+        external_booking_url: editForm.external_booking_url || null,
         schedule: editSchedule as any,
         social_links: editForm.social_links as any,
         accepts_new_patients: editToggles.accepts_new_patients,
@@ -651,6 +654,17 @@ const AdminPractitioners = () => {
                     onChange={(e) => setEditForm((f) => ({ ...f, avg_appointment_delay_days: e.target.value }))}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Lien de réservation externe</Label>
+                <Input
+                  type="url"
+                  placeholder="https://www.doctolib.be/..."
+                  value={editForm.external_booking_url}
+                  onChange={(e) => setEditForm((f) => ({ ...f, external_booking_url: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">URL vers un outil de prise de RDV tiers (Doctolib, Calendly…)</p>
               </div>
 
               {/* Toggles */}

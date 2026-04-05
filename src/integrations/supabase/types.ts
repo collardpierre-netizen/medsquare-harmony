@@ -661,6 +661,7 @@ export type Database = {
           created_at: string
           display_order: number
           experiences: Json | null
+          external_booking_url: string | null
           first_name: string
           formations: Json | null
           home_visit: boolean
@@ -698,6 +699,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           experiences?: Json | null
+          external_booking_url?: string | null
           first_name?: string
           formations?: Json | null
           home_visit?: boolean
@@ -735,6 +737,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           experiences?: Json | null
+          external_booking_url?: string | null
           first_name?: string
           formations?: Json | null
           home_visit?: boolean
