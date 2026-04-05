@@ -16,10 +16,12 @@ import { Search, Download, Users, UserCheck, Clock, XCircle, MoreHorizontal, Che
 import { toast } from "sonner";
 
 const AdminRegistrations = () => {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [practitionerFilter, setPractitionerFilter] = useState("all");
   const [activityFilter, setActivityFilter] = useState("all");
+  const [confirmAction, setConfirmAction] = useState<{ id: string; newStatus: string; name: string } | null>(null);
 
   // Fetch all registrations with session + activity + practitioner info
   const { data: registrations = [], isLoading } = useQuery({
