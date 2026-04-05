@@ -66,7 +66,7 @@ const MyRegistrations = () => {
 
       const { error } = await supabase
         .from("activity_registrations")
-        .delete()
+        .update({ status: "cancelled" })
         .eq("id", registrationId)
         .eq("user_id", user!.id);
       if (error) throw error;

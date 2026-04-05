@@ -85,7 +85,8 @@ const ActivitesPage = () => {
         const { data: regs } = await supabase
           .from("activity_registrations")
           .select("session_id")
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .eq("status", "registered");
         setMyRegistrations((regs || []).map((r: any) => r.session_id));
       }
 
@@ -140,9 +141,10 @@ const ActivitesPage = () => {
     if (!user) return;
     await supabase
       .from("activity_registrations")
-      .delete()
+      .update({ status: "cancelled" })
       .eq("session_id", sessionId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("status", "registered");
     setMyRegistrations(myRegistrations.filter((id) => id !== sessionId));
     toast({ title: "Inscription annulée" });
   };
