@@ -73,8 +73,20 @@ const AdminPractitioners = () => {
   const [editForm, setEditForm] = useState({
     first_name: "", last_name: "", specialty: "", bio: "",
     phone: "", contact_email: "", avatar_url: "",
+    inami_number: "", avg_appointment_delay_days: "" as string,
     social_links: { website: "", facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "" },
   });
+  const [editToggles, setEditToggles] = useState({
+    accepts_new_patients: true, conventioned: false, tiers_payant: false,
+    video_available: false, home_visit: false, pmr_accessible: false, parking: false,
+  });
+  const [editLanguages, setEditLanguages] = useState<string[]>(["français"]);
+  const [editSpecialties, setEditSpecialties] = useState<string[]>([]);
+  const [editPaymentMethods, setEditPaymentMethods] = useState<string[]>([]);
+  const [editAssociations, setEditAssociations] = useState<string[]>([]);
+  const [editExperiences, setEditExperiences] = useState<any[]>([]);
+  const [editFormations, setEditFormations] = useState<any[]>([]);
+  const [newEditTag, setNewEditTag] = useState({ language: "", specialty: "", payment: "", association: "" });
 
   const fetchPractitioners = async () => {
     const [{ data: profiles }, { data: roles }, { data: loginStatus }] = await Promise.all([
