@@ -53,6 +53,7 @@ const navItems: NavItem[] = [
   { label: "Praticiens", href: "/dashboard/admin/practitioners", icon: Users, adminOnly: true },
   { label: "Salles", href: "/dashboard/admin/rooms", icon: DoorOpen, adminOnly: true },
   { label: "Toutes les réservations", href: "/dashboard/admin/bookings", icon: CalendarCheck, adminOnly: true },
+  { label: "Inscriptions activités", href: "/dashboard/admin/registrations", icon: ClipboardList, adminOnly: true },
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
   { label: "Documents juridiques", href: "/dashboard/admin/legal-documents", icon: Scale, adminOnly: true },
   { label: "Notifications", href: "/dashboard/admin/notifications", icon: Bell, adminOnly: true },
