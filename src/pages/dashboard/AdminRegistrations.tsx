@@ -290,6 +290,7 @@ const AdminRegistrations = () => {
                       <TableHead>Séance</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Inscrit le</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -297,10 +298,12 @@ const AdminRegistrations = () => {
                       const session = r.activity_sessions;
                       const activity = session?.activities;
                       const practitioner = activity?.profiles;
+                      const participantName = r.guest_name || "Utilisateur inscrit";
+                      const otherStatuses = ["registered", "waitlisted", "cancelled"].filter(s => s !== r.status);
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="font-medium">
-                            {r.guest_name || "Utilisateur inscrit"}
+                            {participantName}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-0.5">
@@ -336,6 +339,28 @@ const AdminRegistrations = () => {
                           <TableCell className="text-sm text-muted-foreground">
                             {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
                           </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {otherStatuses.map((s) => (
+                                  <DropdownMenuItem
+                                    key={s}
+                                    onClick={() => handleStatusChange(r.id, s, participantName)}
+                                  >
+                                    {s === "registered" && <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />}
+                                    {s === "waitlisted" && <Clock className="h-4 w-4 mr-2 text-amber-600" />}
+                                    {s === "cancelled" && <XCircle className="h-4 w-4 mr-2 text-destructive" />}
+                                    Passer en « {statusLabel(s)} »
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -348,6 +373,29 @@ const AdminRegistrations = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Confirmation dialog */}
+        <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer le changement de statut</AlertDialogTitle>
+              <AlertDialogDescription>
+                Voulez-vous passer l'inscription de <strong>{confirmAction?.name}</strong> en « <strong>{confirmAction ? statusLabel(confirmAction.newStatus) : ""}</strong> » ?
+                {confirmAction?.newStatus === "cancelled" && (
+                  <span className="block mt-2 text-destructive">
+                    ⚠️ Le participant sera considéré comme annulé et ne sera plus comptabilisé.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmStatusChange}>
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
