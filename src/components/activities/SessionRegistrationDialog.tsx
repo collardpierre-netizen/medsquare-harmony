@@ -233,9 +233,10 @@ const SessionRegistrationDialog = ({
 
     const { error } = await supabase
       .from("activity_registrations")
-      .delete()
+      .update({ status: "cancelled" })
       .eq("session_id", session.id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .eq("status", "registered");
 
     if (error) {
       toast({ variant: "destructive", title: "Erreur", description: "Impossible de se désinscrire." });
