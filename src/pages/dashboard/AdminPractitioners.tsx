@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
-  ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram,
+  ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram, ExternalLink,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
   AlertCircle, Trash2, Phone, Bell, Filter,
 } from "lucide-react";
@@ -26,6 +26,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -72,8 +73,20 @@ const AdminPractitioners = () => {
   const [editForm, setEditForm] = useState({
     first_name: "", last_name: "", specialty: "", bio: "",
     phone: "", contact_email: "", avatar_url: "",
+    inami_number: "", avg_appointment_delay_days: "" as string,
     social_links: { website: "", facebook: "", instagram: "", linkedin: "", twitter: "", youtube: "" },
   });
+  const [editToggles, setEditToggles] = useState({
+    accepts_new_patients: true, conventioned: false, tiers_payant: false,
+    video_available: false, home_visit: false, pmr_accessible: false, parking: false,
+  });
+  const [editLanguages, setEditLanguages] = useState<string[]>(["français"]);
+  const [editSpecialties, setEditSpecialties] = useState<string[]>([]);
+  const [editPaymentMethods, setEditPaymentMethods] = useState<string[]>([]);
+  const [editAssociations, setEditAssociations] = useState<string[]>([]);
+  const [editExperiences, setEditExperiences] = useState<any[]>([]);
+  const [editFormations, setEditFormations] = useState<any[]>([]);
+  const [newEditTag, setNewEditTag] = useState({ language: "", specialty: "", payment: "", association: "" });
 
   const fetchPractitioners = async () => {
     const [{ data: profiles }, { data: roles }, { data: loginStatus }] = await Promise.all([
@@ -238,6 +251,8 @@ const AdminPractitioners = () => {
       phone: p.phone || "",
       contact_email: p.contact_email || "",
       avatar_url: p.avatar_url || "",
+      inami_number: p.inami_number || "",
+      avg_appointment_delay_days: p.avg_appointment_delay_days != null ? String(p.avg_appointment_delay_days) : "",
       social_links: {
         website: sl.website || "",
         facebook: sl.facebook || "",
@@ -247,6 +262,22 @@ const AdminPractitioners = () => {
         youtube: sl.youtube || "",
       },
     });
+    setEditToggles({
+      accepts_new_patients: p.accepts_new_patients ?? true,
+      conventioned: p.conventioned ?? false,
+      tiers_payant: p.tiers_payant ?? false,
+      video_available: p.video_available ?? false,
+      home_visit: p.home_visit ?? false,
+      pmr_accessible: p.pmr_accessible ?? false,
+      parking: p.parking ?? false,
+    });
+    setEditLanguages(p.languages?.length ? p.languages : ["français"]);
+    setEditSpecialties(p.specialties || []);
+    setEditPaymentMethods(p.payment_methods || []);
+    setEditAssociations(p.associations || []);
+    setEditExperiences(p.experiences || []);
+    setEditFormations(p.formations || []);
+    setNewEditTag({ language: "", specialty: "", payment: "", association: "" });
     try {
       const raw = typeof p.schedule === "string" ? JSON.parse(p.schedule) : p.schedule;
       setEditSchedule(Array.isArray(raw) ? raw : []);
@@ -270,8 +301,23 @@ const AdminPractitioners = () => {
         phone: editForm.phone,
         contact_email: editForm.contact_email || null,
         avatar_url: editForm.avatar_url || null,
+        inami_number: editForm.inami_number || null,
+        avg_appointment_delay_days: editForm.avg_appointment_delay_days ? parseInt(editForm.avg_appointment_delay_days) : null,
         schedule: editSchedule as any,
         social_links: editForm.social_links as any,
+        accepts_new_patients: editToggles.accepts_new_patients,
+        conventioned: editToggles.conventioned,
+        tiers_payant: editToggles.tiers_payant,
+        video_available: editToggles.video_available,
+        home_visit: editToggles.home_visit,
+        pmr_accessible: editToggles.pmr_accessible,
+        parking: editToggles.parking,
+        languages: editLanguages,
+        specialties: editSpecialties,
+        payment_methods: editPaymentMethods,
+        associations: editAssociations,
+        experiences: editExperiences as any,
+        formations: editFormations as any,
       } as any)
       .eq("id", editingId);
 
@@ -585,6 +631,132 @@ const AdminPractitioners = () => {
                   />
                 </div>
               </div>
+
+              {/* INAMI & délai */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>N° INAMI</Label>
+                  <Input
+                    placeholder="1-23456-78-901"
+                    value={editForm.inami_number}
+                    onChange={(e) => setEditForm((f) => ({ ...f, inami_number: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Délai moyen RDV (jours)</Label>
+                  <Input
+                    type="number"
+                    placeholder="7"
+                    value={editForm.avg_appointment_delay_days}
+                    onChange={(e) => setEditForm((f) => ({ ...f, avg_appointment_delay_days: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Options & accessibilité
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  {([
+                    { key: "accepts_new_patients", label: "Accepte nouveaux patients" },
+                    { key: "conventioned", label: "Conventionné INAMI" },
+                    { key: "tiers_payant", label: "Tiers payant" },
+                    { key: "video_available", label: "Consultation vidéo" },
+                    { key: "home_visit", label: "Visite à domicile" },
+                    { key: "pmr_accessible", label: "Accessible PMR" },
+                    { key: "parking", label: "Parking" },
+                  ] as const).map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <Label className="text-sm">{label}</Label>
+                      <Switch
+                        checked={editToggles[key]}
+                        onCheckedChange={(v) => setEditToggles((t) => ({ ...t, [key]: v }))}
+                      />
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Tags: Langues, Spécialités, Paiements, Associations */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Langues, spécialités & paiements
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-3">
+                  {/* Langues */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Langues</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editLanguages.map((l, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {l}
+                          <button type="button" onClick={() => setEditLanguages((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter une langue" value={newEditTag.language} onChange={(e) => setNewEditTag((t) => ({ ...t, language: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.language.trim()) { setEditLanguages((arr) => [...arr, newEditTag.language.trim()]); setNewEditTag((t) => ({ ...t, language: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                  {/* Spécialités */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Spécialités</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editSpecialties.map((s, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {s}
+                          <button type="button" onClick={() => setEditSpecialties((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter une spécialité" value={newEditTag.specialty} onChange={(e) => setNewEditTag((t) => ({ ...t, specialty: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.specialty.trim()) { setEditSpecialties((arr) => [...arr, newEditTag.specialty.trim()]); setNewEditTag((t) => ({ ...t, specialty: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                  {/* Paiements */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Modes de paiement</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editPaymentMethods.map((m, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {m}
+                          <button type="button" onClick={() => setEditPaymentMethods((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter un mode" value={newEditTag.payment} onChange={(e) => setNewEditTag((t) => ({ ...t, payment: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.payment.trim()) { setEditPaymentMethods((arr) => [...arr, newEditTag.payment.trim()]); setNewEditTag((t) => ({ ...t, payment: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                  {/* Associations */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Associations professionnelles</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editAssociations.map((a, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {a}
+                          <button type="button" onClick={() => setEditAssociations((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter une association" value={newEditTag.association} onChange={(e) => setNewEditTag((t) => ({ ...t, association: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.association.trim()) { setEditAssociations((arr) => [...arr, newEditTag.association.trim()]); setNewEditTag((t) => ({ ...t, association: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               {/* Réseaux sociaux */}
               <Collapsible open={showEditSocials} onOpenChange={setShowEditSocials}>
