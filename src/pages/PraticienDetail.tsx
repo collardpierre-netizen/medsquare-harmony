@@ -297,11 +297,27 @@ const PraticienDetail = () => {
               </TabsContent>
 
               <TabsContent value="reserver" className="mt-6 animate-in fade-in-0 duration-150">
-                <PractitionerTabPlaceholder
-                  title="Réservation en ligne"
-                  description="Le système de réservation avancé avec créneaux en temps réel sera bientôt disponible."
-                  icon={CalendarDays}
-                />
+                {practitioner.external_booking_url ? (
+                  <div className="flex flex-col items-center gap-4 py-12">
+                    <CalendarDays className="h-12 w-12 text-primary/40" />
+                    <h3 className="text-lg font-semibold">Réservation en ligne</h3>
+                    <p className="text-muted-foreground text-center max-w-md">
+                      Prenez rendez-vous directement en ligne avec {practitioner.first_name} {practitioner.last_name}.
+                    </p>
+                    <a href={practitioner.external_booking_url} target="_blank" rel="noopener noreferrer">
+                      <Button size="lg" className="mt-2">
+                        <CalendarDays className="h-4 w-4 mr-2" />
+                        Réserver en ligne
+                      </Button>
+                    </a>
+                  </div>
+                ) : (
+                  <PractitionerTabPlaceholder
+                    title="Réservation en ligne"
+                    description="Le système de réservation avancé avec créneaux en temps réel sera bientôt disponible."
+                    icon={CalendarDays}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="tarifs" className="mt-6 animate-in fade-in-0 duration-150">
