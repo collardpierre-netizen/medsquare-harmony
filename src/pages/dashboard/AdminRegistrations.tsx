@@ -118,6 +118,35 @@ const AdminRegistrations = () => {
     URL.revokeObjectURL(url);
   };
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
+      const { error } = await supabase
+        .from("activity_registrations")
+        .update({ status: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { newStatus }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-registrations"] });
+      const label = newStatus === "registered" ? "inscrit" : newStatus === "waitlisted" ? "en liste d'attente" : "annulé";
+      toast.success(`Statut mis à jour : ${label}`);
+    },
+    onError: () => {
+      toast.error("Erreur lors de la mise à jour du statut");
+    },
+  });
+
+  const handleStatusChange = (id: string, newStatus: string, name: string) => {
+    setConfirmAction({ id, newStatus, name });
+  };
+
+  const confirmStatusChange = () => {
+    if (confirmAction) {
+      updateStatusMutation.mutate({ id: confirmAction.id, newStatus: confirmAction.newStatus });
+      setConfirmAction(null);
+    }
+  };
+
   const statusBadge = (status: string) => {
     switch (status) {
       case "registered":
@@ -128,6 +157,15 @@ const AdminRegistrations = () => {
         return <Badge variant="secondary">Annulé</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "registered": return "Inscrit";
+      case "waitlisted": return "Liste d'attente";
+      case "cancelled": return "Annulé";
+      default: return status;
     }
   };
 
