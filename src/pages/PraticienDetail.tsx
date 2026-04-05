@@ -51,6 +51,7 @@ interface PractitionerProfile {
   experiences: any[];
   formations: any[];
   associations: string[];
+  external_booking_url: string | null;
 }
 
 interface ActivityWithSessions {
