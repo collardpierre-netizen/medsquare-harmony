@@ -632,6 +632,132 @@ const AdminPractitioners = () => {
                 </div>
               </div>
 
+              {/* INAMI & délai */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>N° INAMI</Label>
+                  <Input
+                    placeholder="1-23456-78-901"
+                    value={editForm.inami_number}
+                    onChange={(e) => setEditForm((f) => ({ ...f, inami_number: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Délai moyen RDV (jours)</Label>
+                  <Input
+                    type="number"
+                    placeholder="7"
+                    value={editForm.avg_appointment_delay_days}
+                    onChange={(e) => setEditForm((f) => ({ ...f, avg_appointment_delay_days: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Options & accessibilité
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  {([
+                    { key: "accepts_new_patients", label: "Accepte nouveaux patients" },
+                    { key: "conventioned", label: "Conventionné INAMI" },
+                    { key: "tiers_payant", label: "Tiers payant" },
+                    { key: "video_available", label: "Consultation vidéo" },
+                    { key: "home_visit", label: "Visite à domicile" },
+                    { key: "pmr_accessible", label: "Accessible PMR" },
+                    { key: "parking", label: "Parking" },
+                  ] as const).map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <Label className="text-sm">{label}</Label>
+                      <Switch
+                        checked={editToggles[key]}
+                        onCheckedChange={(v) => setEditToggles((t) => ({ ...t, [key]: v }))}
+                      />
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Tags: Langues, Spécialités, Paiements, Associations */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between">
+                    Langues, spécialités & paiements
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-3">
+                  {/* Langues */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Langues</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editLanguages.map((l, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {l}
+                          <button type="button" onClick={() => setEditLanguages((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter une langue" value={newEditTag.language} onChange={(e) => setNewEditTag((t) => ({ ...t, language: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.language.trim()) { setEditLanguages((arr) => [...arr, newEditTag.language.trim()]); setNewEditTag((t) => ({ ...t, language: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                  {/* Spécialités */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Spécialités</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editSpecialties.map((s, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {s}
+                          <button type="button" onClick={() => setEditSpecialties((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter une spécialité" value={newEditTag.specialty} onChange={(e) => setNewEditTag((t) => ({ ...t, specialty: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.specialty.trim()) { setEditSpecialties((arr) => [...arr, newEditTag.specialty.trim()]); setNewEditTag((t) => ({ ...t, specialty: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                  {/* Paiements */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Modes de paiement</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editPaymentMethods.map((m, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {m}
+                          <button type="button" onClick={() => setEditPaymentMethods((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter un mode" value={newEditTag.payment} onChange={(e) => setNewEditTag((t) => ({ ...t, payment: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.payment.trim()) { setEditPaymentMethods((arr) => [...arr, newEditTag.payment.trim()]); setNewEditTag((t) => ({ ...t, payment: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                  {/* Associations */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Associations professionnelles</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {editAssociations.map((a, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                          {a}
+                          <button type="button" onClick={() => setEditAssociations((arr) => arr.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Ajouter une association" value={newEditTag.association} onChange={(e) => setNewEditTag((t) => ({ ...t, association: e.target.value }))} className="h-8 text-xs" />
+                      <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => { if (newEditTag.association.trim()) { setEditAssociations((arr) => [...arr, newEditTag.association.trim()]); setNewEditTag((t) => ({ ...t, association: "" })); } }}>+</Button>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
               {/* Réseaux sociaux */}
               <Collapsible open={showEditSocials} onOpenChange={setShowEditSocials}>
                 <CollapsibleTrigger asChild>
