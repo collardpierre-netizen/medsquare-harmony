@@ -328,6 +328,7 @@ const AdminRegistrations = () => {
                       const participantName = r.resolved_name || r.guest_name || "Utilisateur inscrit";
                       const participantEmail = r.resolved_email || r.guest_email;
                       const participantPhone = r.resolved_phone || r.guest_phone;
+                      const otherStatuses = ["registered", "waitlisted", "cancelled"].filter(s => s !== r.status);
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="font-medium">
@@ -335,14 +336,14 @@ const AdminRegistrations = () => {
                           </TableCell>
                           <TableCell>
                             <div className="space-y-0.5">
-                              {r.guest_email && (
-                                <a href={`mailto:${r.guest_email}`} className="text-sm text-primary hover:underline block">
-                                  {r.guest_email}
+                              {participantEmail && (
+                                <a href={`mailto:${participantEmail}`} className="text-sm text-primary hover:underline block">
+                                  {participantEmail}
                                 </a>
                               )}
-                              {r.guest_phone && (
-                                <a href={`tel:${r.guest_phone}`} className="text-sm text-muted-foreground block">
-                                  {r.guest_phone}
+                              {participantPhone && (
+                                <a href={`tel:${participantPhone}`} className="text-sm text-muted-foreground block">
+                                  {participantPhone}
                                 </a>
                               )}
                             </div>
