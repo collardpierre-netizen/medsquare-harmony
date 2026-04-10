@@ -41,7 +41,34 @@ const AdminRegistrations = () => {
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+
+      // For registrations with user_id, fetch user profile info
+      const userIds = (data || []).filter((r: any) => r.user_id).map((r: any) => r.user_id);
+      let userProfiles: Record<string, { first_name: string; last_name: string; contact_email: string | null; phone: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, contact_email, phone")
+          .in("user_id", userIds);
+        if (profiles) {
+          profiles.forEach((p: any) => {
+            userProfiles[p.user_id] = p;
+          });
+        }
+      }
+
+      return (data || []).map((r: any) => {
+        if (r.user_id && userProfiles[r.user_id]) {
+          const p = userProfiles[r.user_id];
+          return {
+            ...r,
+            resolved_name: `${p.first_name} ${p.last_name}`.trim() || null,
+            resolved_email: p.contact_email,
+            resolved_phone: p.phone,
+          };
+        }
+        return r;
+      });
     },
   });
 
@@ -74,8 +101,8 @@ const AdminRegistrations = () => {
       if (activityFilter !== "all" && activity?.id !== activityFilter) return false;
       if (search) {
         const q = search.toLowerCase();
-        const name = (r.guest_name || "").toLowerCase();
-        const email = (r.guest_email || "").toLowerCase();
+        const name = (r.resolved_name || r.guest_name || "").toLowerCase();
+        const email = (r.resolved_email || r.guest_email || "").toLowerCase();
         const title = (activity?.title || "").toLowerCase();
         if (!name.includes(q) && !email.includes(q) && !title.includes(q)) return false;
       }
@@ -98,9 +125,9 @@ const AdminRegistrations = () => {
       const activity = session?.activities;
       const practitioner = activity?.profiles;
       return [
-        r.guest_name || "Utilisateur inscrit",
-        r.guest_email || "",
-        r.guest_phone || "",
+        r.resolved_name || r.guest_name || "Utilisateur inscrit",
+        r.resolved_email || r.guest_email || "",
+        r.resolved_phone || r.guest_phone || "",
         activity?.title || "",
         practitioner ? `${practitioner.first_name} ${practitioner.last_name}` : "",
         session?.start_time ? format(new Date(session.start_time), "dd/MM/yyyy HH:mm") : "",
@@ -298,7 +325,9 @@ const AdminRegistrations = () => {
                       const session = r.activity_sessions;
                       const activity = session?.activities;
                       const practitioner = activity?.profiles;
-                      const participantName = r.guest_name || "Utilisateur inscrit";
+                      const participantName = r.resolved_name || r.guest_name || "Utilisateur inscrit";
+                      const participantEmail = r.resolved_email || r.guest_email;
+                      const participantPhone = r.resolved_phone || r.guest_phone;
                       const otherStatuses = ["registered", "waitlisted", "cancelled"].filter(s => s !== r.status);
                       return (
                         <TableRow key={r.id}>
@@ -307,14 +336,14 @@ const AdminRegistrations = () => {
                           </TableCell>
                           <TableCell>
                             <div className="space-y-0.5">
-                              {r.guest_email && (
-                                <a href={`mailto:${r.guest_email}`} className="text-sm text-primary hover:underline block">
-                                  {r.guest_email}
+                              {participantEmail && (
+                                <a href={`mailto:${participantEmail}`} className="text-sm text-primary hover:underline block">
+                                  {participantEmail}
                                 </a>
                               )}
-                              {r.guest_phone && (
-                                <a href={`tel:${r.guest_phone}`} className="text-sm text-muted-foreground block">
-                                  {r.guest_phone}
+                              {participantPhone && (
+                                <a href={`tel:${participantPhone}`} className="text-sm text-muted-foreground block">
+                                  {participantPhone}
                                 </a>
                               )}
                             </div>
