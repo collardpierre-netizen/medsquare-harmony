@@ -325,8 +325,9 @@ const AdminRegistrations = () => {
                       const session = r.activity_sessions;
                       const activity = session?.activities;
                       const practitioner = activity?.profiles;
-                      const participantName = r.guest_name || "Utilisateur inscrit";
-                      const otherStatuses = ["registered", "waitlisted", "cancelled"].filter(s => s !== r.status);
+                      const participantName = r.resolved_name || r.guest_name || "Utilisateur inscrit";
+                      const participantEmail = r.resolved_email || r.guest_email;
+                      const participantPhone = r.resolved_phone || r.guest_phone;
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="font-medium">
