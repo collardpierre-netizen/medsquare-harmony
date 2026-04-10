@@ -186,11 +186,14 @@ const ActiviteDetail = () => {
       });
       setMyRegistrations((prev) => [...prev, sessionId]);
 
-      // Send confirmation email to visitor
+      // Send confirmation email to visitor + notify practitioner
       if (data?.id) {
         supabase.functions.invoke("notify-registration-guest", {
           body: { registration_id: data.id },
         }).catch((err) => console.error("Error sending guest confirmation email:", err));
+        supabase.functions.invoke("notify-registration", {
+          body: { registration_id: data.id, session_id: sessionId },
+        }).catch((err) => console.error("Error notifying practitioner:", err));
         // Notify admin center
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         fetch(`https://${projectId}.supabase.co/functions/v1/notify-admin-center`, {
