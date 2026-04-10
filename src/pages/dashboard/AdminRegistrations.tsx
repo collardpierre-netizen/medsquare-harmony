@@ -101,8 +101,8 @@ const AdminRegistrations = () => {
       if (activityFilter !== "all" && activity?.id !== activityFilter) return false;
       if (search) {
         const q = search.toLowerCase();
-        const name = (r.guest_name || "").toLowerCase();
-        const email = (r.guest_email || "").toLowerCase();
+        const name = (r.resolved_name || r.guest_name || "").toLowerCase();
+        const email = (r.resolved_email || r.guest_email || "").toLowerCase();
         const title = (activity?.title || "").toLowerCase();
         if (!name.includes(q) && !email.includes(q) && !title.includes(q)) return false;
       }
