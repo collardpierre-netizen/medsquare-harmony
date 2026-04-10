@@ -170,8 +170,8 @@ const SessionRegistrationDialog = ({
   };
 
   const handleGuestRegister = async () => {
-    if (!guestForm.name.trim() || !guestForm.email.trim()) {
-      toast({ variant: "destructive", title: "Champs requis", description: "Veuillez renseigner votre nom et email." });
+    if (!guestForm.name.trim() || !guestForm.email.trim() || !guestForm.phone.trim()) {
+      toast({ variant: "destructive", title: "Champs requis", description: "Veuillez renseigner votre nom, email et téléphone." });
       return;
     }
 
@@ -409,7 +409,7 @@ const SessionRegistrationDialog = ({
                       />
                     </div>
                     <div>
-                      <Label htmlFor="guest_phone" className="text-xs">Téléphone (optionnel)</Label>
+                      <Label htmlFor="guest_phone" className="text-xs">Téléphone *</Label>
                       <Input
                         id="guest_phone"
                         value={guestForm.phone}
@@ -417,6 +417,7 @@ const SessionRegistrationDialog = ({
                         placeholder="+32 ..."
                         className="mt-1"
                         maxLength={20}
+                        required
                       />
                     </div>
                     <div className="flex gap-2 pt-1">
