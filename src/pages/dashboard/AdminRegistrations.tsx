@@ -125,9 +125,9 @@ const AdminRegistrations = () => {
       const activity = session?.activities;
       const practitioner = activity?.profiles;
       return [
-        r.guest_name || "Utilisateur inscrit",
-        r.guest_email || "",
-        r.guest_phone || "",
+        r.resolved_name || r.guest_name || "Utilisateur inscrit",
+        r.resolved_email || r.guest_email || "",
+        r.resolved_phone || r.guest_phone || "",
         activity?.title || "",
         practitioner ? `${practitioner.first_name} ${practitioner.last_name}` : "",
         session?.start_time ? format(new Date(session.start_time), "dd/MM/yyyy HH:mm") : "",
