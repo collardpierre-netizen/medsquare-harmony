@@ -160,12 +160,18 @@ const NewBookingDialog = ({
   }, [durationMinutes]);
 
   const handleSubmit = () => {
+    const [sH, sM] = startTime.split(":").map(Number);
+    const [eH, eM] = endTime.split(":").map(Number);
     onSubmit({
       bookingType,
       recurrence,
       recurrenceWeeks,
       recurrenceDays,
       practitionerId: isAdmin && selectedPractitioner ? selectedPractitioner : undefined,
+      startHour: sH,
+      startMinute: sM,
+      endHour: eH,
+      endMinute: eM,
     });
   };
 
