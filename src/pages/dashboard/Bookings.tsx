@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
+import { addDays, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
 import { MapPin, CalendarDays, LayoutGrid, User, Building2, Columns3, BarChart3 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
