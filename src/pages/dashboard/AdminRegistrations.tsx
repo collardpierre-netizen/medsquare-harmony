@@ -45,14 +45,23 @@ const AdminRegistrations = () => {
       // For registrations with user_id, fetch user profile info
       const userIds = (data || []).filter((r: any) => r.user_id).map((r: any) => r.user_id);
       let userProfiles: Record<string, { first_name: string; last_name: string; contact_email: string | null; phone: string | null }> = {};
+      let authEmails: Record<string, string> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name, contact_email, phone")
-          .in("user_id", userIds);
-        if (profiles) {
-          profiles.forEach((p: any) => {
+        const [profilesRes, authRes] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("user_id, first_name, last_name, contact_email, phone")
+            .in("user_id", userIds),
+          supabase.rpc("get_auth_emails_for_users", { user_ids: userIds }),
+        ]);
+        if (profilesRes.data) {
+          profilesRes.data.forEach((p: any) => {
             userProfiles[p.user_id] = p;
+          });
+        }
+        if (authRes.data) {
+          (authRes.data as any[]).forEach((a: any) => {
+            authEmails[a.user_id] = a.email;
           });
         }
       }
@@ -63,8 +72,14 @@ const AdminRegistrations = () => {
           return {
             ...r,
             resolved_name: `${p.first_name} ${p.last_name}`.trim() || null,
-            resolved_email: p.contact_email,
+            resolved_email: p.contact_email || authEmails[r.user_id] || null,
             resolved_phone: p.phone,
+          };
+        }
+        if (r.user_id && authEmails[r.user_id]) {
+          return {
+            ...r,
+            resolved_email: authEmails[r.user_id],
           };
         }
         return r;
