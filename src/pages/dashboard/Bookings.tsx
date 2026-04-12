@@ -243,11 +243,8 @@ const Bookings = () => {
           startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
           endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
         } else {
-          startTime = setMinutes(
-            setHours(new Date(baseDate), selectedSlot.getHours()),
-            selectedSlot.getMinutes()
-          );
-          endTime = addMinutes(startTime, parseInt(duration));
+          startTime = setMinutes(setHours(new Date(baseDate), startHour), startMinute);
+          endTime = setMinutes(setHours(new Date(baseDate), endHour), endMinute);
         }
 
         bookingsToCreate.push({ startTime, endTime, week: i + 1 });
