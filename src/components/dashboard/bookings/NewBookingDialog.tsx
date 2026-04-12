@@ -72,7 +72,7 @@ interface NewBookingDialogProps {
   onDurationChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
-  onSubmit: (options: { bookingType: BookingType; recurrence: RecurrenceType; recurrenceWeeks: number; recurrenceDays: number[]; practitionerId?: string }) => void;
+  onSubmit: (options: { bookingType: BookingType; recurrence: RecurrenceType; recurrenceWeeks: number; recurrenceDays: number[]; practitionerId?: string; startHour: number; startMinute: number; endHour: number; endMinute: number }) => void;
   isSubmitting: boolean;
   isAdmin?: boolean;
   practitioners?: Array<{ id: string; first_name: string; last_name: string }>;
