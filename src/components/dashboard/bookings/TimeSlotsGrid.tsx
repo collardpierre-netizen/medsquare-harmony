@@ -147,12 +147,17 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base">
-            {format(selectedDate, "EEEE d MMMM", { locale: fr })}
-            <span className="text-xs text-muted-foreground font-normal ml-2">
-              {start}h – {end}h
-            </span>
-          </CardTitle>
+          <div>
+            <CardTitle className="font-display text-base">
+              {format(selectedDate, "EEEE d MMMM", { locale: fr })}
+              <span className="text-xs text-muted-foreground font-normal ml-2">
+                {start}h – {end}h
+              </span>
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              👆 Cliquez sur l'heure de début souhaitée pour réserver
+            </p>
+          </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-accent border border-border" />
