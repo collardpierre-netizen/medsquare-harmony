@@ -79,10 +79,18 @@ Deno.serve(async (req) => {
         return json({ error: "Impossible d'annuler l'inscription" }, 500);
       }
 
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      // Fetch guest info before notification
+      const { data: regDetails } = await supabase
+        .from("activity_registrations")
+        .select("guest_name, guest_email, guest_phone")
+        .eq("cancellation_token", token)
+        .single();
+
       // Trigger promotion email for waitlisted person (best-effort)
       try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         await fetch(`${supabaseUrl}/functions/v1/notify-waitlist-promoted`, {
           method: "POST",
           headers: {
@@ -90,6 +98,26 @@ Deno.serve(async (req) => {
             "Authorization": `Bearer ${serviceKey}`,
           },
           body: JSON.stringify({ session_id: reg.session_id }),
+        });
+      } catch {
+        // Silent fail
+      }
+
+      // Notify practitioner of cancellation (best-effort)
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/notify-registration-cancelled`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            session_id: reg.session_id,
+            registration_id: reg.id,
+            guest_name: regDetails?.guest_name,
+            guest_email: regDetails?.guest_email,
+            guest_phone: regDetails?.guest_phone,
+          }),
         });
       } catch {
         // Silent fail
