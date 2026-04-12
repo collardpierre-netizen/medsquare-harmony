@@ -179,12 +179,16 @@ const Bookings = () => {
     recurrenceWeeks: number;
     recurrenceDays: number[];
     practitionerId?: string;
+    startHour: number;
+    startMinute: number;
+    endHour: number;
+    endMinute: number;
   }) => {
-    if (!profile || !selectedSlot || !selectedRoom) return;
+    if (!profile || !selectedRoom) return;
     setIsSubmitting(true);
     const targetPractitionerId = options.practitionerId || profile.id;
 
-    const { bookingType, recurrence, recurrenceWeeks, recurrenceDays } = options;
+    const { bookingType, recurrence, recurrenceWeeks, recurrenceDays, startHour, startMinute, endHour, endMinute } = options;
     const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
 
     const insertRows: any[] = [];
