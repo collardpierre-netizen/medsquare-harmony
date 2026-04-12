@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addDays, addMinutes, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
+import { addDays, addWeeks, setHours, setMinutes, startOfDay, startOfWeek, getDay } from "date-fns";
 import { MapPin, CalendarDays, LayoutGrid, User, Building2, Columns3, BarChart3 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,12 +179,16 @@ const Bookings = () => {
     recurrenceWeeks: number;
     recurrenceDays: number[];
     practitionerId?: string;
+    startHour: number;
+    startMinute: number;
+    endHour: number;
+    endMinute: number;
   }) => {
-    if (!profile || !selectedSlot || !selectedRoom) return;
+    if (!profile || !selectedRoom) return;
     setIsSubmitting(true);
     const targetPractitionerId = options.practitionerId || profile.id;
 
-    const { bookingType, recurrence, recurrenceWeeks, recurrenceDays } = options;
+    const { bookingType, recurrence, recurrenceWeeks, recurrenceDays, startHour, startMinute, endHour, endMinute } = options;
     const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
 
     const insertRows: any[] = [];
@@ -209,11 +213,8 @@ const Bookings = () => {
             startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
             endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
           } else {
-            startTime = setMinutes(
-              setHours(new Date(baseDate), selectedSlot.getHours()),
-              selectedSlot.getMinutes()
-            );
-            endTime = addMinutes(startTime, parseInt(duration));
+            startTime = setMinutes(setHours(new Date(baseDate), startHour), startMinute);
+            endTime = setMinutes(setHours(new Date(baseDate), endHour), endMinute);
           }
 
           bookingsToCreate.push({ startTime, endTime, week: w + 1 });
@@ -242,11 +243,8 @@ const Bookings = () => {
           startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
           endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
         } else {
-          startTime = setMinutes(
-            setHours(new Date(baseDate), selectedSlot.getHours()),
-            selectedSlot.getMinutes()
-          );
-          endTime = addMinutes(startTime, parseInt(duration));
+          startTime = setMinutes(setHours(new Date(baseDate), startHour), startMinute);
+          endTime = setMinutes(setHours(new Date(baseDate), endHour), endMinute);
         }
 
         bookingsToCreate.push({ startTime, endTime, week: i + 1 });
