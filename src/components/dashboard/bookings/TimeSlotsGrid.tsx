@@ -49,10 +49,18 @@ const getBrusselsOffsetHours = (date: Date): number => {
 
 // Build a UTC Date that corresponds to a given Brussels wall-clock time on a given day
 const brusselsSlotToUTC = (day: Date, hour: number, minute: number): Date => {
+  // Get the Brussels calendar date (not UTC date, which may differ around midnight)
+  const [year, month, dayNum] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Brussels",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(day)
+    .split("-")
+    .map(Number);
   const offset = getBrusselsOffsetHours(day);
-  const d = new Date(day);
-  d.setUTCHours(hour - offset, minute, 0, 0);
-  return d;
+  return new Date(Date.UTC(year, month - 1, dayNum, hour - offset, minute, 0, 0));
 };
 
 const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, onSlotClick, onBookingClick, onActivityClick }: TimeSlotsGridProps) => {
