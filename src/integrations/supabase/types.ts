@@ -871,6 +871,13 @@ export type Database = {
         Returns: number
       }
       generate_recurring_sessions: { Args: never; Returns: undefined }
+      get_auth_emails_for_users: {
+        Args: { user_ids: string[] }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       get_practitioner_login_status: {
         Args: never
         Returns: {
