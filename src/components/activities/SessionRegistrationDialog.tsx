@@ -247,6 +247,14 @@ const SessionRegistrationDialog = ({
       onRegistrationChange?.();
       // Send email to promoted waitlisted person (best-effort)
       notifyWaitlistPromoted();
+      // Notify practitioner of cancellation (best-effort)
+      try {
+        await supabase.functions.invoke("notify-registration-cancelled", {
+          body: { session_id: session.id },
+        });
+      } catch {
+        // Silent fail
+      }
     }
     setIsLoading(false);
   };
