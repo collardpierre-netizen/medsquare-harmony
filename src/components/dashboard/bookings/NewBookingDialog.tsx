@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format, isWeekend, getDay, addDays, addWeeks } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, CalendarDays, Repeat, Lock } from "lucide-react";
+import { Clock, CalendarDays, Repeat, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +36,31 @@ const DAYS_OF_WEEK = [
   { key: 6, label: "Sam" },
   { key: 0, label: "Dim" },
 ];
+
+/** Generate time options as "HH:mm" strings from startHour to endHour in 30min steps */
+const generateTimeOptions = (startHour: number, endHour: number): string[] => {
+  const options: string[] = [];
+  for (let h = startHour; h <= endHour; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === endHour && m > 0) break;
+      options.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+  return options;
+};
+
+const timeToMinutes = (time: string): number => {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const formatDuration = (minutes: number): string => {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2, "0")}`;
+};
 
 interface NewBookingDialogProps {
   open: boolean;
@@ -77,7 +102,62 @@ const NewBookingDialog = ({
   const [selectedPractitioner, setSelectedPractitioner] = useState<string>("");
 
   const { start, end } = getOpeningHours(selectedDate);
-  const isWE = isWeekend(selectedDate);
+
+  // Time options
+  const allTimeOptions = useMemo(() => generateTimeOptions(start, end), [start, end]);
+
+  // Start time derived from selectedSlot
+  const initialStartTime = selectedSlot
+    ? `${String(selectedSlot.getHours()).padStart(2, "0")}:${String(selectedSlot.getMinutes()).padStart(2, "0")}`
+    : allTimeOptions[0] || "08:00";
+
+  const [startTime, setStartTime] = useState(initialStartTime);
+  const [endTime, setEndTime] = useState("");
+
+  // Reset times when dialog opens with a new slot
+  useEffect(() => {
+    if (open && selectedSlot) {
+      const st = `${String(selectedSlot.getHours()).padStart(2, "0")}:${String(selectedSlot.getMinutes()).padStart(2, "0")}`;
+      setStartTime(st);
+      // Default end time: start + 1h
+      const startMin = timeToMinutes(st);
+      const defaultEndMin = Math.min(startMin + 60, end * 60);
+      const endH = Math.floor(defaultEndMin / 60);
+      const endM = defaultEndMin % 60;
+      setEndTime(`${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
+    }
+  }, [open, selectedSlot, end]);
+
+  // Compute available end times (must be after start time)
+  const endTimeOptions = useMemo(() => {
+    const startMin = timeToMinutes(startTime);
+    return allTimeOptions.filter((t) => timeToMinutes(t) > startMin);
+  }, [startTime, allTimeOptions]);
+
+  // Auto-adjust end time if it's before start
+  useEffect(() => {
+    if (endTime && timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+      const nextOptions = endTimeOptions;
+      if (nextOptions.length > 0) {
+        // Try to keep same duration, otherwise pick first available
+        const startMin = timeToMinutes(startTime);
+        const currentDur = endTime ? timeToMinutes(endTime) - timeToMinutes(initialStartTime) : 60;
+        const idealEnd = startMin + Math.max(currentDur, 60);
+        const idealStr = `${String(Math.floor(idealEnd / 60)).padStart(2, "0")}:${String(idealEnd % 60).padStart(2, "0")}`;
+        setEndTime(nextOptions.includes(idealStr) ? idealStr : nextOptions[0]);
+      }
+    }
+  }, [startTime]);
+
+  // Sync duration prop for parent (in minutes)
+  const durationMinutes = useMemo(() => {
+    if (!startTime || !endTime) return 60;
+    return Math.max(timeToMinutes(endTime) - timeToMinutes(startTime), 30);
+  }, [startTime, endTime]);
+
+  useEffect(() => {
+    onDurationChange(String(durationMinutes));
+  }, [durationMinutes]);
 
   const handleSubmit = () => {
     onSubmit({
@@ -107,15 +187,13 @@ const NewBookingDialog = ({
         <div className="space-y-5 py-2">
           {/* Date & room info */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-accent">
-            <Clock className="h-5 w-5 text-accent-foreground shrink-0" />
+            <CalendarDays className="h-5 w-5 text-accent-foreground shrink-0" />
             <div>
               <p className="font-semibold text-sm">
-                {selectedSlot && format(selectedSlot, "HH:mm")}
-                {" — "}
-                {format(selectedDate, "EEEE d MMMM", { locale: fr })}
+                {format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}
               </p>
               <p className="text-xs text-muted-foreground">
-                {roomName} • Horaires : {start}h–{end}h {isWE ? "(week-end)" : "(semaine)"}
+                {roomName} • Horaires : {start}h–{end}h
               </p>
             </div>
           </div>
@@ -180,23 +258,49 @@ const NewBookingDialog = ({
             )}
           </div>
 
-          {/* Duration (only for hourly) */}
+          {/* Start & End time selectors (only for hourly) */}
           {bookingType === "hourly" && (
-            <div>
-              <Label>Durée</Label>
-              <Select value={duration} onValueChange={onDurationChange}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="60">1 heure</SelectItem>
-                  <SelectItem value="120">2 heures</SelectItem>
-                  <SelectItem value="180">3 heures</SelectItem>
-                  <SelectItem value="240">4 heures</SelectItem>
-                  <SelectItem value="300">5 heures</SelectItem>
-                  <SelectItem value="360">6 heures</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <Label className="text-sm font-medium block">Horaire</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Début</Label>
+                  <Select value={startTime} onValueChange={setStartTime}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[250px]">
+                      {allTimeOptions.slice(0, -1).map((t) => (
+                        <SelectItem key={`s-${t}`} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground mt-5 shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Fin</Label>
+                  <Select value={endTime} onValueChange={setEndTime}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[250px]">
+                      {endTimeOptions.map((t) => (
+                        <SelectItem key={`e-${t}`} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {/* Duration summary */}
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                <Clock className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-primary">
+                  {startTime} → {endTime}
+                </span>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  {formatDuration(durationMinutes)}
+                </span>
+              </div>
             </div>
           )}
 
@@ -285,7 +389,7 @@ const NewBookingDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || (bookingType === "hourly" && durationMinutes < 30)}>
             {isSubmitting ? "Création..." : recurrence === "weekly"
               ? `Réserver (${recurrenceWeeks} semaines)`
               : "Réserver"}
