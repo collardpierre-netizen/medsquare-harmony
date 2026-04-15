@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy, CalendarIcon } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarWidget } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
