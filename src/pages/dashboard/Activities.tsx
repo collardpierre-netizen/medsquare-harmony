@@ -552,6 +552,20 @@ const Activities = () => {
                           );
                         })()}
 
+                        {/* Période */}
+                        {(activity.start_date || activity.end_date) && (
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                            <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span>
+                              {activity.start_date && activity.end_date
+                                ? `Du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`
+                                : activity.start_date
+                                  ? `À partir du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })}`
+                                  : `Jusqu'au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`}
+                            </span>
+                          </div>
+                        )}
+
                       </div>
 
                       <div className="flex sm:flex-col items-center gap-2">
