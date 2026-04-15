@@ -352,8 +352,14 @@ const Activities = () => {
 
       const roomName = rooms.find((r: any) => r.id === roomId)?.name || "la salle";
 
-      if (conflictingBookings && conflictingBookings.length > 0) {
-        const b = conflictingBookings[0];
+      // Filter out bookings that belong to the same practitioner (they reserved the room for this activity)
+      const activityPractitionerId = activity?.practitioner_id;
+      const otherBookings = conflictingBookings?.filter(
+        (b: any) => b.practitioner_id !== activityPractitionerId
+      ) || [];
+
+      if (otherBookings.length > 0) {
+        const b = otherBookings[0];
         const bStart = new Date(b.start_time);
         toast({
           variant: "destructive",
