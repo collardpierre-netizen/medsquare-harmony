@@ -123,10 +123,10 @@ const ActivityCard = ({ activity, nextSession }: ActivityCardProps) => {
             <CalendarIcon className="h-3 w-3 text-primary shrink-0" />
             <span>
               {activity.start_date && activity.end_date
-                ? `Du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`
+                ? `Du ${format(new Date(activity.start_date + "T12:00:00"), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date + "T12:00:00"), "d MMM yyyy", { locale: fr })}`
                 : activity.start_date
-                  ? `À partir du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })}`
-                  : `Jusqu'au ${format(new Date(activity.end_date!), "d MMM yyyy", { locale: fr })}`}
+                  ? `À partir du ${format(new Date(activity.start_date + "T12:00:00"), "d MMM yyyy", { locale: fr })}`
+                  : `Jusqu'au ${format(new Date(activity.end_date! + "T12:00:00"), "d MMM yyyy", { locale: fr })}`}
             </span>
           </div>
         )}
