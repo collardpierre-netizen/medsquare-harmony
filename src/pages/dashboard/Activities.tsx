@@ -248,9 +248,11 @@ const Activities = () => {
     }
     setIsSaving(true);
 
-    const { practitioner_id: formPractitionerId, recurrence, external_registration_url, ...formData } = form;
+    const { practitioner_id: formPractitionerId, recurrence, external_registration_url, start_date, end_date, ...formData } = form;
     const externalUrl = external_registration_url?.trim() || null;
     const recurrenceJson = JSON.parse(JSON.stringify(recurrence));
+    const startDateVal = start_date || null;
+    const endDateVal = end_date || null;
 
     if (editingId) {
       const { error } = await supabase
