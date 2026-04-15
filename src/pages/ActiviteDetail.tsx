@@ -351,10 +351,10 @@ const ActiviteDetail = () => {
                 <Calendar className="h-4 w-4 text-primary shrink-0" />
                 <span>
                   {activity.start_date && activity.end_date
-                    ? `Du ${format(new Date(activity.start_date), "d MMMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMMM yyyy", { locale: fr })}`
+                    ? `Du ${format(new Date(activity.start_date + "T12:00:00"), "d MMMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date + "T12:00:00"), "d MMMM yyyy", { locale: fr })}`
                     : activity.start_date
-                      ? `À partir du ${format(new Date(activity.start_date), "d MMMM yyyy", { locale: fr })}`
-                      : `Jusqu'au ${format(new Date(activity.end_date!), "d MMMM yyyy", { locale: fr })}`}
+                      ? `À partir du ${format(new Date(activity.start_date + "T12:00:00"), "d MMMM yyyy", { locale: fr })}`
+                      : `Jusqu'au ${format(new Date(activity.end_date! + "T12:00:00"), "d MMMM yyyy", { locale: fr })}`}
                 </span>
               </div>
             )}

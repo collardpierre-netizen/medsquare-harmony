@@ -558,10 +558,10 @@ const Activities = () => {
                             <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
                             <span>
                               {activity.start_date && activity.end_date
-                                ? `Du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`
+                                ? `Du ${format(new Date(activity.start_date + "T12:00:00"), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date + "T12:00:00"), "d MMM yyyy", { locale: fr })}`
                                 : activity.start_date
-                                  ? `À partir du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })}`
-                                  : `Jusqu'au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`}
+                                  ? `À partir du ${format(new Date(activity.start_date + "T12:00:00"), "d MMM yyyy", { locale: fr })}`
+                                  : `Jusqu'au ${format(new Date(activity.end_date + "T12:00:00"), "d MMM yyyy", { locale: fr })}`}
                             </span>
                           </div>
                         )}
@@ -935,13 +935,13 @@ const Activities = () => {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {form.start_date ? format(new Date(form.start_date), "d MMM yyyy", { locale: fr }) : "Aucune"}
+                        {form.start_date ? format(new Date(form.start_date + "T12:00:00"), "d MMM yyyy", { locale: fr }) : "Aucune"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CalendarWidget
                         mode="single"
-                        selected={form.start_date ? new Date(form.start_date) : undefined}
+                        selected={form.start_date ? new Date(form.start_date + "T12:00:00") : undefined}
                         onSelect={(date) => setForm({ ...form, start_date: date ? format(date, "yyyy-MM-dd") : "" })}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
@@ -968,15 +968,15 @@ const Activities = () => {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {form.end_date ? format(new Date(form.end_date), "d MMM yyyy", { locale: fr }) : "Aucune"}
+                        {form.end_date ? format(new Date(form.end_date + "T12:00:00"), "d MMM yyyy", { locale: fr }) : "Aucune"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <CalendarWidget
                         mode="single"
-                        selected={form.end_date ? new Date(form.end_date) : undefined}
+                        selected={form.end_date ? new Date(form.end_date + "T12:00:00") : undefined}
                         onSelect={(date) => setForm({ ...form, end_date: date ? format(date, "yyyy-MM-dd") : "" })}
-                        disabled={(date) => form.start_date ? date < new Date(form.start_date) : false}
+                        disabled={(date) => form.start_date ? date < new Date(form.start_date + "T12:00:00") : false}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
                       />
