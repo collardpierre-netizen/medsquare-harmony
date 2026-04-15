@@ -62,6 +62,8 @@ interface Activity {
   location: string | null;
   booking_enabled: boolean;
   external_registration_url: string | null;
+  start_date: string | null;
+  end_date: string | null;
   recurrence: { day: string; start: string; end: string }[] | null;
   profiles: {
     id: string;
@@ -106,7 +108,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, profiles(id, first_name, last_name, specialty, avatar_url, contact_email, phone)"
+        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, start_date, end_date, profiles(id, first_name, last_name, specialty, avatar_url, contact_email, phone)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -342,6 +344,20 @@ const ActiviteDetail = () => {
                 </span>
               )}
             </div>
+
+            {/* Période */}
+            {(activity.start_date || activity.end_date) && (
+              <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4 text-primary shrink-0" />
+                <span>
+                  {activity.start_date && activity.end_date
+                    ? `Du ${format(new Date(activity.start_date), "d MMMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMMM yyyy", { locale: fr })}`
+                    : activity.start_date
+                      ? `À partir du ${format(new Date(activity.start_date), "d MMMM yyyy", { locale: fr })}`
+                      : `Jusqu'au ${format(new Date(activity.end_date!), "d MMMM yyyy", { locale: fr })}`}
+                </span>
+              </div>
+            )}
 
             {/* Recurring schedule */}
             {(() => {
