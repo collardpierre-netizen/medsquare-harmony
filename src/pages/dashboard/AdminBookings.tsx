@@ -86,6 +86,7 @@ const AdminBookings = () => {
   const [creating, setCreating] = useState(false);
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [allRooms, setAllRooms] = useState<any[]>([]);
   const [practitionerActivities, setPractitionerActivities] = useState<any[]>([]);
 
   const [newBooking, setNewBooking] = useState({
@@ -131,12 +132,14 @@ const AdminBookings = () => {
   };
 
   const fetchResources = async () => {
-    const [{ data: profs }, { data: roomsData }] = await Promise.all([
+    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
+      supabase.from("rooms").select("id, name, is_available").order("name"),
     ]);
     setPractitioners(profs || []);
     setRooms(roomsData || []);
+    setAllRooms(allRoomsData || []);
     if (roomsData && roomsData.length > 0 && !planningRoom) {
       setPlanningRoom(roomsData[0].id);
     }
@@ -211,6 +214,8 @@ const AdminBookings = () => {
 
   // Occupancy stats per room — uses date filter if set, otherwise current week
   const occupancyData = useMemo(() => {
+    const BUFFER_MINUTES = 15; // 15 min avant et après chaque réservation
+
     let rangeStart: Date;
     let rangeEnd: Date;
     let label: string;
@@ -230,7 +235,6 @@ const AdminBookings = () => {
       label = "semaine en cours";
     }
 
-    // Build array of days in range
     const days: Date[] = [];
     let cursor = rangeStart;
     while (cursor <= rangeEnd) {
@@ -238,15 +242,16 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number; isPrivatised: boolean }> = {};
 
-    rooms.forEach((r) => {
+    allRooms.forEach((r) => {
+      const isPrivatised = !r.is_available;
       let totalHours = 0;
       days.forEach((day) => {
         const { start, end } = getOpeningHours(day);
         totalHours += end - start;
       });
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0 };
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0, isPrivatised };
     });
 
     bookings.forEach((b) => {
@@ -258,23 +263,37 @@ const AdminBookings = () => {
       if (!inRange) return;
 
       if (roomStats[b.room_id]) {
-        const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        // Durée de la réservation + 2 x 15 min de battement
+        const durationMs = end.getTime() - start.getTime();
+        const bufferMs = 2 * BUFFER_MINUTES * 60 * 1000;
+        const totalMs = durationMs + bufferMs;
+        const hours = totalMs / (1000 * 60 * 60);
         roomStats[b.room_id].bookedHours += hours;
         roomStats[b.room_id].bookingCount += 1;
       }
     });
 
-    return {
-      label,
-      rooms: Object.entries(roomStats)
-        .map(([id, stats]) => ({
-          id,
-          ...stats,
-          occupancyPct: stats.totalHours > 0 ? Math.round((stats.bookedHours / stats.totalHours) * 100) : 0,
-        }))
-        .sort((a, b) => b.occupancyPct - a.occupancyPct),
-    };
-  }, [rooms, bookings, filterDateFrom, filterDateTo]);
+    const roomList = Object.entries(roomStats)
+      .map(([id, stats]) => ({
+        id,
+        ...stats,
+        // Salles privatisées = 100%
+        occupancyPct: stats.isPrivatised
+          ? 100
+          : stats.totalHours > 0
+          ? Math.min(100, Math.round((stats.bookedHours / stats.totalHours) * 100))
+          : 0,
+      }))
+      // Tri par nom naturel (Cabinet N°1, N°2, N°3...)
+      .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
+
+    // Moyenne globale
+    const globalAvg = roomList.length > 0
+      ? Math.round(roomList.reduce((sum, r) => sum + r.occupancyPct, 0) / roomList.length)
+      : 0;
+
+    return { label, rooms: roomList, globalAvg };
+  }, [allRooms, bookings, filterDateFrom, filterDateTo]);
 
   const handlePractitionerChange = (practitionerId: string) => {
     setNewBooking((b) => ({ ...b, practitioner_id: practitionerId, activity_id: "" }));
@@ -924,6 +943,9 @@ const AdminBookings = () => {
               <CardTitle className="font-display text-base">
                 Taux d'occupation par salle — {occupancyData.label}
               </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Horaires : 08h–22h (lun–ven), 08h–21h (sam–dim) · 15 min de battement avant/après chaque réservation
+              </p>
             </CardHeader>
             <CardContent>
               {occupancyData.rooms.length === 0 ? (
@@ -933,17 +955,30 @@ const AdminBookings = () => {
                   {occupancyData.rooms.map((room) => (
                     <div key={room.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{room.name}</span>
+                        <span className="font-medium flex items-center gap-2">
+                          {room.name}
+                          {room.isPrivatised && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Lock className="h-3 w-3" /> Privatisé
+                            </Badge>
+                          )}
+                        </span>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{room.bookingCount} réservation{room.bookingCount > 1 ? "s" : ""}</span>
-                          <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
+                          {room.isPrivatised ? (
+                            <span>Privatisé</span>
+                          ) : (
+                            <>
+                              <span>{room.bookingCount} réservation{room.bookingCount > 1 ? "s" : ""}</span>
+                              <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
+                            </>
+                          )}
                           <Badge
                             className={cn(
                               "text-[10px] px-1.5 py-0",
                               room.occupancyPct >= 70
                                 ? "bg-destructive/10 text-destructive border-destructive/20"
                                 : room.occupancyPct >= 40
-                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
                                 : "bg-primary/10 text-primary border-primary/20"
                             )}
                           >
@@ -957,6 +992,26 @@ const AdminBookings = () => {
                       />
                     </div>
                   ))}
+
+                  {/* Global average */}
+                  <div className="border-t pt-4 mt-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold">Taux d'occupation moyen global</span>
+                      <Badge
+                        className={cn(
+                          "text-xs px-2 py-0.5",
+                          occupancyData.globalAvg >= 70
+                            ? "bg-destructive/10 text-destructive border-destructive/20"
+                            : occupancyData.globalAvg >= 40
+                            ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                            : "bg-primary/10 text-primary border-primary/20"
+                        )}
+                      >
+                        {occupancyData.globalAvg}%
+                      </Badge>
+                    </div>
+                    <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
+                  </div>
                 </div>
               )}
             </CardContent>
