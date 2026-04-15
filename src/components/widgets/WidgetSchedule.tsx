@@ -36,13 +36,15 @@ const WidgetSchedule = ({ config }: { config: WidgetConfig }) => {
     const fetchSessions = async () => {
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
       const weekEnd = addDays(weekStart, 7);
+      const todayStr = format(new Date(), "yyyy-MM-dd");
 
       const { data: sessionsData } = await supabase
         .from("activity_sessions")
-        .select("id, start_time, end_time, max_participants, status, activity_id")
+        .select("id, start_time, end_time, max_participants, status, activity_id, activities!inner(end_date)")
         .gte("start_time", weekStart.toISOString())
         .lt("start_time", weekEnd.toISOString())
         .eq("status", "scheduled")
+        .or(`end_date.is.null,end_date.gte.${todayStr}`, { referencedTable: "activities" })
         .order("start_time");
 
       if (!sessionsData || sessionsData.length === 0) {
