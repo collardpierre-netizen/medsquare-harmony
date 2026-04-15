@@ -152,9 +152,12 @@ const ActivitesPage = () => {
     toast({ title: "Inscription annulée" });
   };
 
+  const today = new Date().toISOString().slice(0, 10);
   const filtered = activities.filter((a: any) => {
     if (selectedCategory !== "all" && a.category !== selectedCategory) return false;
     if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
+    // Hide activities whose end_date is in the past
+    if (a.end_date && a.end_date < today) return false;
     return true;
   });
 
