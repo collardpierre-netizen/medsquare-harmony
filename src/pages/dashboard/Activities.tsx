@@ -901,6 +901,83 @@ const Activities = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Période d'activité */}
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <div>
+                <Label className="text-sm font-semibold">Période d'activité</Label>
+                <p className="text-xs text-muted-foreground">Facultatif — indiquez quand l'activité débute et/ou se termine.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Date de début</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1.5",
+                          !form.start_date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.start_date ? format(new Date(form.start_date), "d MMM yyyy", { locale: fr }) : "Aucune"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarWidget
+                        mode="single"
+                        selected={form.start_date ? new Date(form.start_date) : undefined}
+                        onSelect={(date) => setForm({ ...form, start_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                      {form.start_date && (
+                        <div className="px-3 pb-3">
+                          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setForm({ ...form, start_date: "" })}>
+                            Effacer
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="text-xs">Date de fin</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1.5",
+                          !form.end_date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.end_date ? format(new Date(form.end_date), "d MMM yyyy", { locale: fr }) : "Aucune"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarWidget
+                        mode="single"
+                        selected={form.end_date ? new Date(form.end_date) : undefined}
+                        onSelect={(date) => setForm({ ...form, end_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                        disabled={(date) => form.start_date ? date < new Date(form.start_date) : false}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                      {form.end_date && (
+                        <div className="px-3 pb-3">
+                          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setForm({ ...form, end_date: "" })}>
+                            Effacer
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>
