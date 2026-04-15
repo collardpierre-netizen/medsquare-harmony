@@ -273,7 +273,7 @@ const Bookings = () => {
           .gt("end_time", booking.startTime.toISOString()),
         supabase
           .from("activity_sessions")
-          .select("*, activities(title)")
+          .select("*, activities(title, practitioner_id)")
           .eq("room_id", selectedRoom)
           .eq("status", "scheduled")
           .lt("start_time", booking.endTime.toISOString())
@@ -286,8 +286,15 @@ const Bookings = () => {
           week: booking.week,
           detail: `${new Date(b.start_time).toLocaleDateString("fr-FR")} ${new Date(b.start_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} (réservation)`,
         });
-      } else if (existingSessions && existingSessions.length > 0) {
-        const s = existingSessions[0];
+      }
+
+      // Filter out activity sessions belonging to the same practitioner
+      const otherSessions = existingSessions?.filter(
+        (s: any) => s.activities?.practitioner_id !== targetPractitionerId
+      ) || [];
+
+      if (!existingBookings?.length && otherSessions.length > 0) {
+        const s = otherSessions[0];
         bookingConflicts.push({
           week: booking.week,
           detail: `${new Date(s.start_time).toLocaleDateString("fr-FR")} ${new Date(s.start_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} — ${s.activities?.title || "activité"}`,
