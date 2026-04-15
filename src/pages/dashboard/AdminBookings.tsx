@@ -86,6 +86,7 @@ const AdminBookings = () => {
   const [creating, setCreating] = useState(false);
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [allRooms, setAllRooms] = useState<any[]>([]);
   const [practitionerActivities, setPractitionerActivities] = useState<any[]>([]);
 
   const [newBooking, setNewBooking] = useState({
