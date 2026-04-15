@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy, CalendarIcon } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarWidget } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -82,6 +85,8 @@ interface ActivityForm {
   practitioner_id: string;
   recurrence: RecurrenceSlot[];
   external_registration_url: string;
+  start_date: string;
+  end_date: string;
 }
 
 const emptyForm: ActivityForm = {
@@ -99,6 +104,8 @@ const emptyForm: ActivityForm = {
   practitioner_id: "",
   recurrence: [],
   external_registration_url: "",
+  start_date: "",
+  end_date: "",
 };
 
 const Activities = () => {
@@ -241,14 +248,16 @@ const Activities = () => {
     }
     setIsSaving(true);
 
-    const { practitioner_id: formPractitionerId, recurrence, external_registration_url, ...formData } = form;
+    const { practitioner_id: formPractitionerId, recurrence, external_registration_url, start_date, end_date, ...formData } = form;
     const externalUrl = external_registration_url?.trim() || null;
     const recurrenceJson = JSON.parse(JSON.stringify(recurrence));
+    const startDateVal = start_date || null;
+    const endDateVal = end_date || null;
 
     if (editingId) {
       const { error } = await supabase
         .from("activities")
-        .update({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
+        .update({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, start_date: startDateVal, end_date: endDateVal, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
         .eq("id", editingId);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
@@ -259,7 +268,7 @@ const Activities = () => {
       const targetPractitionerId = isAdmin && formPractitionerId ? formPractitionerId : profile!.id;
       const { error } = await supabase
         .from("activities")
-        .insert({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, practitioner_id: targetPractitionerId });
+        .insert({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, start_date: startDateVal, end_date: endDateVal, practitioner_id: targetPractitionerId });
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
@@ -301,6 +310,8 @@ const Activities = () => {
       practitioner_id: activity.practitioner_id || "",
       recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
       external_registration_url: activity.external_registration_url || "",
+      start_date: activity.start_date || "",
+      end_date: activity.end_date || "",
     });
     setShowDialog(true);
   };
@@ -541,6 +552,20 @@ const Activities = () => {
                           );
                         })()}
 
+                        {/* Période */}
+                        {(activity.start_date || activity.end_date) && (
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                            <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span>
+                              {activity.start_date && activity.end_date
+                                ? `Du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`
+                                : activity.start_date
+                                  ? `À partir du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })}`
+                                  : `Jusqu'au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`}
+                            </span>
+                          </div>
+                        )}
+
                       </div>
 
                       <div className="flex sm:flex-col items-center gap-2">
@@ -607,6 +632,8 @@ const Activities = () => {
                               practitioner_id: activity.practitioner_id || "",
                               recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
                               external_registration_url: activity.external_registration_url || "",
+                              start_date: activity.start_date || "",
+                              end_date: activity.end_date || "",
                             });
                             setShowDialog(true);
                           }}
@@ -886,6 +913,83 @@ const Activities = () => {
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
                   Ajouter un créneau
                 </Button>
+              </div>
+            </div>
+
+            {/* Période d'activité */}
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <div>
+                <Label className="text-sm font-semibold">Période d'activité</Label>
+                <p className="text-xs text-muted-foreground">Facultatif — indiquez quand l'activité débute et/ou se termine.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs">Date de début</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1.5",
+                          !form.start_date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.start_date ? format(new Date(form.start_date), "d MMM yyyy", { locale: fr }) : "Aucune"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarWidget
+                        mode="single"
+                        selected={form.start_date ? new Date(form.start_date) : undefined}
+                        onSelect={(date) => setForm({ ...form, start_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                      {form.start_date && (
+                        <div className="px-3 pb-3">
+                          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setForm({ ...form, start_date: "" })}>
+                            Effacer
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="text-xs">Date de fin</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1.5",
+                          !form.end_date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.end_date ? format(new Date(form.end_date), "d MMM yyyy", { locale: fr }) : "Aucune"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarWidget
+                        mode="single"
+                        selected={form.end_date ? new Date(form.end_date) : undefined}
+                        onSelect={(date) => setForm({ ...form, end_date: date ? format(date, "yyyy-MM-dd") : "" })}
+                        disabled={(date) => form.start_date ? date < new Date(form.start_date) : false}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                      {form.end_date && (
+                        <div className="px-3 pb-3">
+                          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setForm({ ...form, end_date: "" })}>
+                            Effacer
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
           </div>
