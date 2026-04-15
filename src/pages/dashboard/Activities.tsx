@@ -257,7 +257,7 @@ const Activities = () => {
     if (editingId) {
       const { error } = await supabase
         .from("activities")
-        .update({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
+        .update({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, start_date: startDateVal, end_date: endDateVal, ...(isAdmin && formPractitionerId ? { practitioner_id: formPractitionerId } : {}) })
         .eq("id", editingId);
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
@@ -268,7 +268,7 @@ const Activities = () => {
       const targetPractitionerId = isAdmin && formPractitionerId ? formPractitionerId : profile!.id;
       const { error } = await supabase
         .from("activities")
-        .insert({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, practitioner_id: targetPractitionerId });
+        .insert({ ...formData, recurrence: recurrenceJson, external_registration_url: externalUrl, start_date: startDateVal, end_date: endDateVal, practitioner_id: targetPractitionerId });
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
