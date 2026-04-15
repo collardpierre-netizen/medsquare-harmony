@@ -944,7 +944,7 @@ const AdminBookings = () => {
                 Taux d'occupation par salle — {occupancyData.label}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Horaires : 08h–22h (lun–ven), 08h–21h (sam–dim) · 15 min de battement avant/après chaque réservation
+                Horaires : 08h–22h (lun–ven), 09h–21h (sam–dim) · 15 min de battement avant/après chaque réservation
               </p>
             </CardHeader>
             <CardContent>
