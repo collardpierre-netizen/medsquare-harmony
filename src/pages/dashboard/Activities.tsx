@@ -310,6 +310,8 @@ const Activities = () => {
       practitioner_id: activity.practitioner_id || "",
       recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
       external_registration_url: activity.external_registration_url || "",
+      start_date: activity.start_date || "",
+      end_date: activity.end_date || "",
     });
     setShowDialog(true);
   };
@@ -616,6 +618,8 @@ const Activities = () => {
                               practitioner_id: activity.practitioner_id || "",
                               recurrence: Array.isArray(activity.recurrence) ? activity.recurrence : [],
                               external_registration_url: activity.external_registration_url || "",
+                              start_date: activity.start_date || "",
+                              end_date: activity.end_date || "",
                             });
                             setShowDialog(true);
                           }}
