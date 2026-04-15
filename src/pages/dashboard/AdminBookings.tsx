@@ -943,6 +943,9 @@ const AdminBookings = () => {
               <CardTitle className="font-display text-base">
                 Taux d'occupation par salle — {occupancyData.label}
               </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Horaires : 08h–22h (lun–ven), 08h–21h (sam–dim) · 15 min de battement avant/après chaque réservation
+              </p>
             </CardHeader>
             <CardContent>
               {occupancyData.rooms.length === 0 ? (
@@ -952,17 +955,30 @@ const AdminBookings = () => {
                   {occupancyData.rooms.map((room) => (
                     <div key={room.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{room.name}</span>
+                        <span className="font-medium flex items-center gap-2">
+                          {room.name}
+                          {room.isPrivatised && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Lock className="h-3 w-3" /> Privatisé
+                            </Badge>
+                          )}
+                        </span>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{room.bookingCount} réservation{room.bookingCount > 1 ? "s" : ""}</span>
-                          <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
+                          {room.isPrivatised ? (
+                            <span>Privatisé</span>
+                          ) : (
+                            <>
+                              <span>{room.bookingCount} réservation{room.bookingCount > 1 ? "s" : ""}</span>
+                              <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
+                            </>
+                          )}
                           <Badge
                             className={cn(
                               "text-[10px] px-1.5 py-0",
                               room.occupancyPct >= 70
                                 ? "bg-destructive/10 text-destructive border-destructive/20"
                                 : room.occupancyPct >= 40
-                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
                                 : "bg-primary/10 text-primary border-primary/20"
                             )}
                           >
@@ -976,6 +992,26 @@ const AdminBookings = () => {
                       />
                     </div>
                   ))}
+
+                  {/* Global average */}
+                  <div className="border-t pt-4 mt-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold">Taux d'occupation moyen global</span>
+                      <Badge
+                        className={cn(
+                          "text-xs px-2 py-0.5",
+                          occupancyData.globalAvg >= 70
+                            ? "bg-destructive/10 text-destructive border-destructive/20"
+                            : occupancyData.globalAvg >= 40
+                            ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                            : "bg-primary/10 text-primary border-primary/20"
+                        )}
+                      >
+                        {occupancyData.globalAvg}%
+                      </Badge>
+                    </div>
+                    <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
+                  </div>
                 </div>
               )}
             </CardContent>
