@@ -44,12 +44,14 @@ const PublicActivitySchedule = ({ selectedCategory, search }: Props) => {
 
   const fetchSessions = useCallback(async () => {
     const weekEnd = addDays(weekStart, 7);
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     const { data } = await supabase
       .from("activity_sessions")
-      .select("*, rooms(name), activities(title, category, description, is_free, price, profiles(first_name, last_name))")
+      .select("*, rooms(name), activities!inner(title, category, description, is_free, price, end_date, profiles(first_name, last_name))")
       .gte("start_time", startOfDay(weekStart).toISOString())
       .lt("start_time", weekEnd.toISOString())
       .in("status", ["scheduled", "full"])
+      .or(`end_date.is.null,end_date.gte.${todayStr}`, { referencedTable: "activities" })
       .order("start_time");
 
     // Fetch registration counts securely via RPC
