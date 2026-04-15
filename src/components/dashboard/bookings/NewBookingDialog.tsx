@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { format, isWeekend, getDay, addDays, addWeeks } from "date-fns";
+import { format, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, CalendarDays, Repeat, ArrowRight } from "lucide-react";
+import { Clock, CalendarDays, Repeat, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -79,6 +79,56 @@ interface NewBookingDialogProps {
   currentProfileId?: string;
 }
 
+/** Visual time pill grid — user taps a pill to pick a time */
+const TimePillGrid = ({
+  options,
+  value,
+  onChange,
+  label,
+  disabledBefore,
+}: {
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+  disabledBefore?: string;
+}) => {
+  const disabledMin = disabledBefore ? timeToMinutes(disabledBefore) : -1;
+
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground mb-1.5 block">{label}</Label>
+      <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+        {options.map((t) => {
+          const isDisabled = timeToMinutes(t) <= disabledMin;
+          const isSelected = t === value;
+          return (
+            <button
+              key={t}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => onChange(t)}
+              className={cn(
+                "relative py-2 px-1 rounded-lg text-sm font-medium transition-all border text-center",
+                isSelected
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : isDisabled
+                  ? "bg-muted/50 text-muted-foreground/40 border-transparent cursor-not-allowed"
+                  : "bg-card border-border hover:border-primary hover:bg-primary/5 cursor-pointer"
+              )}
+            >
+              {t}
+              {isSelected && (
+                <Check className="absolute top-0.5 right-0.5 h-3 w-3" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const NewBookingDialog = ({
   open,
   onOpenChange,
@@ -113,6 +163,8 @@ const NewBookingDialog = ({
 
   const [startTime, setStartTime] = useState(initialStartTime);
   const [endTime, setEndTime] = useState("");
+  // Step: 1 = pick start, 2 = pick end
+  const [step, setStep] = useState<1 | 2>(2);
 
   // Reset times when dialog opens with a new slot
   useEffect(() => {
@@ -125,13 +177,16 @@ const NewBookingDialog = ({
       const endH = Math.floor(defaultEndMin / 60);
       const endM = defaultEndMin % 60;
       setEndTime(`${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
+      setStep(2); // Start already picked from grid click, go to end
     }
   }, [open, selectedSlot, end]);
 
-  // Compute available end times (must be after start time)
+  // Start time options (all except last)
+  const startTimeOptions = useMemo(() => allTimeOptions.slice(0, -1), [allTimeOptions]);
+
+  // End time options (must be after start time)
   const endTimeOptions = useMemo(() => {
-    const startMin = timeToMinutes(startTime);
-    return allTimeOptions.filter((t) => timeToMinutes(t) > startMin);
+    return allTimeOptions.filter((t) => timeToMinutes(t) > timeToMinutes(startTime));
   }, [startTime, allTimeOptions]);
 
   // Auto-adjust end time if it's before start
@@ -139,10 +194,8 @@ const NewBookingDialog = ({
     if (endTime && timeToMinutes(endTime) <= timeToMinutes(startTime)) {
       const nextOptions = endTimeOptions;
       if (nextOptions.length > 0) {
-        // Try to keep same duration, otherwise pick first available
         const startMin = timeToMinutes(startTime);
-        const currentDur = endTime ? timeToMinutes(endTime) - timeToMinutes(initialStartTime) : 60;
-        const idealEnd = startMin + Math.max(currentDur, 60);
+        const idealEnd = startMin + 60;
         const idealStr = `${String(Math.floor(idealEnd / 60)).padStart(2, "0")}:${String(idealEnd % 60).padStart(2, "0")}`;
         setEndTime(nextOptions.includes(idealStr) ? idealStr : nextOptions[0]);
       }
@@ -158,6 +211,11 @@ const NewBookingDialog = ({
   useEffect(() => {
     onDurationChange(String(durationMinutes));
   }, [durationMinutes]);
+
+  const handleStartChange = (t: string) => {
+    setStartTime(t);
+    setStep(2);
+  };
 
   const handleSubmit = () => {
     const [sH, sM] = startTime.split(":").map(Number);
@@ -182,6 +240,7 @@ const NewBookingDialog = ({
         setRecurrence("none");
         setRecurrenceWeeks(4);
         setSelectedPractitioner("");
+        setStep(2);
       }
       onOpenChange(v);
     }}>
@@ -264,49 +323,70 @@ const NewBookingDialog = ({
             )}
           </div>
 
-          {/* Start & End time selectors (only for hourly) */}
+          {/* Start & End time as pill grids (only for hourly) */}
           {bookingType === "hourly" && (
-            <div className="space-y-3">
-              <Label className="text-sm font-medium block">Horaire</Label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground mb-1 block">Début</Label>
-                  <Select value={startTime} onValueChange={setStartTime}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[250px]">
-                      {allTimeOptions.slice(0, -1).map((t) => (
-                        <SelectItem key={`s-${t}`} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground mt-5 shrink-0" />
-                <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground mb-1 block">Fin</Label>
-                  <Select value={endTime} onValueChange={setEndTime}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[250px]">
-                      {endTimeOptions.map((t) => (
-                        <SelectItem key={`e-${t}`} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="space-y-4">
+              {/* Step indicator */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                    step === 1
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-primary/10 text-primary"
+                  )}
+                >
+                  <span className="w-4 h-4 rounded-full bg-primary-foreground/20 flex items-center justify-center text-[10px]">1</span>
+                  Début : {startTime}
+                </button>
+                <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                    step === 2
+                      ? "bg-primary text-primary-foreground"
+                      : endTime ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  <span className="w-4 h-4 rounded-full bg-primary-foreground/20 flex items-center justify-center text-[10px]">2</span>
+                  Fin : {endTime || "—"}
+                </button>
               </div>
+
+              {/* Time pill grid */}
+              {step === 1 ? (
+                <TimePillGrid
+                  options={startTimeOptions}
+                  value={startTime}
+                  onChange={handleStartChange}
+                  label="👆 Choisissez l'heure de début"
+                />
+              ) : (
+                <TimePillGrid
+                  options={endTimeOptions}
+                  value={endTime}
+                  onChange={setEndTime}
+                  label="👆 Choisissez l'heure de fin"
+                  disabledBefore={startTime}
+                />
+              )}
+
               {/* Duration summary */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">
-                  {startTime} → {endTime}
-                </span>
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {formatDuration(durationMinutes)}
-                </span>
-              </div>
+              {startTime && endTime && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/10">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-primary">
+                    {startTime} → {endTime}
+                  </span>
+                  <span className="text-xs font-medium text-primary/70 ml-auto px-2 py-0.5 rounded-full bg-primary/10">
+                    {formatDuration(durationMinutes)}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
