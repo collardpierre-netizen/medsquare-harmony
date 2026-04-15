@@ -85,6 +85,8 @@ interface ActivityForm {
   practitioner_id: string;
   recurrence: RecurrenceSlot[];
   external_registration_url: string;
+  start_date: string;
+  end_date: string;
 }
 
 const emptyForm: ActivityForm = {
@@ -102,6 +104,8 @@ const emptyForm: ActivityForm = {
   practitioner_id: "",
   recurrence: [],
   external_registration_url: "",
+  start_date: "",
+  end_date: "",
 };
 
 const Activities = () => {
