@@ -36,7 +36,7 @@ export interface ActivitySessionSlot {
 /** Returns opening hours based on day type */
 export const getOpeningHours = (date: Date) => {
   if (isWeekend(date)) {
-    return { start: 8, end: 21 };
+    return { start: 9, end: 21 };
   }
   return { start: 8, end: 22 };
 };
