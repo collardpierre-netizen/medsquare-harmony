@@ -214,6 +214,8 @@ const AdminBookings = () => {
 
   // Occupancy stats per room — uses date filter if set, otherwise current week
   const occupancyData = useMemo(() => {
+    const BUFFER_MINUTES = 15; // 15 min avant et après chaque réservation
+
     let rangeStart: Date;
     let rangeEnd: Date;
     let label: string;
@@ -233,7 +235,6 @@ const AdminBookings = () => {
       label = "semaine en cours";
     }
 
-    // Build array of days in range
     const days: Date[] = [];
     let cursor = rangeStart;
     while (cursor <= rangeEnd) {
@@ -241,15 +242,16 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number; isPrivatised: boolean }> = {};
 
-    rooms.forEach((r) => {
+    allRooms.forEach((r) => {
+      const isPrivatised = !r.is_available;
       let totalHours = 0;
       days.forEach((day) => {
         const { start, end } = getOpeningHours(day);
         totalHours += end - start;
       });
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0 };
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0, isPrivatised };
     });
 
     bookings.forEach((b) => {
@@ -261,23 +263,37 @@ const AdminBookings = () => {
       if (!inRange) return;
 
       if (roomStats[b.room_id]) {
-        const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        // Durée de la réservation + 2 x 15 min de battement
+        const durationMs = end.getTime() - start.getTime();
+        const bufferMs = 2 * BUFFER_MINUTES * 60 * 1000;
+        const totalMs = durationMs + bufferMs;
+        const hours = totalMs / (1000 * 60 * 60);
         roomStats[b.room_id].bookedHours += hours;
         roomStats[b.room_id].bookingCount += 1;
       }
     });
 
-    return {
-      label,
-      rooms: Object.entries(roomStats)
-        .map(([id, stats]) => ({
-          id,
-          ...stats,
-          occupancyPct: stats.totalHours > 0 ? Math.round((stats.bookedHours / stats.totalHours) * 100) : 0,
-        }))
-        .sort((a, b) => b.occupancyPct - a.occupancyPct),
-    };
-  }, [rooms, bookings, filterDateFrom, filterDateTo]);
+    const roomList = Object.entries(roomStats)
+      .map(([id, stats]) => ({
+        id,
+        ...stats,
+        // Salles privatisées = 100%
+        occupancyPct: stats.isPrivatised
+          ? 100
+          : stats.totalHours > 0
+          ? Math.min(100, Math.round((stats.bookedHours / stats.totalHours) * 100))
+          : 0,
+      }))
+      // Tri par nom naturel (Cabinet N°1, N°2, N°3...)
+      .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
+
+    // Moyenne globale
+    const globalAvg = roomList.length > 0
+      ? Math.round(roomList.reduce((sum, r) => sum + r.occupancyPct, 0) / roomList.length)
+      : 0;
+
+    return { label, rooms: roomList, globalAvg };
+  }, [allRooms, bookings, filterDateFrom, filterDateTo]);
 
   const handlePractitionerChange = (practitionerId: string) => {
     setNewBooking((b) => ({ ...b, practitioner_id: practitionerId, activity_id: "" }));
