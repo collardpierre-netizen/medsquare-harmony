@@ -345,6 +345,20 @@ const ActiviteDetail = () => {
               )}
             </div>
 
+            {/* Période */}
+            {(activity.start_date || activity.end_date) && (
+              <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4 text-primary shrink-0" />
+                <span>
+                  {activity.start_date && activity.end_date
+                    ? `Du ${format(new Date(activity.start_date), "d MMMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMMM yyyy", { locale: fr })}`
+                    : activity.start_date
+                      ? `À partir du ${format(new Date(activity.start_date), "d MMMM yyyy", { locale: fr })}`
+                      : `Jusqu'au ${format(new Date(activity.end_date!), "d MMMM yyyy", { locale: fr })}`}
+                </span>
+              </div>
+            )}
+
             {/* Recurring schedule */}
             {(() => {
               let slots: { day: string; start: string; end: string }[] = [];
