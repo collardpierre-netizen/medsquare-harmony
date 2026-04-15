@@ -132,12 +132,14 @@ const AdminBookings = () => {
   };
 
   const fetchResources = async () => {
-    const [{ data: profs }, { data: roomsData }] = await Promise.all([
+    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
+      supabase.from("rooms").select("id, name, is_available").order("name"),
     ]);
     setPractitioners(profs || []);
     setRooms(roomsData || []);
+    setAllRooms(allRoomsData || []);
     if (roomsData && roomsData.length > 0 && !planningRoom) {
       setPlanningRoom(roomsData[0].id);
     }
