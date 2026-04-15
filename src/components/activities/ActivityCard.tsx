@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Users, User } from "lucide-react";
+import { Clock, Users, User, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -15,6 +15,8 @@ interface ActivityCardProps {
     photos?: string[] | null;
     is_free?: boolean;
     price?: number | null;
+    start_date?: string | null;
+    end_date?: string | null;
     profiles?: {
       id?: string;
       first_name: string;
@@ -115,6 +117,19 @@ const ActivityCard = ({ activity, nextSession }: ActivityCardProps) => {
             {activity.is_free !== false ? "Gratuit" : activity.price ? `${activity.price} €` : "Payant"}
           </span>
         </div>
+
+        {(activity.start_date || activity.end_date) && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarIcon className="h-3 w-3 text-primary shrink-0" />
+            <span>
+              {activity.start_date && activity.end_date
+                ? `Du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })} au ${format(new Date(activity.end_date), "d MMM yyyy", { locale: fr })}`
+                : activity.start_date
+                  ? `À partir du ${format(new Date(activity.start_date), "d MMM yyyy", { locale: fr })}`
+                  : `Jusqu'au ${format(new Date(activity.end_date!), "d MMM yyyy", { locale: fr })}`}
+            </span>
+          </div>
+        )}
 
         {nextSession && (
           <p className="text-xs text-primary font-medium">
