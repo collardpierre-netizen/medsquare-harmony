@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock } from "lucide-react";
+import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -63,6 +63,8 @@ const AdminRooms = () => {
   const [defaultPricing, setDefaultPricing] = useState<PricingItem[]>([]);
   const [defaultCreditsInfo, setDefaultCreditsInfo] = useState("");
   const [defaultsForm, setDefaultsForm] = useState<{ pricing: PricingItem[]; credits_info: string }>({ pricing: [], credits_info: "" });
+  const [conflictBookings, setConflictBookings] = useState<any[]>([]);
+  const [loadingConflicts, setLoadingConflicts] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
