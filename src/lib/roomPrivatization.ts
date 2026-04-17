@@ -22,6 +22,8 @@ export interface RoomPrivatizationFields {
   is_available: boolean;
   privatized_from?: string | null;
   privatized_until?: string | null;
+  /** Optional — when set on a privatized/scheduled room, only this practitioner can book it during the period. */
+  assigned_practitioner_id?: string | null;
 }
 
 const todayISO = () => {
