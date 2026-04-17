@@ -21,6 +21,7 @@ import {
   MessageCircle,
   Receipt,
   Bell,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { label: "Guide praticien", href: "/dashboard/guide", icon: BookOpen },
   { label: "Praticiens", href: "/dashboard/admin/practitioners", icon: Users, adminOnly: true },
   { label: "Salles", href: "/dashboard/admin/rooms", icon: DoorOpen, adminOnly: true },
+  { label: "Privatisations", href: "/dashboard/admin/privatizations", icon: Lock, adminOnly: true },
   { label: "Toutes les réservations", href: "/dashboard/admin/bookings", icon: CalendarCheck, adminOnly: true },
   { label: "Inscriptions activités", href: "/dashboard/admin/registrations", icon: ClipboardList, adminOnly: true },
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
