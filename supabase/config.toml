@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.notify-admin-center]
 verify_jwt = false
+
+[functions.notify-upcoming-privatization]
+verify_jwt = false
