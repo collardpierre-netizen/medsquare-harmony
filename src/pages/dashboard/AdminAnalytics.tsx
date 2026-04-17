@@ -186,8 +186,66 @@ const AdminAnalytics = () => {
     },
   });
 
-  // Compute chart data
-  // Brussels TZ offset: CET=+1, CEST=+2
+  // ─── Monthly revenue: independent of date filter, last 12 months ───
+  const monthlyRange = useMemo(() => {
+    const end = addDays(endOfMonth(today), 1); // exclusive
+    const start = startOfMonth(subMonths(today, 11));
+    return { start: start.toISOString(), end: end.toISOString(), startDate: start, endDate: end };
+  }, [today.getMonth(), today.getFullYear()]);
+
+  const { data: monthlyBookings } = useQuery({
+    queryKey: ["admin-analytics-monthly-revenue", monthlyRange.start, monthlyRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("id, room_id, start_time, end_time, status")
+        .gte("start_time", monthlyRange.start)
+        .lt("start_time", monthlyRange.end)
+        .neq("status", "cancelled");
+      return data || [];
+    },
+    enabled: !!rooms,
+  });
+
+  const monthlyRevenueData = useMemo(() => {
+    if (!rooms || !monthlyBookings) return [];
+    const months = eachMonthOfInterval({ start: monthlyRange.startDate, end: subMonths(monthlyRange.endDate, 1) });
+    return months.map((m) => {
+      const start = startOfMonth(m);
+      const end = addDays(endOfMonth(m), 1);
+      let revenue = 0;
+      const monthBookings = monthlyBookings.filter(
+        (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
+      );
+      for (const b of monthBookings) {
+        const room = rooms.find((r) => r.id === b.room_id);
+        const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+        revenue += (room?.hourly_rate || 0) * hours;
+      }
+      return {
+        month: format(start, "MMM yyyy", { locale: fr }),
+        monthShort: format(start, "MMM", { locale: fr }),
+        bookings: monthBookings.length,
+        revenue: Math.round(revenue),
+        date: start,
+      };
+    });
+  }, [rooms, monthlyBookings, monthlyRange]);
+
+  const monthlyTotals = useMemo(() => {
+    const total12m = monthlyRevenueData.reduce((s, r) => s + r.revenue, 0);
+    const avg = monthlyRevenueData.length > 0 ? Math.round(total12m / monthlyRevenueData.length) : 0;
+    const currentYear = today.getFullYear();
+    const ytd = monthlyRevenueData
+      .filter((r) => r.date.getFullYear() === currentYear)
+      .reduce((s, r) => s + r.revenue, 0);
+    const last = monthlyRevenueData[monthlyRevenueData.length - 1];
+    const prev = monthlyRevenueData[monthlyRevenueData.length - 2];
+    const monthDelta = last && prev ? last.revenue - prev.revenue : 0;
+    const monthDeltaPct = last && prev && prev.revenue > 0 ? Math.round((monthDelta / prev.revenue) * 100) : 0;
+    return { total12m, avg, ytd, monthDelta, monthDeltaPct };
+  }, [monthlyRevenueData, today]);
+
   const getBrusselsOffset = (date: Date): number => {
     const month = date.getUTCMonth();
     const day = date.getUTCDate();
