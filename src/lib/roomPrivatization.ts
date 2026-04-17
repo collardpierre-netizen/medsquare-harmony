@@ -1,11 +1,22 @@
 /**
- * Helpers for room privatization (immediate or scheduled).
+ * Helpers for room status (available / unavailable / privatized).
  *
- * Logic:
- * - `is_available = false` → permanently privatized (immediate, no end date)
- * - `is_available = true` + `privatized_from` set → scheduled privatization
- *   - active when today >= privatized_from AND (privatized_until is null OR today <= privatized_until)
+ * Three distinct statuses (NEVER conflate them):
+ *  1. "available"    → `is_available = true`, no privatization → bookable
+ *  2. "unavailable"  → `is_available = false`, no dates       → permanently OUT of the rental park
+ *                       (e.g. room demolished, under renovation, removed from offer)
+ *  3. "privatized"   → `is_available = true` + `privatized_from` set, today within range
+ *                       → reserved for a specific tenant on a date range
+ *  4. "scheduled"    → `is_available = true` + `privatized_from` set, today before range
+ *                       → privatization upcoming, still bookable until then
+ *
+ * Visual contract:
+ *  - "unavailable" uses a NEUTRAL/MUTED grey badge (it's not a privatization, the room just isn't part of the offer)
+ *  - "privatized"  uses the DESTRUCTIVE/RED badge (active reservation block)
+ *  - "scheduled"   uses a WARNING/AMBER badge (upcoming, informational)
  */
+
+export type RoomStatus = "available" | "unavailable" | "privatized" | "scheduled";
 
 export interface RoomPrivatizationFields {
   is_available: boolean;
