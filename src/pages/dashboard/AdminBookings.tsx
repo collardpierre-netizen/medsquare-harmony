@@ -1023,12 +1023,36 @@ const AdminBookings = () => {
           /* ─── Occupancy View ─── */
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-base">
-                Taux d'occupation par salle — {occupancyData.label}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Horaires : 08h–22h (lun–ven), 09h–21h (sam–dim) · 15 min de battement avant/après chaque réservation
-              </p>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <CardTitle className="font-display text-base">
+                    Taux d'occupation par salle — {occupancyData.label}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Horaires : 08h–22h (lun–ven), 09h–21h (sam–dim) · 15 min de battement avant/après chaque réservation
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportOccupancyCSV}
+                    disabled={occupancyData.rooms.length === 0}
+                    className="gap-1.5"
+                  >
+                    <Download className="h-3.5 w-3.5" /> CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportOccupancyPDF}
+                    disabled={occupancyData.rooms.length === 0}
+                    className="gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> PDF
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {occupancyData.rooms.length === 0 ? (
