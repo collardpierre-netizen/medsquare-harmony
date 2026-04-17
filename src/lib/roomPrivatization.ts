@@ -42,6 +42,21 @@ export const isPrivatizationScheduled = (room: RoomPrivatizationFields): boolean
   return todayISO() < room.privatized_from;
 };
 
+/** True if the room is privatized on a specific given day (immediate or scheduled). */
+export const isRoomPrivatizedOnDay = (room: RoomPrivatizationFields, day: Date): boolean => {
+  if (!room.is_available) return true;
+  if (!room.privatized_from) return false;
+  const dayISO = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Brussels",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(day);
+  if (dayISO < room.privatized_from) return false;
+  if (room.privatized_until && dayISO > room.privatized_until) return false;
+  return true;
+};
+
 /** Format a date string (YYYY-MM-DD) as DD/MM/YYYY (Brussels). */
 export const formatPrivatizationDate = (iso: string): string => {
   const [y, m, d] = iso.split("-");
