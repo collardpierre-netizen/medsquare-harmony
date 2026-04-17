@@ -276,16 +276,22 @@ const EspaceDetail = () => {
             className="hidden lg:block"
           >
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sticky top-28">
-              {isPrivatized ? (
+              {isBlocked ? (
                 <>
                   <div className="flex items-center gap-2 mb-3">
-                    <Lock className="h-5 w-5 text-destructive" />
+                    {isUnavailable ? (
+                      <Ban className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Lock className="h-5 w-5 text-destructive" />
+                    )}
                     <h3 className="font-display text-lg font-semibold">
-                      Espace privatisé
+                      {isUnavailable ? "Espace indisponible" : "Espace privatisé"}
                     </h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-5">
-                    Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location.
+                    {isUnavailable
+                      ? "Cet espace n'est pas proposé à la location actuellement."
+                      : "Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location."}
                   </p>
                   <Link to="/contact">
                     <Button variant="outline" className="w-full" size="lg">
@@ -343,7 +349,11 @@ const EspaceDetail = () => {
           <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
             <div>
               <p className="font-display font-semibold text-sm">{room.name}</p>
-              {isPrivatized ? (
+              {isUnavailable ? (
+                <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                  <Ban className="h-3 w-3" /> Indisponible
+                </p>
+              ) : isPrivatized ? (
                 <p className="text-xs text-destructive font-medium flex items-center gap-1">
                   <Lock className="h-3 w-3" /> Privatisé
                 </p>
@@ -354,8 +364,8 @@ const EspaceDetail = () => {
               ) : null}
             </div>
             <Link to="/contact">
-              <Button size="sm" variant={isPrivatized ? "outline" : "default"}>
-                {isPrivatized ? "Nous contacter" : "Réserver"}
+              <Button size="sm" variant={isBlocked ? "outline" : "default"}>
+                {isBlocked ? "Nous contacter" : "Réserver"}
               </Button>
             </Link>
           </div>
