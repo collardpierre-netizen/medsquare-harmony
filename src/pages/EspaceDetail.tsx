@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock, CalendarClock } from "lucide-react";
+import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock, Ban } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
