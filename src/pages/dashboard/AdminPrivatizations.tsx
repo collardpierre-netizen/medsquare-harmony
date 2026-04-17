@@ -80,6 +80,8 @@ const AdminPrivatizations = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+
+    // 1. Scheduled privatizations (with dates, is_available=true)
     const { data: rooms, error } = await supabase
       .from("rooms")
       .select("id, name, floor, is_available, privatized_from, privatized_until")
@@ -96,6 +98,8 @@ const AdminPrivatizations = () => {
     const enriched: PrivatizationRow[] = [];
 
     for (const r of (rooms || []) as Room[]) {
+      // Skip rooms that are flagged unavailable — they're shown in the dedicated section below
+      if (!r.is_available) continue;
       // Skip past privatizations (ended before today)
       if (r.privatized_until && new Date(r.privatized_until) < t) continue;
       // Skip rooms with neither dates (shouldn't happen with our filter)
@@ -128,6 +132,15 @@ const AdminPrivatizations = () => {
     }
 
     setRows(enriched);
+
+    // 2. Unavailable rooms (permanent — is_available=false)
+    const { data: unavailable } = await supabase
+      .from("rooms")
+      .select("id, name, floor, is_available, privatized_from, privatized_until")
+      .eq("is_available", false)
+      .order("name", { ascending: true });
+
+    setUnavailableRooms((unavailable || []) as Room[]);
     setLoading(false);
   }, []);
 
