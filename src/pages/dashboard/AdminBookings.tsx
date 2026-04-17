@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay } from "date-fns";
+import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
