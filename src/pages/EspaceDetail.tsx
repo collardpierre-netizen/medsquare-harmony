@@ -125,7 +125,7 @@ const EspaceDetail = () => {
   const isUnavailable = isRoomUnavailable(room);
   const isPrivatized = isRoomCurrentlyPrivatized(room) || bookings.some((b) => b.notes?.includes("[Privatisé]"));
   const isBlocked = isUnavailable || isPrivatized;
-  const status = getRoomStatus(room);
+  
 
   return (
     <Layout>
