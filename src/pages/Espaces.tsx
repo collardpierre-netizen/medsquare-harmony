@@ -100,9 +100,7 @@ const Espaces = () => {
                   ? room.photos[0]
                   : DEFAULT_IMAGE;
 
-                const currentlyPrivatized = isRoomCurrentlyPrivatized(room);
-                const scheduled = isPrivatizationScheduled(room);
-                const privLabel = getPrivatizationLabel(room);
+                const blocked = isRoomBlockedNow(room);
 
                 return (
                   <motion.div
@@ -126,19 +124,7 @@ const Espaces = () => {
                     <div className={index % 2 === 1 ? "lg:order-1" : ""}>
                       <h3 className="font-display text-2xl font-bold mb-3 flex items-center flex-wrap gap-2">
                         <span>{room.name}</span>
-                        {privLabel && (
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs gap-1 align-middle ${
-                              scheduled
-                                ? "bg-warning/10 text-warning border-warning/20"
-                                : "bg-destructive/10 text-destructive border-destructive/20"
-                            }`}
-                          >
-                            {scheduled ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                            {privLabel}
-                          </Badge>
-                        )}
+                        <RoomStatusBadge room={room} />
                       </h3>
                       <p className="text-muted-foreground leading-relaxed mb-4">
                         {room.description || "Un espace de qualité pour vos consultations."}
