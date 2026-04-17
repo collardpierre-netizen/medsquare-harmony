@@ -3,8 +3,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery } from "@tanstack/react-query";
 import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend, differenceInDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, endOfDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -833,7 +834,26 @@ const AdminAnalytics = () => {
               </div>
               <div className="flex items-center gap-3 text-xs flex-wrap">
                 <div className="text-right">
-                  <div className="text-muted-foreground">Total 12 mois</div>
+                  <div className="text-muted-foreground flex items-center justify-end gap-1">
+                    Total 12 mois
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" aria-label="Détails du calcul" className="inline-flex">
+                            <Info className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-xs">
+                          <p className="font-semibold mb-1">Méthode de calcul</p>
+                          <p className="font-mono text-[11px] mb-2">CA = tarif horaire salle × durée réservation</p>
+                          <p className="text-muted-foreground">
+                            Somme des CA de toutes les réservations <strong>confirmées</strong> sur les 12 derniers mois glissants.
+                            Les réservations en attente ou annulées sont exclues.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="font-bold text-base text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</div>
                   {monthlyTotals.yoyPct !== null && (
                     <div className={`text-[10px] font-medium ${monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
