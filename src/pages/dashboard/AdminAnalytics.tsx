@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
-import { isRoomCurrentlyPrivatized, isRoomPrivatizedOnDay } from "@/lib/roomPrivatization";
+import { isRoomCurrentlyPrivatized, isRoomBlockedOnDay, isRoomUnavailable } from "@/lib/roomPrivatization";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
