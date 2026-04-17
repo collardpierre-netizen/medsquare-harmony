@@ -297,6 +297,7 @@ const AdminRooms = () => {
       min_monthly_hours: form.min_monthly_hours ? parseFloat(form.min_monthly_hours) : null,
       privatized_from: form.privatized_from || null,
       privatized_until: form.privatized_until || null,
+      assigned_practitioner_id: form.assigned_practitioner_id || null,
     };
 
     // Validation: end date must be >= start date
