@@ -99,6 +99,10 @@ const Espaces = () => {
                   ? room.photos[0]
                   : DEFAULT_IMAGE;
 
+                const currentlyPrivatized = isRoomCurrentlyPrivatized(room);
+                const scheduled = isPrivatizationScheduled(room);
+                const privLabel = getPrivatizationLabel(room);
+
                 return (
                   <motion.div
                     key={room.id}
@@ -119,12 +123,19 @@ const Espaces = () => {
                       </div>
                     </div>
                     <div className={index % 2 === 1 ? "lg:order-1" : ""}>
-                      <h3 className="font-display text-2xl font-bold mb-3">
-                        {room.name}
-                        {!room.is_available && (
-                          <Badge variant="secondary" className="ml-3 bg-destructive/10 text-destructive border-destructive/20 text-xs gap-1 align-middle">
-                            <Lock className="h-3 w-3" />
-                            Privatisé
+                      <h3 className="font-display text-2xl font-bold mb-3 flex items-center flex-wrap gap-2">
+                        <span>{room.name}</span>
+                        {privLabel && (
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs gap-1 align-middle ${
+                              scheduled
+                                ? "bg-warning/10 text-warning border-warning/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            }`}
+                          >
+                            {scheduled ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                            {privLabel}
                           </Badge>
                         )}
                       </h3>
@@ -163,7 +174,7 @@ const Espaces = () => {
                         <Link to={`/espaces/${room.id}`}>
                           <Button>Voir les détails</Button>
                         </Link>
-                        {room.is_available ? (
+                        {!currentlyPrivatized ? (
                           <Button
                             variant="outline"
                             onClick={() => setPricingRoom(room)}
