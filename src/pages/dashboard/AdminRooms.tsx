@@ -521,15 +521,63 @@ const AdminRooms = () => {
 
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
-                <Label className="text-sm">Disponible à la réservation</Label>
+                <Label className="text-sm">Privatisé immédiatement</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Désactivez pour rendre ce cabinet temporairement indisponible.
+                  Désactivez pour privatiser ce cabinet de façon permanente (jusqu'à réactivation manuelle).
                 </p>
               </div>
               <Switch
                 checked={form.is_available}
                 onCheckedChange={(checked) => setForm({ ...form, is_available: checked })}
               />
+            </div>
+
+            {/* Scheduled privatization */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-medium">Privatisation programmée (optionnel)</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Programmez la privatisation du cabinet à partir d'une date. Laissez la date de fin vide pour une privatisation indéfinie.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">À partir du</Label>
+                  <Input
+                    type="date"
+                    value={form.privatized_from}
+                    onChange={(e) => setForm({ ...form, privatized_from: e.target.value })}
+                    className="mt-1"
+                    disabled={!form.is_available}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Jusqu'au (optionnel)</Label>
+                  <Input
+                    type="date"
+                    value={form.privatized_until}
+                    onChange={(e) => setForm({ ...form, privatized_until: e.target.value })}
+                    className="mt-1"
+                    min={form.privatized_from || undefined}
+                    disabled={!form.is_available || !form.privatized_from}
+                  />
+                </div>
+              </div>
+              {(form.privatized_from || form.privatized_until) && (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, privatized_from: "", privatized_until: "" })}
+                  className="text-xs text-muted-foreground hover:text-destructive underline"
+                >
+                  Effacer les dates programmées
+                </button>
+              )}
+              {!form.is_available && (form.privatized_from || form.privatized_until) && (
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  ⚠ Le cabinet est privatisé immédiatement, la programmation est ignorée.
+                </p>
+              )}
             </div>
           </div>
 
