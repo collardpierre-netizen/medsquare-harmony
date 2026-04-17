@@ -120,17 +120,46 @@ const AdminBookings = () => {
   ];
 
   const fetchBookings = async () => {
-    let query = supabase
-      .from("bookings")
-      .select("*, profiles(first_name, last_name), rooms(name), activities(title)")
-      .order("start_time", { ascending: false });
+    setLoading(true);
 
-    if (filter !== "all") {
-      query = query.eq("status", filter);
+    const pageSize = 1000;
+    const allBookings: any[] = [];
+    let from = 0;
+
+    while (true) {
+      let query = supabase
+        .from("bookings")
+        .select("*, profiles(first_name, last_name), rooms(name), activities(title)")
+        .order("start_time", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (filter !== "all") {
+        query = query.eq("status", filter);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        toast({
+          title: "Erreur de chargement",
+          description: error.message,
+          variant: "destructive",
+        });
+        break;
+      }
+
+      const batch = data || [];
+      allBookings.push(...batch);
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      from += pageSize;
     }
 
-    const { data } = await query;
-    setBookings(data || []);
+    setBookings(allBookings);
     setLoading(false);
   };
 
