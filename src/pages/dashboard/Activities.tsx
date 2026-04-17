@@ -42,6 +42,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import ImageUpload from "@/components/dashboard/ImageUpload";
+import FeatureHighlightBanner from "@/components/dashboard/FeatureHighlightBanner";
+import { UserPlus } from "lucide-react";
 
 const CATEGORIES = [
   { value: "yoga", label: "Yoga" },
