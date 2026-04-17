@@ -612,6 +612,7 @@ const AdminAnalytics = () => {
         totalHours,
         occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
         isPrivatized: isRoomCurrentlyPrivatized(room),
+        isUnavailable: isRoomUnavailable(room),
       };
     });
 
