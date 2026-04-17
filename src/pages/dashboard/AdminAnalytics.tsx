@@ -820,6 +820,16 @@ const AdminAnalytics = () => {
                 <CardDescription className="text-xs">
                   Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1
                 </CardDescription>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExportMonthlyExcel}
+                  disabled={isExportingExcel || !monthlyRevenueData.length}
+                  className="mt-2 h-7 text-xs"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                  {isExportingExcel ? "Génération…" : "Export Excel (par salle)"}
+                </Button>
               </div>
               <div className="flex items-center gap-3 text-xs flex-wrap">
                 <div className="text-right">
