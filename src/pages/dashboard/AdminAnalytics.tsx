@@ -28,6 +28,8 @@ const AdminAnalytics = () => {
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
 
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
   const handleExportPDF = useCallback(async () => {
     if (!dashboardRef.current) return;
     setIsExporting(true);
