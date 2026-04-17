@@ -469,7 +469,7 @@ const AdminAnalytics = () => {
 
         for (const room of filteredRooms) {
           // Privatized rooms count as 100% occupied (immediate or scheduled-active for this day)
-          if (isRoomPrivatizedOnDay(room, day)) {
+          if (isRoomBlockedOnDay(room, day)) {
             occupiedSlots += daySlots;
             continue;
           }
@@ -537,7 +537,7 @@ const AdminAnalytics = () => {
           const daySlots = oE - oS;
           total += daySlots;
           // Privatized rooms count as 100% occupied
-          if (isRoomPrivatizedOnDay(room, day)) {
+          if (isRoomBlockedOnDay(room, day)) {
             occupied += daySlots;
             continue;
           }
@@ -586,7 +586,7 @@ const AdminAnalytics = () => {
           const daySlots = oE - oS;
           totalHours += daySlots;
           // Privatized rooms count as 100% occupied
-          if (isRoomPrivatizedOnDay(room, day)) {
+          if (isRoomBlockedOnDay(room, day)) {
             bookedHours += daySlots;
             continue;
           }
