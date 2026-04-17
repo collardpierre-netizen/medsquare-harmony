@@ -296,7 +296,38 @@ const EditBookingDialog = ({
           {/* Date */}
           <div className="space-y-2">
             <Label>Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="flex-1"
+                placeholder="JJ/MM/AAAA"
+              />
+              <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" type="button" aria-label="Ouvrir le calendrier">
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0" align="end" sideOffset={4}>
+                  <div className="w-[320px]">
+                    <Calendar
+                      mode="single"
+                      selected={date ? parseISO(date) : undefined}
+                      onSelect={(d) => {
+                        if (d) setDate(format(d, "yyyy-MM-dd"));
+                        setDateOpen(false);
+                      }}
+                      defaultMonth={date ? parseISO(date) : new Date()}
+                      initialFocus
+                      locale={fr}
+                      className="p-3 pointer-events-auto mx-auto"
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Times */}
