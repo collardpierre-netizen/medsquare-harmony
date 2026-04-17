@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import RoomPhotoGallery from "@/components/rooms/RoomPhotoGallery";
 import RoomAvailability from "@/components/rooms/RoomAvailability";
-import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
+import { isRoomCurrentlyPrivatized, isRoomUnavailable, isRoomBlockedNow, getRoomStatus } from "@/lib/roomPrivatization";
+import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&h=600&fit=crop";
