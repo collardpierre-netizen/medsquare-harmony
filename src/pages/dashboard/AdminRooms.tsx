@@ -288,6 +288,17 @@ const AdminRooms = () => {
       return;
     }
 
+    const previousFrom = editingRoom?.privatized_from || null;
+    const previousUntil = editingRoom?.privatized_until || null;
+    const newFrom = payload.privatized_from;
+    const newUntil = payload.privatized_until;
+    const privatizationChanged =
+      payload.is_available &&
+      newFrom &&
+      (previousFrom !== newFrom || previousUntil !== newUntil);
+
+    let savedRoomId: string | null = editingRoom?.id || null;
+
     if (editingRoom) {
       const { error } = await supabase.from("rooms").update(payload).eq("id", editingRoom.id);
       if (error) {
@@ -296,12 +307,29 @@ const AdminRooms = () => {
       }
       toast({ title: "Salle modifiée ✅" });
     } else {
-      const { error } = await supabase.from("rooms").insert(payload);
+      const { data, error } = await supabase.from("rooms").insert(payload).select("id").single();
       if (error) {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
         return;
       }
+      savedRoomId = data?.id || null;
       toast({ title: "Salle créée ✅" });
+    }
+
+    // Notify practitioners with conflicting bookings (in-app + email)
+    if (privatizationChanged && savedRoomId) {
+      const { data: notifResult, error: notifErr } = await supabase.functions.invoke(
+        "notify-privatization-immediate",
+        { body: { room_id: savedRoomId } }
+      );
+      if (notifErr) {
+        console.error("notify-privatization-immediate failed", notifErr);
+      } else if (notifResult?.notified > 0) {
+        toast({
+          title: "Praticiens notifiés 📧",
+          description: `${notifResult.notified} praticien${notifResult.notified > 1 ? "s" : ""} concerné${notifResult.notified > 1 ? "s" : ""} prévenu${notifResult.notified > 1 ? "s" : ""} par notification et email.`,
+        });
+      }
     }
 
     setShowDialog(false);
