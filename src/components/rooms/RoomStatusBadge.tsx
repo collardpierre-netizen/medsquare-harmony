@@ -39,7 +39,7 @@ const RoomStatusBadge = ({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-emerald-500/40 text-emerald-700 dark:text-emerald-400",
+          "gap-1 border-success/40 text-success",
           compact && "text-[10px] py-0 px-1.5",
           className
         )}
@@ -70,7 +70,7 @@ const RoomStatusBadge = ({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+          "gap-1 border-warning/50 bg-warning/10 text-warning",
           compact && "text-[10px] py-0 px-1.5",
           className
         )}
