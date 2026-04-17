@@ -187,20 +187,29 @@ const AdminAnalytics = () => {
     },
   });
 
-  // ─── Monthly revenue: independent of date filter, last 12 months ───
+  // ─── Monthly revenue: independent of date filter, last 24 months (N + N-1) ───
   const monthlyRange = useMemo(() => {
     const end = addDays(endOfMonth(today), 1); // exclusive
     const start = startOfMonth(subMonths(today, 11));
-    return { start: start.toISOString(), end: end.toISOString(), startDate: start, endDate: end };
+    // We also fetch the previous 12 months (N-1) for year-over-year comparison
+    const startNMinus1 = startOfMonth(subMonths(today, 23));
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      startDate: start,
+      endDate: end,
+      startNMinus1: startNMinus1.toISOString(),
+      startNMinus1Date: startNMinus1,
+    };
   }, [today.getMonth(), today.getFullYear()]);
 
   const { data: monthlyBookings } = useQuery({
-    queryKey: ["admin-analytics-monthly-revenue", monthlyRange.start, monthlyRange.end],
+    queryKey: ["admin-analytics-monthly-revenue", monthlyRange.startNMinus1, monthlyRange.end],
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
         .select("id, room_id, start_time, end_time, status")
-        .gte("start_time", monthlyRange.start)
+        .gte("start_time", monthlyRange.startNMinus1)
         .lt("start_time", monthlyRange.end)
         .neq("status", "cancelled");
       return data || [];
@@ -211,23 +220,43 @@ const AdminAnalytics = () => {
   const monthlyRevenueData = useMemo(() => {
     if (!rooms || !monthlyBookings) return [];
     const months = eachMonthOfInterval({ start: monthlyRange.startDate, end: subMonths(monthlyRange.endDate, 1) });
-    return months.map((m) => {
-      const start = startOfMonth(m);
-      const end = addDays(endOfMonth(m), 1);
+
+    const computeRevenueForRange = (start: Date, end: Date) => {
       let revenue = 0;
-      const monthBookings = monthlyBookings.filter(
-        (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
-      );
-      for (const b of monthBookings) {
+      let count = 0;
+      for (const b of monthlyBookings) {
+        const ts = new Date(b.start_time);
+        if (ts < start || ts >= end) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
+        count += 1;
       }
+      return { revenue: Math.round(revenue), count };
+    };
+
+    return months.map((m) => {
+      const start = startOfMonth(m);
+      const end = addDays(endOfMonth(m), 1);
+      const current = computeRevenueForRange(start, end);
+
+      // Same month, previous year
+      const startPrevYear = startOfMonth(subMonths(start, 12));
+      const endPrevYear = addDays(endOfMonth(startPrevYear), 1);
+      const previous = computeRevenueForRange(startPrevYear, endPrevYear);
+
+      const yoyDelta = current.revenue - previous.revenue;
+      const yoyPct = previous.revenue > 0 ? Math.round((yoyDelta / previous.revenue) * 100) : null;
+
       return {
         month: format(start, "MMM yyyy", { locale: fr }),
         monthShort: format(start, "MMM", { locale: fr }),
-        bookings: monthBookings.length,
-        revenue: Math.round(revenue),
+        bookings: current.count,
+        revenue: current.revenue,
+        revenuePrevYear: previous.revenue,
+        bookingsPrevYear: previous.count,
+        yoyDelta,
+        yoyPct,
         date: start,
       };
     });
@@ -235,16 +264,27 @@ const AdminAnalytics = () => {
 
   const monthlyTotals = useMemo(() => {
     const total12m = monthlyRevenueData.reduce((s, r) => s + r.revenue, 0);
+    const totalPrevYear = monthlyRevenueData.reduce((s, r) => s + r.revenuePrevYear, 0);
     const avg = monthlyRevenueData.length > 0 ? Math.round(total12m / monthlyRevenueData.length) : 0;
     const currentYear = today.getFullYear();
     const ytd = monthlyRevenueData
       .filter((r) => r.date.getFullYear() === currentYear)
       .reduce((s, r) => s + r.revenue, 0);
+    // YTD N-1: same number of months elapsed in previous year
+    const ytdPrev = monthlyRevenueData
+      .filter((r) => r.date.getFullYear() === currentYear)
+      .reduce((s, r) => s + r.revenuePrevYear, 0);
+    const ytdYoyDelta = ytd - ytdPrev;
+    const ytdYoyPct = ytdPrev > 0 ? Math.round((ytdYoyDelta / ytdPrev) * 100) : null;
+
+    const yoyDelta = total12m - totalPrevYear;
+    const yoyPct = totalPrevYear > 0 ? Math.round((yoyDelta / totalPrevYear) * 100) : null;
+
     const last = monthlyRevenueData[monthlyRevenueData.length - 1];
     const prev = monthlyRevenueData[monthlyRevenueData.length - 2];
     const monthDelta = last && prev ? last.revenue - prev.revenue : 0;
     const monthDeltaPct = last && prev && prev.revenue > 0 ? Math.round((monthDelta / prev.revenue) * 100) : 0;
-    return { total12m, avg, ytd, monthDelta, monthDeltaPct };
+    return { total12m, totalPrevYear, avg, ytd, ytdPrev, ytdYoyDelta, ytdYoyPct, yoyDelta, yoyPct, monthDelta, monthDeltaPct };
   }, [monthlyRevenueData, today]);
 
   const getBrusselsOffset = (date: Date): number => {
@@ -490,7 +530,8 @@ const AdminAnalytics = () => {
     : [];
 
   const revenueChartConfig = {
-    revenue: { label: "Revenus (€)", color: "hsl(var(--chart-1))" },
+    revenue: { label: "CA année N (€)", color: "hsl(var(--chart-1))" },
+    revenuePrevYear: { label: "CA année N-1 (€)", color: "hsl(var(--chart-2))" },
   };
   const occupancyChartConfig = {
     occupancy: { label: "Occupation (%)", color: "hsl(var(--chart-2))" },
@@ -634,13 +675,18 @@ const AdminAnalytics = () => {
                   Chiffre d'affaires — 12 derniers mois
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Vue indépendante du filtre de dates · basée sur le tarif horaire × heures réservées
+                  Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-3 text-xs flex-wrap">
                 <div className="text-right">
                   <div className="text-muted-foreground">Total 12 mois</div>
                   <div className="font-bold text-base text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</div>
+                  {monthlyTotals.yoyPct !== null && (
+                    <div className={`text-[10px] font-medium ${monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {monthlyTotals.yoyDelta >= 0 ? "▲" : "▼"} {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyPct}% vs N-1
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground">Moyenne / mois</div>
@@ -649,18 +695,25 @@ const AdminAnalytics = () => {
                 <div className="text-right">
                   <div className="text-muted-foreground">YTD ({today.getFullYear()})</div>
                   <div className="font-bold text-base text-primary">{monthlyTotals.ytd.toLocaleString("fr-BE")} €</div>
+                  {monthlyTotals.ytdYoyPct !== null && (
+                    <div className={`text-[10px] font-medium ${monthlyTotals.ytdYoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {monthlyTotals.ytdYoyDelta >= 0 ? "▲" : "▼"} {monthlyTotals.ytdYoyDelta >= 0 ? "+" : ""}{monthlyTotals.ytdYoyPct}% vs N-1
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ChartContainer config={revenueChartConfig} className="h-[220px] w-full">
+            <ChartContainer config={revenueChartConfig} className="h-[240px] w-full">
               <BarChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                 <XAxis dataKey="monthShort" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                 <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${(v as number).toLocaleString("fr-BE")} €`} />} />
-                <Bar dataKey="revenue" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="revenuePrevYear" name="N-1" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} opacity={0.55} />
+                <Bar dataKey="revenue" name="N" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
             <Table>
@@ -668,8 +721,10 @@ const AdminAnalytics = () => {
                 <TableRow>
                   <TableHead>Mois</TableHead>
                   <TableHead className="text-right">Réservations</TableHead>
-                  <TableHead className="text-right">CA</TableHead>
-                  <TableHead className="text-right">Évolution</TableHead>
+                  <TableHead className="text-right">CA (N)</TableHead>
+                  <TableHead className="text-right">CA (N-1)</TableHead>
+                  <TableHead className="text-right">YoY</TableHead>
+                  <TableHead className="text-right">Évolution m-1</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -682,6 +737,21 @@ const AdminAnalytics = () => {
                       <TableCell className="font-medium capitalize">{row.month}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.bookings}</TableCell>
                       <TableCell className="text-right font-semibold">{row.revenue.toLocaleString("fr-BE")} €</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {row.revenuePrevYear > 0 ? `${row.revenuePrevYear.toLocaleString("fr-BE")} €` : <span className="text-xs">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.yoyPct !== null ? (
+                          <span className={row.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}>
+                            {row.yoyDelta >= 0 ? "+" : ""}{row.yoyDelta.toLocaleString("fr-BE")} €
+                            <span className="text-[10px] ml-1 opacity-75">
+                              ({row.yoyDelta >= 0 ? "+" : ""}{row.yoyPct}%)
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         {prev ? (
                           <span className={delta >= 0 ? "text-emerald-600" : "text-destructive"}>
@@ -703,6 +773,15 @@ const AdminAnalytics = () => {
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right">{monthlyRevenueData.reduce((s, r) => s + r.bookings, 0)}</TableCell>
                   <TableCell className="text-right text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{monthlyTotals.totalPrevYear.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right">
+                    {monthlyTotals.yoyPct !== null ? (
+                      <span className={monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}>
+                        {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyDelta.toLocaleString("fr-BE")} €
+                        <span className="text-[10px] ml-1 opacity-75">({monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyPct}%)</span>
+                      </span>
+                    ) : <span className="text-muted-foreground text-xs">—</span>}
+                  </TableCell>
                   <TableCell className="text-right" />
                 </TableRow>
               </TableBody>
