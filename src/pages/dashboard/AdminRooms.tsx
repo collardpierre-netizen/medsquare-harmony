@@ -107,6 +107,38 @@ const AdminRooms = () => {
     fetchDefaults();
   }, [fetchDefaults]);
 
+  // Load bookings that conflict with the scheduled privatization period
+  useEffect(() => {
+    const loadConflicts = async () => {
+      if (!editingRoom || !form.privatized_from) {
+        setConflictBookings([]);
+        return;
+      }
+      setLoadingConflicts(true);
+      const startISO = `${form.privatized_from}T00:00:00`;
+      // If no end date, look 1 year ahead
+      const endDate = form.privatized_until || (() => {
+        const d = new Date(form.privatized_from);
+        d.setFullYear(d.getFullYear() + 1);
+        return d.toISOString().slice(0, 10);
+      })();
+      const endISO = `${endDate}T23:59:59`;
+
+      const { data } = await supabase
+        .from("bookings")
+        .select("id, start_time, end_time, status, notes, profiles(first_name, last_name)")
+        .eq("room_id", editingRoom.id)
+        .neq("status", "cancelled")
+        .gte("start_time", startISO)
+        .lte("start_time", endISO)
+        .order("start_time", { ascending: true });
+
+      setConflictBookings(data || []);
+      setLoadingConflicts(false);
+    };
+    loadConflicts();
+  }, [editingRoom, form.privatized_from, form.privatized_until]);
+
   const openNew = () => {
     setEditingRoom(null);
     setForm({
