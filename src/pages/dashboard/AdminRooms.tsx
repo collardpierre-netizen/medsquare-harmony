@@ -113,12 +113,22 @@ const AdminRooms = () => {
     min_monthly_hours: "",
     privatized_from: "",
     privatized_until: "",
+    assigned_practitioner_id: "",
   });
 
   const fetchRooms = async () => {
     const { data } = await supabase.from("rooms").select("*").order("name");
     setRooms((data as unknown as Room[]) || []);
     setLoading(false);
+  };
+
+  const fetchPractitioners = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .eq("is_active", true)
+      .order("last_name");
+    setPractitioners((data || []) as PractitionerOption[]);
   };
 
   const fetchDefaults = useCallback(async () => {
