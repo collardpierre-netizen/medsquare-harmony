@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { format, addWeeks, addDays, getDay } from "date-fns";
+import { format, addWeeks, addDays, getDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock } from "lucide-react";
+import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock, Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -85,6 +87,7 @@ const EditBookingDialog = ({
   const [recurrence, setRecurrence] = useState(false);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+  const [dateOpen, setDateOpen] = useState(false);
 
   useEffect(() => {
     if (booking) {
@@ -293,7 +296,38 @@ const EditBookingDialog = ({
           {/* Date */}
           <div className="space-y-2">
             <Label>Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="flex-1"
+                placeholder="JJ/MM/AAAA"
+              />
+              <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" type="button" aria-label="Ouvrir le calendrier">
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0" align="end" sideOffset={4}>
+                  <div className="w-[320px]">
+                    <Calendar
+                      mode="single"
+                      selected={date ? parseISO(date) : undefined}
+                      onSelect={(d) => {
+                        if (d) setDate(format(d, "yyyy-MM-dd"));
+                        setDateOpen(false);
+                      }}
+                      defaultMonth={date ? parseISO(date) : new Date()}
+                      initialFocus
+                      locale={fr}
+                      className="p-3 pointer-events-auto mx-auto"
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Times */}
