@@ -747,6 +747,26 @@ const AdminRooms = () => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
+      {/* Cancel all conflicting bookings confirmation */}
+      <AlertDialog open={showCancelConflictsConfirm} onOpenChange={setShowCancelConflictsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler {conflictBookings.length} réservation{conflictBookings.length > 1 ? "s" : ""} ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toutes les réservations en conflit avec la période de privatisation programmée vont passer au statut <strong>annulé</strong>. Les praticiens concernés recevront une notification automatique. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancellingConflicts}>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelAllConflicts}
+              disabled={cancellingConflicts}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancellingConflicts ? "Annulation…" : "Confirmer l'annulation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       {/* Default Pricing Dialog */}
