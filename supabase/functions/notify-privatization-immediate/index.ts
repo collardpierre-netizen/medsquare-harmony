@@ -41,6 +41,27 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth gate: require admin (called from AdminRooms admin UI)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (token !== serviceRoleKey) {
+      const authClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+      const { data: claims, error: claimsErr } = await authClient.auth.getClaims(token);
+      if (claimsErr || !claims?.claims?.sub) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Verify admin role
+      const adminCheck = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+      const { data: isAdmin } = await adminCheck.rpc("has_role", { _user_id: claims.claims.sub, _role: "admin" });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden — admin only" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     const { room_id } = await req.json();
     if (!room_id || typeof room_id !== "string") {
       return new Response(
