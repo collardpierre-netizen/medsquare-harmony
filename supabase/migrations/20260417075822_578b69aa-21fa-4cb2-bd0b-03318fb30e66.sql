@@ -1,0 +1,1 @@
+UPDATE public.rooms SET is_available = true WHERE name IN ('Cabinet N°3', 'Cabinet N°4');
