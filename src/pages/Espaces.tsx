@@ -33,6 +33,8 @@ interface Room {
   is_available: boolean;
   privatized_from: string | null;
   privatized_until: string | null;
+  assigned_practitioner_id: string | null;
+  assigned_practitioner?: { first_name: string; last_name: string } | null;
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=500&fit=crop";
@@ -46,7 +48,7 @@ const Espaces = () => {
     const fetch = async () => {
       const { data } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
         .order("name");
       setRooms((data as unknown as Room[]) || []);
       setLoading(false);
@@ -124,7 +126,14 @@ const Espaces = () => {
                     <div className={index % 2 === 1 ? "lg:order-1" : ""}>
                       <h3 className="font-display text-2xl font-bold mb-3 flex items-center flex-wrap gap-2">
                         <span>{room.name}</span>
-                        <RoomStatusBadge room={room} />
+                        <RoomStatusBadge
+                          room={room}
+                          assignedPractitionerName={
+                            room.assigned_practitioner
+                              ? `${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name}`.trim()
+                              : null
+                          }
+                        />
                       </h3>
                       <p className="text-muted-foreground leading-relaxed mb-4">
                         {room.description || "Un espace de qualité pour vos consultations."}

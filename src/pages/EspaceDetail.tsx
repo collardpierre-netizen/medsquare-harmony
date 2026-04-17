@@ -35,6 +35,8 @@ interface Room {
   is_available: boolean;
   privatized_from: string | null;
   privatized_until: string | null;
+  assigned_practitioner_id: string | null;
+  assigned_practitioner?: { first_name: string; last_name: string } | null;
 }
 
 interface Booking {
@@ -58,7 +60,7 @@ const EspaceDetail = () => {
 
       const { data: r } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
         .eq("id", id)
         .maybeSingle();
 
@@ -159,7 +161,15 @@ const EspaceDetail = () => {
           >
             <h1 className="font-display text-3xl md:text-4xl font-bold mb-3 flex items-center flex-wrap gap-3">
               <span>{room.name}</span>
-              <RoomStatusBadge room={room} className="text-xs" />
+              <RoomStatusBadge
+                room={room}
+                className="text-xs"
+                assignedPractitionerName={
+                  room.assigned_practitioner
+                    ? `${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name}`.trim()
+                    : null
+                }
+              />
             </h1>
 
             {/* Meta pills */}
