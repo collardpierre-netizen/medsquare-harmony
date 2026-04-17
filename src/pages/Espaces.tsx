@@ -5,7 +5,7 @@ import { Users, DoorOpen, Euro, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { isRoomBlockedNow } from "@/lib/roomPrivatization";
 import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
 import {
