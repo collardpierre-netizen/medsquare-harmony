@@ -541,6 +541,26 @@ const AdminPrivatizations = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirm reactivate room (is_available -> true) */}
+      <AlertDialog open={!!confirmReactivate} onOpenChange={(o) => !o && setConfirmReactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réactiver ce cabinet ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{confirmReactivate?.name}</strong> sera à nouveau proposé à la location et redeviendra réservable par les praticiens. Vous pourrez programmer une privatisation à tout moment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmReactivate && reactivateRoom(confirmReactivate)}
+            >
+              Réactiver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
