@@ -493,6 +493,15 @@ const Activities = () => {
           </Button>
         </div>
 
+        {!isAdmin && (
+          <FeatureHighlightBanner
+            storageKey="manual_registrations_v1"
+            icon={<UserPlus className="h-4 w-4" />}
+            title="Encodez vos inscriptions manuellement"
+            description="Vous pouvez désormais ajouter vous-même un participant à une séance (par téléphone, sur place, etc.) ou retirer un inscrit. Ouvrez une activité, dépliez une séance et utilisez « Ajouter un inscrit »."
+          />
+        )}
+
         {/* Admin: practitioner filter */}
         {isAdmin && practitioners.length > 0 && (
           <div className="flex items-center gap-3">
