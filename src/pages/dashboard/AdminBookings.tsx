@@ -1002,7 +1002,47 @@ const AdminBookings = () => {
           )}
         </div>
 
-        {/* Content based on view mode */}
+        {/* Conflict warnings */}
+        {conflicts.length > 0 && (
+          <Alert variant="destructive" className="border-destructive/40">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-display">
+              {conflicts.length} conflit{conflicts.length > 1 ? "s" : ""} de réservation détecté{conflicts.length > 1 ? "s" : ""}
+            </AlertTitle>
+            <AlertDescription>
+              <p className="text-xs mb-2 opacity-90">
+                Plusieurs praticiens occupent la même salle au même moment :
+              </p>
+              <ul className="space-y-1 text-xs max-h-40 overflow-y-auto">
+                {conflicts.slice(0, 8).map((c, i) => {
+                  const aName = `${c.a.profiles?.first_name || ""} ${c.a.profiles?.last_name || ""}`.trim() || "Inconnu";
+                  const bName = `${c.b.profiles?.first_name || ""} ${c.b.profiles?.last_name || ""}`.trim() || "Inconnu";
+                  const day = format(new Date(c.a.start_time), "EEE d MMM", { locale: fr });
+                  const aTime = `${format(new Date(c.a.start_time), "HH:mm")}–${format(new Date(c.a.end_time), "HH:mm")}`;
+                  const bTime = `${format(new Date(c.b.start_time), "HH:mm")}–${format(new Date(c.b.end_time), "HH:mm")}`;
+                  return (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="font-medium shrink-0">🏥 {c.roomName} · {day}</span>
+                      <span className="opacity-90">
+                        <button onClick={() => handleEditBooking(c.a)} className="underline hover:no-underline">
+                          {aName} ({aTime})
+                        </button>
+                        {" ⚠ "}
+                        <button onClick={() => handleEditBooking(c.b)} className="underline hover:no-underline">
+                          {bName} ({bTime})
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
+                {conflicts.length > 8 && (
+                  <li className="opacity-75 italic">… et {conflicts.length - 8} autre{conflicts.length - 8 > 1 ? "s" : ""}</li>
+                )}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {viewMode === "planning" ? (
           /* ─── Planning View ─── */
           <div className="space-y-4">
