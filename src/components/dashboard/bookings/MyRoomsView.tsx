@@ -23,6 +23,9 @@ interface RoomWithStats {
   photos: string[] | null;
   equipment: string[] | null;
   bookingCount: number;
+  is_available: boolean;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 interface SlotInfo {
