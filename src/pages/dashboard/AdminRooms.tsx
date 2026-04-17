@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -685,6 +686,34 @@ const AdminRooms = () => {
                 <p className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
                   ⚠ Le cabinet est privatisé immédiatement, la programmation est ignorée.
                 </p>
+              )}
+
+              {/* Assigned practitioner — only relevant when room is privatized (immediate or scheduled) */}
+              {(form.privatized_from || !form.is_available) && (
+                <div className="pt-2 border-t border-border/60">
+                  <Label className="text-xs">Praticien attribué (optionnel)</Label>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">
+                    Si renseigné, seul ce praticien pourra réserver le cabinet pendant la privatisation, et son nom sera affiché publiquement (« Cabinet de [Nom] »).
+                  </p>
+                  <Select
+                    value={form.assigned_practitioner_id || "__none__"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, assigned_practitioner_id: v === "__none__" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Aucun (blocage générique)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Aucun (blocage générique)</SelectItem>
+                      {practitioners.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.first_name} {p.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
 
               {/* Conflict warning: existing bookings overlapping the scheduled period */}
