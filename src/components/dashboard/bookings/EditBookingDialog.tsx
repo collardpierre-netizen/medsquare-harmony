@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { format, addWeeks, addDays, getDay } from "date-fns";
+import { format, addWeeks, addDays, getDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock } from "lucide-react";
+import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock, Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
