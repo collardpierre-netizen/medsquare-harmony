@@ -675,13 +675,18 @@ const AdminAnalytics = () => {
                   Chiffre d'affaires — 12 derniers mois
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Vue indépendante du filtre de dates · basée sur le tarif horaire × heures réservées
+                  Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-3 text-xs flex-wrap">
                 <div className="text-right">
                   <div className="text-muted-foreground">Total 12 mois</div>
                   <div className="font-bold text-base text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</div>
+                  {monthlyTotals.yoyPct !== null && (
+                    <div className={`text-[10px] font-medium ${monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {monthlyTotals.yoyDelta >= 0 ? "▲" : "▼"} {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyPct}% vs N-1
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground">Moyenne / mois</div>
@@ -690,18 +695,25 @@ const AdminAnalytics = () => {
                 <div className="text-right">
                   <div className="text-muted-foreground">YTD ({today.getFullYear()})</div>
                   <div className="font-bold text-base text-primary">{monthlyTotals.ytd.toLocaleString("fr-BE")} €</div>
+                  {monthlyTotals.ytdYoyPct !== null && (
+                    <div className={`text-[10px] font-medium ${monthlyTotals.ytdYoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {monthlyTotals.ytdYoyDelta >= 0 ? "▲" : "▼"} {monthlyTotals.ytdYoyDelta >= 0 ? "+" : ""}{monthlyTotals.ytdYoyPct}% vs N-1
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ChartContainer config={revenueChartConfig} className="h-[220px] w-full">
+            <ChartContainer config={revenueChartConfig} className="h-[240px] w-full">
               <BarChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                 <XAxis dataKey="monthShort" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                 <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${(v as number).toLocaleString("fr-BE")} €`} />} />
-                <Bar dataKey="revenue" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="revenuePrevYear" name="N-1" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} opacity={0.55} />
+                <Bar dataKey="revenue" name="N" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
             <Table>
@@ -709,8 +721,10 @@ const AdminAnalytics = () => {
                 <TableRow>
                   <TableHead>Mois</TableHead>
                   <TableHead className="text-right">Réservations</TableHead>
-                  <TableHead className="text-right">CA</TableHead>
-                  <TableHead className="text-right">Évolution</TableHead>
+                  <TableHead className="text-right">CA (N)</TableHead>
+                  <TableHead className="text-right">CA (N-1)</TableHead>
+                  <TableHead className="text-right">YoY</TableHead>
+                  <TableHead className="text-right">Évolution m-1</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -723,6 +737,21 @@ const AdminAnalytics = () => {
                       <TableCell className="font-medium capitalize">{row.month}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.bookings}</TableCell>
                       <TableCell className="text-right font-semibold">{row.revenue.toLocaleString("fr-BE")} €</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {row.revenuePrevYear > 0 ? `${row.revenuePrevYear.toLocaleString("fr-BE")} €` : <span className="text-xs">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.yoyPct !== null ? (
+                          <span className={row.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}>
+                            {row.yoyDelta >= 0 ? "+" : ""}{row.yoyDelta.toLocaleString("fr-BE")} €
+                            <span className="text-[10px] ml-1 opacity-75">
+                              ({row.yoyDelta >= 0 ? "+" : ""}{row.yoyPct}%)
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         {prev ? (
                           <span className={delta >= 0 ? "text-emerald-600" : "text-destructive"}>
@@ -744,6 +773,15 @@ const AdminAnalytics = () => {
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right">{monthlyRevenueData.reduce((s, r) => s + r.bookings, 0)}</TableCell>
                   <TableCell className="text-right text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{monthlyTotals.totalPrevYear.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right">
+                    {monthlyTotals.yoyPct !== null ? (
+                      <span className={monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}>
+                        {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyDelta.toLocaleString("fr-BE")} €
+                        <span className="text-[10px] ml-1 opacity-75">({monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyPct}%)</span>
+                      </span>
+                    ) : <span className="text-muted-foreground text-xs">—</span>}
+                  </TableCell>
                   <TableCell className="text-right" />
                 </TableRow>
               </TableBody>
