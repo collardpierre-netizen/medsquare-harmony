@@ -65,6 +65,29 @@ const AdminRooms = () => {
   const [defaultsForm, setDefaultsForm] = useState<{ pricing: PricingItem[]; credits_info: string }>({ pricing: [], credits_info: "" });
   const [conflictBookings, setConflictBookings] = useState<any[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
+  const [showCancelConflictsConfirm, setShowCancelConflictsConfirm] = useState(false);
+  const [cancellingConflicts, setCancellingConflicts] = useState(false);
+
+  const handleCancelAllConflicts = async () => {
+    if (!conflictBookings.length) return;
+    setCancellingConflicts(true);
+    const ids = conflictBookings.map((b) => b.id);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .in("id", ids);
+    setCancellingConflicts(false);
+    setShowCancelConflictsConfirm(false);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Réservations annulées",
+      description: `${ids.length} réservation${ids.length > 1 ? "s" : ""} annulée${ids.length > 1 ? "s" : ""} avec succès.`,
+    });
+    setConflictBookings([]);
+  };
   const [form, setForm] = useState({
     name: "",
     description: "",
