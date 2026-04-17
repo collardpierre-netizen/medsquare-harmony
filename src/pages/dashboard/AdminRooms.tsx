@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings } from "lucide-react";
+import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,8 @@ interface Room {
   surface_area: number | null;
   pricing: PricingItem[] | null;
   credits_info: string | null;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 const AdminRooms = () => {
@@ -74,6 +77,8 @@ const AdminRooms = () => {
     credits_info: "",
     min_monthly_price: "",
     min_monthly_hours: "",
+    privatized_from: "",
+    privatized_until: "",
   });
 
   const fetchRooms = async () => {
@@ -109,6 +114,8 @@ const AdminRooms = () => {
       credits_info: defaultCreditsInfo,
       min_monthly_price: "",
       min_monthly_hours: "",
+      privatized_from: "",
+      privatized_until: "",
     });
     setShowDialog(true);
   };
@@ -165,6 +172,8 @@ const AdminRooms = () => {
       credits_info: room.credits_info || "",
       min_monthly_price: (room as any).min_monthly_price != null ? String((room as any).min_monthly_price) : "",
       min_monthly_hours: (room as any).min_monthly_hours != null ? String((room as any).min_monthly_hours) : "",
+      privatized_from: room.privatized_from || "",
+      privatized_until: room.privatized_until || "",
     });
     setShowDialog(true);
   };
@@ -207,7 +216,20 @@ const AdminRooms = () => {
       credits_info: form.credits_info,
       min_monthly_price: form.min_monthly_price ? parseFloat(form.min_monthly_price) : null,
       min_monthly_hours: form.min_monthly_hours ? parseFloat(form.min_monthly_hours) : null,
+      privatized_from: form.privatized_from || null,
+      privatized_until: form.privatized_until || null,
     };
+
+    // Validation: end date must be >= start date
+    if (form.privatized_from && form.privatized_until && form.privatized_until < form.privatized_from) {
+      toast({ variant: "destructive", title: "Dates invalides", description: "La date de fin doit être postérieure à la date de début." });
+      return;
+    }
+    // Validation: end date alone is meaningless
+    if (form.privatized_until && !form.privatized_from) {
+      toast({ variant: "destructive", title: "Date de début manquante", description: "Veuillez aussi renseigner la date de début de privatisation." });
+      return;
+    }
 
     if (editingRoom) {
       const { error } = await supabase.from("rooms").update(payload).eq("id", editingRoom.id);
@@ -499,15 +521,63 @@ const AdminRooms = () => {
 
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
-                <Label className="text-sm">Disponible à la réservation</Label>
+                <Label className="text-sm">Privatisé immédiatement</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Désactivez pour rendre ce cabinet temporairement indisponible.
+                  Désactivez pour privatiser ce cabinet de façon permanente (jusqu'à réactivation manuelle).
                 </p>
               </div>
               <Switch
                 checked={form.is_available}
                 onCheckedChange={(checked) => setForm({ ...form, is_available: checked })}
               />
+            </div>
+
+            {/* Scheduled privatization */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-medium">Privatisation programmée (optionnel)</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Programmez la privatisation du cabinet à partir d'une date. Laissez la date de fin vide pour une privatisation indéfinie.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">À partir du</Label>
+                  <Input
+                    type="date"
+                    value={form.privatized_from}
+                    onChange={(e) => setForm({ ...form, privatized_from: e.target.value })}
+                    className="mt-1"
+                    disabled={!form.is_available}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Jusqu'au (optionnel)</Label>
+                  <Input
+                    type="date"
+                    value={form.privatized_until}
+                    onChange={(e) => setForm({ ...form, privatized_until: e.target.value })}
+                    className="mt-1"
+                    min={form.privatized_from || undefined}
+                    disabled={!form.is_available || !form.privatized_from}
+                  />
+                </div>
+              </div>
+              {(form.privatized_from || form.privatized_until) && (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, privatized_from: "", privatized_until: "" })}
+                  className="text-xs text-muted-foreground hover:text-destructive underline"
+                >
+                  Effacer les dates programmées
+                </button>
+              )}
+              {!form.is_available && (form.privatized_from || form.privatized_until) && (
+                <p className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
+                  ⚠ Le cabinet est privatisé immédiatement, la programmation est ignorée.
+                </p>
+              )}
             </div>
           </div>
 
@@ -640,12 +710,23 @@ const RoomCard = ({
           </div>
         )}
 
-        {/* Availability badge */}
-        {!room.is_available && (
-          <div className="absolute top-2 left-2">
-            <Badge variant="destructive" className="text-[10px]">Indisponible</Badge>
-          </div>
-        )}
+        {/* Privatization badge (immediate or scheduled) */}
+        {(() => {
+          const label = getPrivatizationLabel(room);
+          const scheduled = isPrivatizationScheduled(room);
+          if (!label) return null;
+          return (
+            <div className="absolute top-2 left-2 max-w-[calc(100%-5rem)]">
+              <Badge
+                variant={scheduled ? "secondary" : "destructive"}
+                className="text-[10px] gap-1 shadow-sm"
+              >
+                {scheduled ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                <span className="truncate">{label}</span>
+              </Badge>
+            </div>
+          );
+        })()}
 
         {/* Action buttons */}
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

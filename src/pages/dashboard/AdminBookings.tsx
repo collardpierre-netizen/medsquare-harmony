@@ -19,6 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isRoomPrivatizedOnDay, isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
@@ -137,7 +138,7 @@ const AdminBookings = () => {
     const [{ data: profs }, { data: roomsData }, { data: allRoomsData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
-      supabase.from("rooms").select("id, name, is_available").order("name"),
+      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until").order("name"),
     ]);
     setPractitioners(profs || []);
     setRooms(roomsData || []);
@@ -244,16 +245,22 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; bookingCount: number; isPrivatised: boolean }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean }> = {};
 
     allRooms.forEach((r) => {
-      const isPrivatised = !r.is_available;
       let totalHours = 0;
+      let privatizedHours = 0;
       days.forEach((day) => {
         const { start, end } = getOpeningHours(day);
-        totalHours += end - start;
+        const dayHours = end - start;
+        totalHours += dayHours;
+        if (isRoomPrivatizedOnDay(r as any, day)) {
+          privatizedHours += dayHours;
+        }
       });
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, bookingCount: 0, isPrivatised };
+      // "isPrivatised" flag = entièrement privatisé sur la période affichée
+      const isPrivatised = totalHours > 0 && privatizedHours === totalHours;
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised };
     });
 
     bookings.forEach((b) => {
@@ -276,16 +283,17 @@ const AdminBookings = () => {
     });
 
     const roomList = Object.entries(roomStats)
-      .map(([id, stats]) => ({
-        id,
-        ...stats,
-        // Salles privatisées = 100%
-        occupancyPct: stats.isPrivatised
-          ? 100
-          : stats.totalHours > 0
-          ? Math.min(100, Math.round((stats.bookedHours / stats.totalHours) * 100))
-          : 0,
-      }))
+      .map(([id, stats]) => {
+        // Heures effectivement bookées + heures privatisées (toutes comptées comme occupées)
+        const occupiedHours = Math.min(stats.totalHours, stats.bookedHours + stats.privatizedHours);
+        return {
+          id,
+          ...stats,
+          occupancyPct: stats.totalHours > 0
+            ? Math.min(100, Math.round((occupiedHours / stats.totalHours) * 100))
+            : 0,
+        };
+      })
       // Tri par nom naturel (Cabinet N°1, N°2, N°3...)
       .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
 

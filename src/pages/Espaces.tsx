@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen, Euro, X, Lock } from "lucide-react";
+import { Users, DoorOpen, Euro, X, Lock, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,8 @@ interface Room {
   pricing: PricingItem[] | null;
   credits_info: string | null;
   is_available: boolean;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=500&fit=crop";
@@ -42,7 +45,7 @@ const Espaces = () => {
     const fetch = async () => {
       const { data } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until")
         .order("name");
       setRooms((data as unknown as Room[]) || []);
       setLoading(false);
@@ -96,6 +99,10 @@ const Espaces = () => {
                   ? room.photos[0]
                   : DEFAULT_IMAGE;
 
+                const currentlyPrivatized = isRoomCurrentlyPrivatized(room);
+                const scheduled = isPrivatizationScheduled(room);
+                const privLabel = getPrivatizationLabel(room);
+
                 return (
                   <motion.div
                     key={room.id}
@@ -116,12 +123,19 @@ const Espaces = () => {
                       </div>
                     </div>
                     <div className={index % 2 === 1 ? "lg:order-1" : ""}>
-                      <h3 className="font-display text-2xl font-bold mb-3">
-                        {room.name}
-                        {!room.is_available && (
-                          <Badge variant="secondary" className="ml-3 bg-destructive/10 text-destructive border-destructive/20 text-xs gap-1 align-middle">
-                            <Lock className="h-3 w-3" />
-                            Privatisé
+                      <h3 className="font-display text-2xl font-bold mb-3 flex items-center flex-wrap gap-2">
+                        <span>{room.name}</span>
+                        {privLabel && (
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs gap-1 align-middle ${
+                              scheduled
+                                ? "bg-warning/10 text-warning border-warning/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            }`}
+                          >
+                            {scheduled ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                            {privLabel}
                           </Badge>
                         )}
                       </h3>
@@ -160,7 +174,7 @@ const Espaces = () => {
                         <Link to={`/espaces/${room.id}`}>
                           <Button>Voir les détails</Button>
                         </Link>
-                        {room.is_available ? (
+                        {!currentlyPrivatized ? (
                           <Button
                             variant="outline"
                             onClick={() => setPricingRoom(room)}

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { isRoomCurrentlyPrivatized, isRoomPrivatizedOnDay } from "@/lib/roomPrivatization";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -142,7 +143,7 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until");
       return data || [];
     },
   });
@@ -283,8 +284,8 @@ const AdminAnalytics = () => {
         totalSlots += daySlots * filteredRooms.length;
 
         for (const room of filteredRooms) {
-          // Privatized rooms (is_available === false) count as 100% occupied
-          if (!room.is_available) {
+          // Privatized rooms count as 100% occupied (immediate or scheduled-active for this day)
+          if (isRoomPrivatizedOnDay(room, day)) {
             occupiedSlots += daySlots;
             continue;
           }
@@ -352,7 +353,7 @@ const AdminAnalytics = () => {
           const daySlots = oE - oS;
           total += daySlots;
           // Privatized rooms count as 100% occupied
-          if (!room.is_available) {
+          if (isRoomPrivatizedOnDay(room, day)) {
             occupied += daySlots;
             continue;
           }
@@ -401,7 +402,7 @@ const AdminAnalytics = () => {
           const daySlots = oE - oS;
           totalHours += daySlots;
           // Privatized rooms count as 100% occupied
-          if (!room.is_available) {
+          if (isRoomPrivatizedOnDay(room, day)) {
             bookedHours += daySlots;
             continue;
           }
@@ -426,7 +427,7 @@ const AdminAnalytics = () => {
         bookedHours,
         totalHours,
         occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
-        isPrivatized: !room.is_available,
+        isPrivatized: isRoomCurrentlyPrivatized(room),
       };
     });
 

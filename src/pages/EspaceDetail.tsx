@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock, CalendarClock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import RoomPhotoGallery from "@/components/rooms/RoomPhotoGallery";
 import RoomAvailability from "@/components/rooms/RoomAvailability";
+import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&h=600&fit=crop";
@@ -31,6 +32,8 @@ interface Room {
   pricing: PricingItem[] | null;
   credits_info: string | null;
   is_available: boolean;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 interface Booking {
@@ -54,7 +57,7 @@ const EspaceDetail = () => {
 
       const { data: r } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until")
         .eq("id", id)
         .maybeSingle();
 
@@ -118,7 +121,9 @@ const EspaceDetail = () => {
   const photos =
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
-  const isPrivatized = !room.is_available || bookings.some((b) => b.notes?.includes("[Privatisé]"));
+  const isPrivatized = isRoomCurrentlyPrivatized(room) || bookings.some((b) => b.notes?.includes("[Privatisé]"));
+  const scheduledPrivatization = isPrivatizationScheduled(room);
+  const privLabel = getPrivatizationLabel(room);
 
   return (
     <Layout>
@@ -152,10 +157,17 @@ const EspaceDetail = () => {
           >
             <h1 className="font-display text-3xl md:text-4xl font-bold mb-3">
               {room.name}
-              {isPrivatized && (
-                <Badge variant="secondary" className="ml-3 bg-destructive/10 text-destructive border-destructive/20 text-xs gap-1">
-                  <Lock className="h-3 w-3" />
-                  Espace privatisé
+              {(privLabel || isPrivatized) && (
+                <Badge
+                  variant="secondary"
+                  className={`ml-3 text-xs gap-1 ${
+                    scheduledPrivatization
+                      ? "bg-warning/10 text-warning border-warning/20"
+                      : "bg-destructive/10 text-destructive border-destructive/20"
+                  }`}
+                >
+                  {scheduledPrivatization ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                  {privLabel || "Espace privatisé"}
                 </Badge>
               )}
             </h1>
