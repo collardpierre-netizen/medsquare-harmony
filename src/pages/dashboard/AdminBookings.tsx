@@ -19,6 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isRoomPrivatizedOnDay, isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
@@ -137,7 +138,7 @@ const AdminBookings = () => {
     const [{ data: profs }, { data: roomsData }, { data: allRoomsData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
-      supabase.from("rooms").select("id, name, is_available").order("name"),
+      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until").order("name"),
     ]);
     setPractitioners(profs || []);
     setRooms(roomsData || []);
