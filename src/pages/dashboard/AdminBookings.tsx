@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay } from "date-fns";
+import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -69,8 +69,8 @@ const AdminBookings = () => {
   // Filters
   const [filterRoom, setFilterRoom] = useState<string>("__all__");
   const [filterPractitioner, setFilterPractitioner] = useState<string>("__all__");
-  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
-  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(() => startOfMonth(new Date()));
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(() => endOfMonth(new Date()));
 
   // Planning view state
   const [planningWeekStart, setPlanningWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -235,6 +235,11 @@ const AdminBookings = () => {
     });
     return Object.entries(groups).sort(([, a], [, b]) => a.name.localeCompare(b.name));
   }, [filteredBookings, hideCancelled]);
+
+  // Collapse all practitioner groups by default whenever the list of practitioners changes
+  useEffect(() => {
+    setCollapsedPractitioners(new Set(groupedByPractitioner.map(([pid]) => pid)));
+  }, [groupedByPractitioner.map(([pid]) => pid).join(",")]);
 
   const toggleCollapsed = (pid: string) => {
     setCollapsedPractitioners(prev => {
