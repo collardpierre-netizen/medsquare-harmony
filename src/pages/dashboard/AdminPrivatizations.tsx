@@ -34,6 +34,8 @@ interface Room {
   is_available: boolean;
   privatized_from: string | null;
   privatized_until: string | null;
+  assigned_practitioner_id: string | null;
+  assigned_practitioner?: { first_name: string; last_name: string } | null;
 }
 
 interface PrivatizationRow {
@@ -84,7 +86,7 @@ const AdminPrivatizations = () => {
     // 1. Scheduled privatizations (with dates, is_available=true)
     const { data: rooms, error } = await supabase
       .from("rooms")
-      .select("id, name, floor, is_available, privatized_from, privatized_until")
+      .select("id, name, floor, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
       .or("privatized_from.not.is.null,privatized_until.not.is.null")
       .order("privatized_from", { ascending: true });
 
@@ -136,7 +138,7 @@ const AdminPrivatizations = () => {
     // 2. Unavailable rooms (permanent — is_available=false)
     const { data: unavailable } = await supabase
       .from("rooms")
-      .select("id, name, floor, is_available, privatized_from, privatized_until")
+      .select("id, name, floor, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
       .eq("is_available", false)
       .order("name", { ascending: true });
 

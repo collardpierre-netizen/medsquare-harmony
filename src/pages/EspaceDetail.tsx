@@ -35,6 +35,8 @@ interface Room {
   is_available: boolean;
   privatized_from: string | null;
   privatized_until: string | null;
+  assigned_practitioner_id: string | null;
+  assigned_practitioner?: { first_name: string; last_name: string } | null;
 }
 
 interface Booking {
@@ -58,7 +60,7 @@ const EspaceDetail = () => {
 
       const { data: r } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
         .eq("id", id)
         .maybeSingle();
 
@@ -159,7 +161,15 @@ const EspaceDetail = () => {
           >
             <h1 className="font-display text-3xl md:text-4xl font-bold mb-3 flex items-center flex-wrap gap-3">
               <span>{room.name}</span>
-              <RoomStatusBadge room={room} className="text-xs" />
+              <RoomStatusBadge
+                room={room}
+                className="text-xs"
+                assignedPractitionerName={
+                  room.assigned_practitioner
+                    ? `${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name}`.trim()
+                    : null
+                }
+              />
             </h1>
 
             {/* Meta pills */}
@@ -285,13 +295,19 @@ const EspaceDetail = () => {
                       <Lock className="h-5 w-5 text-destructive" />
                     )}
                     <h3 className="font-display text-lg font-semibold">
-                      {isUnavailable ? "Espace indisponible" : "Espace privatisé"}
+                      {isUnavailable
+                        ? "Espace indisponible"
+                        : room.assigned_practitioner
+                          ? `Cabinet de ${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name}`
+                          : "Espace privatisé"}
                     </h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-5">
                     {isUnavailable
                       ? "Cet espace n'est pas proposé à la location actuellement."
-                      : "Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location."}
+                      : room.assigned_practitioner
+                        ? `Cet espace est privatisé pour ${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name} et n'est pas disponible à la location.`
+                        : "Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location."}
                   </p>
                   <Link to="/contact">
                     <Button variant="outline" className="w-full" size="lg">

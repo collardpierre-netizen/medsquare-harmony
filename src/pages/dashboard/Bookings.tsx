@@ -188,6 +188,24 @@ const Bookings = () => {
     setIsSubmitting(true);
     const targetPractitionerId = options.practitionerId || profile.id;
 
+    // Check privatization restriction: if room is privatized and assigned to someone else, block
+    const targetRoom = rooms.find((r: any) => r.id === selectedRoom);
+    if (targetRoom) {
+      const { canPractitionerBookOnDay } = await import("@/lib/roomPrivatization");
+      // Use selected date as proxy day (all bookings created on/around it)
+      if (!canPractitionerBookOnDay(targetRoom, targetPractitionerId, selectedDate)) {
+        toast({
+          variant: "destructive",
+          title: "Cabinet privatisé",
+          description: targetRoom.assigned_practitioner_id
+            ? "Ce cabinet est privatisé pour un autre praticien sur cette période."
+            : "Ce cabinet est privatisé et n'est réservable par personne sur cette période.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const { bookingType, recurrence, recurrenceWeeks, recurrenceDays, startHour, startMinute, endHour, endMinute } = options;
     const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
 

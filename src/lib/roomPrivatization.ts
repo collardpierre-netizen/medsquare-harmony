@@ -22,6 +22,8 @@ export interface RoomPrivatizationFields {
   is_available: boolean;
   privatized_from?: string | null;
   privatized_until?: string | null;
+  /** Optional — when set on a privatized/scheduled room, only this practitioner can book it during the period. */
+  assigned_practitioner_id?: string | null;
 }
 
 const todayISO = () => {
@@ -70,6 +72,25 @@ export const getRoomStatus = (room: RoomPrivatizationFields): RoomStatus => {
 export const isRoomBlockedNow = (room: RoomPrivatizationFields): boolean => {
   const s = getRoomStatus(room);
   return s === "unavailable" || s === "privatized";
+};
+
+/**
+ * True if a given practitioner is allowed to book the room on a specific day.
+ *  - Unavailable rooms: always blocked.
+ *  - Privatized/scheduled rooms WITH an assigned practitioner: only that practitioner is allowed.
+ *  - Privatized/scheduled rooms WITHOUT assigned practitioner: blocked for everyone (legacy behavior).
+ *  - Otherwise: allowed.
+ */
+export const canPractitionerBookOnDay = (
+  room: RoomPrivatizationFields,
+  practitionerId: string | null | undefined,
+  day: Date,
+): boolean => {
+  if (!room.is_available) return false;
+  if (!isRoomPrivatizedOnDay(room, day)) return true;
+  // Privatized that day → only the assigned practitioner can book
+  if (!room.assigned_practitioner_id) return false;
+  return practitionerId === room.assigned_practitioner_id;
 };
 
 /** True if the room is privatized on a specific given day (scheduled). Excludes "unavailable" rooms. */

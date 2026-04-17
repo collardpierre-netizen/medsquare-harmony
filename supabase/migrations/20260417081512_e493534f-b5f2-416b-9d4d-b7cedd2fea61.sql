@@ -1,0 +1,2 @@
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS assigned_practitioner_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_rooms_assigned_practitioner ON public.rooms(assigned_practitioner_id);

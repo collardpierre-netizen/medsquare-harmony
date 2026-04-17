@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/dashboard/ImageUpload";
 
@@ -51,11 +52,19 @@ interface Room {
   credits_info: string | null;
   privatized_from: string | null;
   privatized_until: string | null;
+  assigned_practitioner_id: string | null;
+}
+
+interface PractitionerOption {
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 const AdminRooms = () => {
   const { toast } = useToast();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [practitioners, setPractitioners] = useState<PractitionerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showDefaultsDialog, setShowDefaultsDialog] = useState(false);
@@ -105,12 +114,22 @@ const AdminRooms = () => {
     min_monthly_hours: "",
     privatized_from: "",
     privatized_until: "",
+    assigned_practitioner_id: "",
   });
 
   const fetchRooms = async () => {
     const { data } = await supabase.from("rooms").select("*").order("name");
     setRooms((data as unknown as Room[]) || []);
     setLoading(false);
+  };
+
+  const fetchPractitioners = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .eq("is_active", true)
+      .order("last_name");
+    setPractitioners((data || []) as PractitionerOption[]);
   };
 
   const fetchDefaults = useCallback(async () => {
@@ -129,6 +148,7 @@ const AdminRooms = () => {
   useEffect(() => {
     fetchRooms();
     fetchDefaults();
+    fetchPractitioners();
   }, [fetchDefaults]);
 
   // Load bookings that conflict with the scheduled privatization period
@@ -174,6 +194,7 @@ const AdminRooms = () => {
       min_monthly_hours: "",
       privatized_from: "",
       privatized_until: "",
+      assigned_practitioner_id: "",
     });
     setShowDialog(true);
   };
@@ -232,6 +253,7 @@ const AdminRooms = () => {
       min_monthly_hours: (room as any).min_monthly_hours != null ? String((room as any).min_monthly_hours) : "",
       privatized_from: room.privatized_from || "",
       privatized_until: room.privatized_until || "",
+      assigned_practitioner_id: room.assigned_practitioner_id || "",
     });
     setShowDialog(true);
   };
@@ -276,6 +298,7 @@ const AdminRooms = () => {
       min_monthly_hours: form.min_monthly_hours ? parseFloat(form.min_monthly_hours) : null,
       privatized_from: form.privatized_from || null,
       privatized_until: form.privatized_until || null,
+      assigned_practitioner_id: form.assigned_practitioner_id || null,
     };
 
     // Validation: end date must be >= start date
@@ -406,6 +429,7 @@ const AdminRooms = () => {
                 room={room}
                 onEdit={() => openEdit(room)}
                 onDelete={() => setDeleteId(room.id)}
+                practitioners={practitioners}
               />
             ))}
           </div>
@@ -665,6 +689,34 @@ const AdminRooms = () => {
                 </p>
               )}
 
+              {/* Assigned practitioner — only relevant when room is privatized (immediate or scheduled) */}
+              {(form.privatized_from || !form.is_available) && (
+                <div className="pt-2 border-t border-border/60">
+                  <Label className="text-xs">Praticien attribué (optionnel)</Label>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">
+                    Si renseigné, seul ce praticien pourra réserver le cabinet pendant la privatisation, et son nom sera affiché publiquement (« Cabinet de [Nom] »).
+                  </p>
+                  <Select
+                    value={form.assigned_practitioner_id || "__none__"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, assigned_practitioner_id: v === "__none__" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Aucun (blocage générique)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Aucun (blocage générique)</SelectItem>
+                      {practitioners.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.first_name} {p.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Conflict warning: existing bookings overlapping the scheduled period */}
               {editingRoom && form.is_available && form.privatized_from && (
                 <>
@@ -873,12 +925,18 @@ const RoomCard = ({
   room,
   onEdit,
   onDelete,
+  practitioners,
 }: {
   room: Room;
   onEdit: () => void;
   onDelete: () => void;
+  practitioners: PractitionerOption[];
 }) => {
   const mainPhoto = room.photos?.[0];
+  const assignee = room.assigned_practitioner_id
+    ? practitioners.find((p) => p.id === room.assigned_practitioner_id)
+    : null;
+  const assigneeName = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() : null;
 
   return (
     <Card className="overflow-hidden group hover:shadow-md transition-shadow">
@@ -902,7 +960,12 @@ const RoomCard = ({
 
         {/* Status badge (Indisponible / Privatisé / Programmé) */}
         <div className="absolute top-2 left-2 max-w-[calc(100%-5rem)]">
-          <RoomStatusBadge room={room} compact className="shadow-sm" />
+          <RoomStatusBadge
+            room={room}
+            compact
+            className="shadow-sm"
+            assignedPractitionerName={assigneeName}
+          />
         </div>
 
         {/* Action buttons */}

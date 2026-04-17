@@ -772,6 +772,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          assigned_practitioner_id: string | null
           capacity: number | null
           created_at: string
           credits_info: string | null
@@ -792,6 +793,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_practitioner_id?: string | null
           capacity?: number | null
           created_at?: string
           credits_info?: string | null
@@ -812,6 +814,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_practitioner_id?: string | null
           capacity?: number | null
           created_at?: string
           credits_info?: string | null
@@ -831,7 +834,15 @@ export type Database = {
           surface_area?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_assigned_practitioner_id_fkey"
+            columns: ["assigned_practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {
