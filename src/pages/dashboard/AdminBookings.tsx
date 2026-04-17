@@ -69,8 +69,8 @@ const AdminBookings = () => {
   // Filters
   const [filterRoom, setFilterRoom] = useState<string>("__all__");
   const [filterPractitioner, setFilterPractitioner] = useState<string>("__all__");
-  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
-  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(() => startOfMonth(new Date()));
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(() => endOfMonth(new Date()));
 
   // Planning view state
   const [planningWeekStart, setPlanningWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
