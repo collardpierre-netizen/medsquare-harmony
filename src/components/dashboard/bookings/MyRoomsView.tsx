@@ -194,7 +194,13 @@ const MyRoomsView = () => {
           for (let d = 0; d < 7; d++) {
             const day = addDays(start, d);
             const { start: oS, end: oE } = getOpeningHours(day);
-            total += oE - oS;
+            const daySlots = oE - oS;
+            total += daySlots;
+            // Privatized rooms count as 100% occupied for that day
+            if (isRoomPrivatizedOnDay(room, day)) {
+              occupied += daySlots;
+              continue;
+            }
             for (let h = oS; h < oE; h++) {
               const slotStart = new Date(day); slotStart.setHours(h, 0, 0, 0);
               const slotEnd = new Date(day); slotEnd.setHours(h + 1, 0, 0, 0);
