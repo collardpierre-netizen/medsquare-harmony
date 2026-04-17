@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import RoomPhotoGallery from "@/components/rooms/RoomPhotoGallery";
 import RoomAvailability from "@/components/rooms/RoomAvailability";
-import { isRoomCurrentlyPrivatized, isRoomUnavailable, isRoomBlockedNow, getRoomStatus } from "@/lib/roomPrivatization";
+import { isRoomCurrentlyPrivatized, isRoomUnavailable } from "@/lib/roomPrivatization";
 import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
 
 const DEFAULT_IMAGE =
