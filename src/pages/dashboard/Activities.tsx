@@ -1301,6 +1301,28 @@ const Activities = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Confirm remove registration */}
+      <AlertDialog open={!!confirmRemoveReg} onOpenChange={(open) => !open && setConfirmRemoveReg(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirer cette inscription ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'inscription de <span className="font-semibold text-foreground">{confirmRemoveReg?.name}</span> sera supprimée.
+              Si une personne est en liste d'attente, elle sera automatiquement promue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmRemoveReg && handleRemoveRegistration(confirmRemoveReg.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Retirer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Confirm disable booking dialog */}
       <Dialog open={!!confirmDisableBooking} onOpenChange={() => setConfirmDisableBooking(null)}>
         <DialogContent className="max-w-sm">
