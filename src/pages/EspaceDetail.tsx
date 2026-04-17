@@ -7,7 +7,7 @@ import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Separator } from "@/components/ui/separator";
 import RoomPhotoGallery from "@/components/rooms/RoomPhotoGallery";
 import RoomAvailability from "@/components/rooms/RoomAvailability";
