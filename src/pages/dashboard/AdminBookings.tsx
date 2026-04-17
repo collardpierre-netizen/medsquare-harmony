@@ -591,11 +591,16 @@ const AdminBookings = () => {
 
   const BookingRow = ({ booking }: { booking: any }) => {
     const isSelected = selectedIds.has(booking.id);
+    const isConflict = conflictBookingIds.has(booking.id);
     return (
       <div
         className={cn(
           "flex items-center justify-between p-4 rounded-lg border transition-colors cursor-pointer",
-          isSelected ? "border-primary/40 bg-primary/5" : "border-border hover:bg-accent/50"
+          isConflict
+            ? "border-destructive/50 bg-destructive/5 hover:bg-destructive/10"
+            : isSelected
+            ? "border-primary/40 bg-primary/5"
+            : "border-border hover:bg-accent/50"
         )}
         onClick={() => handleEditBooking(booking)}
       >
@@ -611,6 +616,11 @@ const AdminBookings = () => {
               <p className="font-medium text-sm">
                 {booking.profiles?.first_name} {booking.profiles?.last_name}
               </p>
+              {isConflict && (
+                <Badge variant="outline" className="text-xs gap-1 border-destructive/40 text-destructive bg-destructive/10">
+                  <AlertTriangle className="h-3 w-3" /> Conflit
+                </Badge>
+              )}
               {booking.notes?.includes("[Privatisé]") && (
                 <Badge variant="outline" className="text-xs gap-1">
                   <Lock className="h-3 w-3" /> Privatisé
