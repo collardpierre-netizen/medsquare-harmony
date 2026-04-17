@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { isRoomPrivatizedOnDay } from "@/lib/roomPrivatization";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
@@ -22,6 +23,9 @@ interface RoomWithStats {
   photos: string[] | null;
   equipment: string[] | null;
   bookingCount: number;
+  is_available: boolean;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 interface SlotInfo {
@@ -61,6 +65,7 @@ const MyRoomsView = () => {
           id: room.id, name: room.name, capacity: room.capacity, floor: room.floor,
           photos: room.photos, equipment: room.equipment,
           bookingCount: (allBookings || []).filter((b) => b.room_id === room.id).length,
+          is_available: room.is_available, privatized_from: room.privatized_from, privatized_until: room.privatized_until,
         }));
         setRooms(roomsWithStats);
       } else {
@@ -84,6 +89,7 @@ const MyRoomsView = () => {
           id: room.id, name: room.name, capacity: room.capacity, floor: room.floor,
           photos: room.photos, equipment: room.equipment,
           bookingCount: (bookings || []).filter((b) => b.room_id === room.id).length,
+          is_available: room.is_available, privatized_from: room.privatized_from, privatized_until: room.privatized_until,
         }));
         setRooms(roomsWithStats);
       }
@@ -144,7 +150,13 @@ const MyRoomsView = () => {
         for (let d = 0; d < 7; d++) {
           const day = addDays(currentWeekStart, d);
           const { start: openStart, end: openEnd } = getOpeningHours(day);
-          totalSlots += openEnd - openStart;
+          const daySlots = openEnd - openStart;
+          totalSlots += daySlots;
+          // Privatized rooms count as 100% occupied for that day
+          if (isRoomPrivatizedOnDay(room, day)) {
+            occupiedSlots += daySlots;
+            continue;
+          }
           for (let h = openStart; h < openEnd; h++) {
             const slotStart = new Date(day); slotStart.setHours(h, 0, 0, 0);
             const slotEnd = new Date(day); slotEnd.setHours(h + 1, 0, 0, 0);
@@ -182,7 +194,13 @@ const MyRoomsView = () => {
           for (let d = 0; d < 7; d++) {
             const day = addDays(start, d);
             const { start: oS, end: oE } = getOpeningHours(day);
-            total += oE - oS;
+            const daySlots = oE - oS;
+            total += daySlots;
+            // Privatized rooms count as 100% occupied for that day
+            if (isRoomPrivatizedOnDay(room, day)) {
+              occupied += daySlots;
+              continue;
+            }
             for (let h = oS; h < oE; h++) {
               const slotStart = new Date(day); slotStart.setHours(h, 0, 0, 0);
               const slotEnd = new Date(day); slotEnd.setHours(h + 1, 0, 0, 0);
