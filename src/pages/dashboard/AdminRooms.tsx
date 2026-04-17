@@ -147,6 +147,7 @@ const AdminRooms = () => {
   useEffect(() => {
     fetchRooms();
     fetchDefaults();
+    fetchPractitioners();
   }, [fetchDefaults]);
 
   // Load bookings that conflict with the scheduled privatization period
@@ -192,6 +193,7 @@ const AdminRooms = () => {
       min_monthly_hours: "",
       privatized_from: "",
       privatized_until: "",
+      assigned_practitioner_id: "",
     });
     setShowDialog(true);
   };
@@ -250,6 +252,7 @@ const AdminRooms = () => {
       min_monthly_hours: (room as any).min_monthly_hours != null ? String((room as any).min_monthly_hours) : "",
       privatized_from: room.privatized_from || "",
       privatized_until: room.privatized_until || "",
+      assigned_practitioner_id: room.assigned_practitioner_id || "",
     });
     setShowDialog(true);
   };
