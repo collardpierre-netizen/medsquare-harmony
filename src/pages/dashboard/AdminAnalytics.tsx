@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -142,7 +143,7 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until");
       return data || [];
     },
   });
