@@ -252,15 +252,23 @@ const AdminPrivatizations = () => {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <CalendarClock className="h-6 w-6" />
-              Privatisations programmées
+              Privatisations & cabinets indisponibles
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Vue d'ensemble des cabinets privatisés (en cours et à venir).
+              Vue d'ensemble : privatisations programmées (avec dates) et cabinets retirés du parc locatif (permanents).
             </p>
           </div>
-          <Badge variant="outline" className="text-sm">
-            {rows.length} privatisation{rows.length > 1 ? "s" : ""}
-          </Badge>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="text-sm">
+              {rows.length} programmée{rows.length > 1 ? "s" : ""}
+            </Badge>
+            {unavailableRooms.length > 0 && (
+              <Badge variant="secondary" className="text-sm gap-1">
+                <Ban className="h-3 w-3" />
+                {unavailableRooms.length} indisponible{unavailableRooms.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {loading ? (
