@@ -134,6 +134,55 @@ const Activities = () => {
   const [sessions, setSessions] = useState<Record<string, any[]>>({});
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
+  // Manual registration state
+  const [addRegSessionId, setAddRegSessionId] = useState<string | null>(null);
+  const [regForm, setRegForm] = useState({ guest_name: "", guest_email: "", guest_phone: "" });
+  const [isAddingReg, setIsAddingReg] = useState(false);
+  const [confirmRemoveReg, setConfirmRemoveReg] = useState<{ id: string; name: string } | null>(null);
+
+  const handleAddRegistration = async (session: any) => {
+    if (!regForm.guest_name.trim()) {
+      toast({ variant: "destructive", title: "Nom requis" });
+      return;
+    }
+    setIsAddingReg(true);
+    const registered = (session.activity_registrations || []).filter((r: any) => r.status === "registered");
+    const isFull = session.max_participants && registered.length >= session.max_participants;
+    const status = isFull ? "waitlisted" : "registered";
+
+    const { error } = await supabase.from("activity_registrations").insert({
+      session_id: session.id,
+      user_id: null,
+      guest_name: regForm.guest_name.trim(),
+      guest_email: regForm.guest_email.trim() || null,
+      guest_phone: regForm.guest_phone.trim() || null,
+      status,
+    });
+
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: error.message });
+    } else {
+      toast({
+        title: status === "waitlisted" ? "Ajouté en liste d'attente" : "Inscription ajoutée ✅",
+      });
+      setAddRegSessionId(null);
+      setRegForm({ guest_name: "", guest_email: "", guest_phone: "" });
+      fetchActivities();
+    }
+    setIsAddingReg(false);
+  };
+
+  const handleRemoveRegistration = async (regId: string) => {
+    const { error } = await supabase.from("activity_registrations").delete().eq("id", regId);
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: error.message });
+    } else {
+      toast({ title: "Inscription retirée" });
+      setConfirmRemoveReg(null);
+      fetchActivities();
+    }
+  };
+
   const handleExportPDF = async (session: any, registrations: any[]) => {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
