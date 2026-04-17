@@ -48,6 +48,8 @@ interface Room {
   surface_area: number | null;
   pricing: PricingItem[] | null;
   credits_info: string | null;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 const AdminRooms = () => {
@@ -75,6 +77,8 @@ const AdminRooms = () => {
     credits_info: "",
     min_monthly_price: "",
     min_monthly_hours: "",
+    privatized_from: "",
+    privatized_until: "",
   });
 
   const fetchRooms = async () => {
@@ -110,6 +114,8 @@ const AdminRooms = () => {
       credits_info: defaultCreditsInfo,
       min_monthly_price: "",
       min_monthly_hours: "",
+      privatized_from: "",
+      privatized_until: "",
     });
     setShowDialog(true);
   };
@@ -166,6 +172,8 @@ const AdminRooms = () => {
       credits_info: room.credits_info || "",
       min_monthly_price: (room as any).min_monthly_price != null ? String((room as any).min_monthly_price) : "",
       min_monthly_hours: (room as any).min_monthly_hours != null ? String((room as any).min_monthly_hours) : "",
+      privatized_from: room.privatized_from || "",
+      privatized_until: room.privatized_until || "",
     });
     setShowDialog(true);
   };
@@ -208,7 +216,20 @@ const AdminRooms = () => {
       credits_info: form.credits_info,
       min_monthly_price: form.min_monthly_price ? parseFloat(form.min_monthly_price) : null,
       min_monthly_hours: form.min_monthly_hours ? parseFloat(form.min_monthly_hours) : null,
+      privatized_from: form.privatized_from || null,
+      privatized_until: form.privatized_until || null,
     };
+
+    // Validation: end date must be >= start date
+    if (form.privatized_from && form.privatized_until && form.privatized_until < form.privatized_from) {
+      toast({ variant: "destructive", title: "Dates invalides", description: "La date de fin doit être postérieure à la date de début." });
+      return;
+    }
+    // Validation: end date alone is meaningless
+    if (form.privatized_until && !form.privatized_from) {
+      toast({ variant: "destructive", title: "Date de début manquante", description: "Veuillez aussi renseigner la date de début de privatisation." });
+      return;
+    }
 
     if (editingRoom) {
       const { error } = await supabase.from("rooms").update(payload).eq("id", editingRoom.id);
