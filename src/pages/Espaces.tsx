@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen, Euro, X, Lock } from "lucide-react";
+import { Users, DoorOpen, Euro, X, Lock, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,8 @@ interface Room {
   pricing: PricingItem[] | null;
   credits_info: string | null;
   is_available: boolean;
+  privatized_from: string | null;
+  privatized_until: string | null;
 }
 
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=500&fit=crop";
@@ -42,7 +45,7 @@ const Espaces = () => {
     const fetch = async () => {
       const { data } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until")
         .order("name");
       setRooms((data as unknown as Room[]) || []);
       setLoading(false);
