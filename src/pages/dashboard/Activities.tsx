@@ -134,6 +134,55 @@ const Activities = () => {
   const [sessions, setSessions] = useState<Record<string, any[]>>({});
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
+  // Manual registration state
+  const [addRegSessionId, setAddRegSessionId] = useState<string | null>(null);
+  const [regForm, setRegForm] = useState({ guest_name: "", guest_email: "", guest_phone: "" });
+  const [isAddingReg, setIsAddingReg] = useState(false);
+  const [confirmRemoveReg, setConfirmRemoveReg] = useState<{ id: string; name: string } | null>(null);
+
+  const handleAddRegistration = async (session: any) => {
+    if (!regForm.guest_name.trim()) {
+      toast({ variant: "destructive", title: "Nom requis" });
+      return;
+    }
+    setIsAddingReg(true);
+    const registered = (session.activity_registrations || []).filter((r: any) => r.status === "registered");
+    const isFull = session.max_participants && registered.length >= session.max_participants;
+    const status = isFull ? "waitlisted" : "registered";
+
+    const { error } = await supabase.from("activity_registrations").insert({
+      session_id: session.id,
+      user_id: null,
+      guest_name: regForm.guest_name.trim(),
+      guest_email: regForm.guest_email.trim() || null,
+      guest_phone: regForm.guest_phone.trim() || null,
+      status,
+    });
+
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: error.message });
+    } else {
+      toast({
+        title: status === "waitlisted" ? "Ajouté en liste d'attente" : "Inscription ajoutée ✅",
+      });
+      setAddRegSessionId(null);
+      setRegForm({ guest_name: "", guest_email: "", guest_phone: "" });
+      fetchActivities();
+    }
+    setIsAddingReg(false);
+  };
+
+  const handleRemoveRegistration = async (regId: string) => {
+    const { error } = await supabase.from("activity_registrations").delete().eq("id", regId);
+    if (error) {
+      toast({ variant: "destructive", title: "Erreur", description: error.message });
+    } else {
+      toast({ title: "Inscription retirée" });
+      setConfirmRemoveReg(null);
+      fetchActivities();
+    }
+  };
+
   const handleExportPDF = async (session: any, registrations: any[]) => {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
@@ -1078,38 +1127,115 @@ const Activities = () => {
                         {allRegs.length === 0 ? (
                           <p className="text-xs text-muted-foreground text-center py-2">Aucun inscrit pour cette séance.</p>
                         ) : (
-                          <>
-                            <div className="space-y-1.5">
-                              {[...registered, ...waitlisted].map((reg: any, idx: number) => (
-                                <div key={reg.id} className="flex items-center justify-between gap-2 text-xs p-2 rounded-md bg-muted/30">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}.</span>
-                                    <Users className="h-3 w-3 text-muted-foreground shrink-0" />
-                                    <span className="font-medium truncate">{reg.guest_name || "Utilisateur inscrit"}</span>
-                                    {reg.status === "waitlisted" && (
-                                      <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-400">Attente</Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-3 text-muted-foreground shrink-0">
-                                    {reg.guest_email && <span className="hidden sm:inline">{reg.guest_email}</span>}
-                                    {reg.guest_phone && <span className="hidden sm:inline">{reg.guest_phone}</span>}
-                                  </div>
+                          <div className="space-y-1.5">
+                            {[...registered, ...waitlisted].map((reg: any, idx: number) => (
+                              <div key={reg.id} className="flex items-center justify-between gap-2 text-xs p-2 rounded-md bg-muted/30">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}.</span>
+                                  <Users className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span className="font-medium truncate">{reg.guest_name || "Utilisateur inscrit"}</span>
+                                  {reg.status === "waitlisted" && (
+                                    <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-400">Attente</Badge>
+                                  )}
                                 </div>
-                              ))}
+                                <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                                  {reg.guest_email && <span className="hidden sm:inline">{reg.guest_email}</span>}
+                                  {reg.guest_phone && <span className="hidden sm:inline">{reg.guest_phone}</span>}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setConfirmRemoveReg({ id: reg.id, name: reg.guest_name || "cet inscrit" });
+                                    }}
+                                    title="Retirer cette inscription"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add manual registration */}
+                        {addRegSessionId === session.id ? (
+                          <div className="rounded-md border border-border bg-muted/30 p-2.5 space-y-2 mt-2">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                              Ajouter un inscrit
+                            </p>
+                            <Input
+                              placeholder="Nom de la personne *"
+                              value={regForm.guest_name}
+                              onChange={(e) => setRegForm({ ...regForm, guest_name: e.target.value })}
+                              className="h-8 text-xs"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                placeholder="Email (optionnel)"
+                                type="email"
+                                value={regForm.guest_email}
+                                onChange={(e) => setRegForm({ ...regForm, guest_email: e.target.value })}
+                                className="h-8 text-xs"
+                              />
+                              <Input
+                                placeholder="Téléphone"
+                                value={regForm.guest_phone}
+                                onChange={(e) => setRegForm({ ...regForm, guest_phone: e.target.value })}
+                                className="h-8 text-xs"
+                              />
                             </div>
-                            {/* PDF Export */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full mt-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleExportPDF(session, allRegs);
-                              }}
-                            >
-                              📄 Exporter la feuille de présence (PDF)
-                            </Button>
-                          </>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="flex-1 h-7 text-xs"
+                                onClick={() => handleAddRegistration(session)}
+                                disabled={isAddingReg || !regForm.guest_name.trim()}
+                              >
+                                {isAddingReg ? "Ajout..." : "Ajouter"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => {
+                                  setAddRegSessionId(null);
+                                  setRegForm({ guest_name: "", guest_email: "", guest_phone: "" });
+                                }}
+                              >
+                                Annuler
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAddRegSessionId(session.id);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1.5" />
+                            Ajouter un inscrit
+                          </Button>
+                        )}
+
+                        {/* PDF Export */}
+                        {allRegs.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExportPDF(session, allRegs);
+                            }}
+                          >
+                            📄 Exporter la feuille de présence (PDF)
+                          </Button>
                         )}
                       </div>
                     )}
@@ -1174,6 +1300,28 @@ const Activities = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm remove registration */}
+      <AlertDialog open={!!confirmRemoveReg} onOpenChange={(open) => !open && setConfirmRemoveReg(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirer cette inscription ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'inscription de <span className="font-semibold text-foreground">{confirmRemoveReg?.name}</span> sera supprimée.
+              Si une personne est en liste d'attente, elle sera automatiquement promue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmRemoveReg && handleRemoveRegistration(confirmRemoveReg.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Retirer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirm disable booking dialog */}
       <Dialog open={!!confirmDisableBooking} onOpenChange={() => setConfirmDisableBooking(null)}>
