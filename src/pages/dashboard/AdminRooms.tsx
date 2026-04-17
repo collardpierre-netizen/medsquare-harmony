@@ -429,6 +429,7 @@ const AdminRooms = () => {
                 room={room}
                 onEdit={() => openEdit(room)}
                 onDelete={() => setDeleteId(room.id)}
+                practitioners={practitioners}
               />
             ))}
           </div>
