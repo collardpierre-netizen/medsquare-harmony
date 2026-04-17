@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { isRoomPrivatizedOnDay } from "@/lib/roomPrivatization";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
