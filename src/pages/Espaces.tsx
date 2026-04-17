@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen, Euro, X, Lock, CalendarClock } from "lucide-react";
+import { Users, DoorOpen, Euro, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
