@@ -574,7 +574,7 @@ const AdminRooms = () => {
                 </button>
               )}
               {!form.is_available && (form.privatized_from || form.privatized_until) && (
-                <p className="text-xs text-amber-600 dark:text-amber-500">
+                <p className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
                   ⚠ Le cabinet est privatisé immédiatement, la programmation est ignorée.
                 </p>
               )}
@@ -710,12 +710,23 @@ const RoomCard = ({
           </div>
         )}
 
-        {/* Availability badge */}
-        {!room.is_available && (
-          <div className="absolute top-2 left-2">
-            <Badge variant="destructive" className="text-[10px]">Indisponible</Badge>
-          </div>
-        )}
+        {/* Privatization badge (immediate or scheduled) */}
+        {(() => {
+          const label = getPrivatizationLabel(room);
+          const scheduled = isPrivatizationScheduled(room);
+          if (!label) return null;
+          return (
+            <div className="absolute top-2 left-2 max-w-[calc(100%-5rem)]">
+              <Badge
+                variant={scheduled ? "secondary" : "destructive"}
+                className="text-[10px] gap-1 shadow-sm"
+              >
+                {scheduled ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                <span className="truncate">{label}</span>
+              </Badge>
+            </div>
+          );
+        })()}
 
         {/* Action buttons */}
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
