@@ -236,6 +236,11 @@ const AdminBookings = () => {
     return Object.entries(groups).sort(([, a], [, b]) => a.name.localeCompare(b.name));
   }, [filteredBookings, hideCancelled]);
 
+  // Collapse all practitioner groups by default whenever the list of practitioners changes
+  useEffect(() => {
+    setCollapsedPractitioners(new Set(groupedByPractitioner.map(([pid]) => pid)));
+  }, [groupedByPractitioner.map(([pid]) => pid).join(",")]);
+
   const toggleCollapsed = (pid: string) => {
     setCollapsedPractitioners(prev => {
       const next = new Set(prev);
