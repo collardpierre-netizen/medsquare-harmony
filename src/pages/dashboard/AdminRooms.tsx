@@ -747,6 +747,8 @@ const AdminRooms = () => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
+      </AlertDialog>
+
       {/* Cancel all conflicting bookings confirmation */}
       <AlertDialog open={showCancelConflictsConfirm} onOpenChange={setShowCancelConflictsConfirm}>
         <AlertDialogContent>
