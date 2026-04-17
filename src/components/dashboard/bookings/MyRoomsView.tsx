@@ -65,6 +65,7 @@ const MyRoomsView = () => {
           id: room.id, name: room.name, capacity: room.capacity, floor: room.floor,
           photos: room.photos, equipment: room.equipment,
           bookingCount: (allBookings || []).filter((b) => b.room_id === room.id).length,
+          is_available: room.is_available, privatized_from: room.privatized_from, privatized_until: room.privatized_until,
         }));
         setRooms(roomsWithStats);
       } else {
