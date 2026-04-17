@@ -67,6 +67,7 @@ const monthLabel = (d: Date) =>
 
 const AdminPrivatizations = () => {
   const [rows, setRows] = useState<PrivatizationRow[]>([]);
+  const [unavailableRooms, setUnavailableRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Room | null>(null);
   const [editFrom, setEditFrom] = useState("");
@@ -75,6 +76,7 @@ const AdminPrivatizations = () => {
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
   const [confirmClear, setConfirmClear] = useState<Room | null>(null);
+  const [confirmReactivate, setConfirmReactivate] = useState<Room | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
