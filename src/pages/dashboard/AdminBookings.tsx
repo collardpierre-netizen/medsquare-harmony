@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isRoomPrivatizedOnDay, isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
+import { isRoomBlockedOnDay, isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
@@ -288,7 +288,7 @@ const AdminBookings = () => {
         const { start, end } = getOpeningHours(day);
         const dayHours = end - start;
         totalHours += dayHours;
-        if (isRoomPrivatizedOnDay(r as any, day)) {
+        if (isRoomBlockedOnDay(r as any, day)) {
           privatizedHours += dayHours;
         }
       });
