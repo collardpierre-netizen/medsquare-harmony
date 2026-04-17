@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock, Download, FileText } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock, Download, FileText, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
@@ -296,6 +297,44 @@ const AdminBookings = () => {
     return { label, rooms: roomList, globalAvg };
   }, [allRooms, bookings, filterDateFrom, filterDateTo]);
 
+  // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
+  const conflicts = useMemo(() => {
+    const active = filteredBookings.filter((b) => b.status !== "cancelled");
+    const byRoom: Record<string, any[]> = {};
+    active.forEach((b) => {
+      if (!byRoom[b.room_id]) byRoom[b.room_id] = [];
+      byRoom[b.room_id].push(b);
+    });
+
+    const pairs: { a: any; b: any; roomName: string }[] = [];
+    Object.values(byRoom).forEach((list) => {
+      const sorted = [...list].sort(
+        (x, y) => new Date(x.start_time).getTime() - new Date(y.start_time).getTime()
+      );
+      for (let i = 0; i < sorted.length; i++) {
+        const a = sorted[i];
+        const aStart = new Date(a.start_time).getTime();
+        const aEnd = new Date(a.end_time).getTime();
+        for (let j = i + 1; j < sorted.length; j++) {
+          const b = sorted[j];
+          const bStart = new Date(b.start_time).getTime();
+          if (bStart >= aEnd) break;
+          const bEnd = new Date(b.end_time).getTime();
+          if (aStart < bEnd && bStart < aEnd && a.practitioner_id !== b.practitioner_id) {
+            pairs.push({ a, b, roomName: a.rooms?.name || "Salle" });
+          }
+        }
+      }
+    });
+    return pairs;
+  }, [filteredBookings]);
+
+  const conflictBookingIds = useMemo(() => {
+    const s = new Set<string>();
+    conflicts.forEach((c) => { s.add(c.a.id); s.add(c.b.id); });
+    return s;
+  }, [conflicts]);
+
   const handlePractitionerChange = (practitionerId: string) => {
     setNewBooking((b) => ({ ...b, practitioner_id: practitionerId, activity_id: "" }));
     fetchPractitionerActivities(practitionerId);
@@ -552,11 +591,16 @@ const AdminBookings = () => {
 
   const BookingRow = ({ booking }: { booking: any }) => {
     const isSelected = selectedIds.has(booking.id);
+    const isConflict = conflictBookingIds.has(booking.id);
     return (
       <div
         className={cn(
           "flex items-center justify-between p-4 rounded-lg border transition-colors cursor-pointer",
-          isSelected ? "border-primary/40 bg-primary/5" : "border-border hover:bg-accent/50"
+          isConflict
+            ? "border-destructive/50 bg-destructive/5 hover:bg-destructive/10"
+            : isSelected
+            ? "border-primary/40 bg-primary/5"
+            : "border-border hover:bg-accent/50"
         )}
         onClick={() => handleEditBooking(booking)}
       >
@@ -572,6 +616,11 @@ const AdminBookings = () => {
               <p className="font-medium text-sm">
                 {booking.profiles?.first_name} {booking.profiles?.last_name}
               </p>
+              {isConflict && (
+                <Badge variant="outline" className="text-xs gap-1 border-destructive/40 text-destructive bg-destructive/10">
+                  <AlertTriangle className="h-3 w-3" /> Conflit
+                </Badge>
+              )}
               {booking.notes?.includes("[Privatisé]") && (
                 <Badge variant="outline" className="text-xs gap-1">
                   <Lock className="h-3 w-3" /> Privatisé
@@ -963,7 +1012,47 @@ const AdminBookings = () => {
           )}
         </div>
 
-        {/* Content based on view mode */}
+        {/* Conflict warnings */}
+        {conflicts.length > 0 && (
+          <Alert variant="destructive" className="border-destructive/40">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-display">
+              {conflicts.length} conflit{conflicts.length > 1 ? "s" : ""} de réservation détecté{conflicts.length > 1 ? "s" : ""}
+            </AlertTitle>
+            <AlertDescription>
+              <p className="text-xs mb-2 opacity-90">
+                Plusieurs praticiens occupent la même salle au même moment :
+              </p>
+              <ul className="space-y-1 text-xs max-h-40 overflow-y-auto">
+                {conflicts.slice(0, 8).map((c, i) => {
+                  const aName = `${c.a.profiles?.first_name || ""} ${c.a.profiles?.last_name || ""}`.trim() || "Inconnu";
+                  const bName = `${c.b.profiles?.first_name || ""} ${c.b.profiles?.last_name || ""}`.trim() || "Inconnu";
+                  const day = format(new Date(c.a.start_time), "EEE d MMM", { locale: fr });
+                  const aTime = `${format(new Date(c.a.start_time), "HH:mm")}–${format(new Date(c.a.end_time), "HH:mm")}`;
+                  const bTime = `${format(new Date(c.b.start_time), "HH:mm")}–${format(new Date(c.b.end_time), "HH:mm")}`;
+                  return (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="font-medium shrink-0">🏥 {c.roomName} · {day}</span>
+                      <span className="opacity-90">
+                        <button onClick={() => handleEditBooking(c.a)} className="underline hover:no-underline">
+                          {aName} ({aTime})
+                        </button>
+                        {" ⚠ "}
+                        <button onClick={() => handleEditBooking(c.b)} className="underline hover:no-underline">
+                          {bName} ({bTime})
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
+                {conflicts.length > 8 && (
+                  <li className="opacity-75 italic">… et {conflicts.length - 8} autre{conflicts.length - 8 > 1 ? "s" : ""}</li>
+                )}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {viewMode === "planning" ? (
           /* ─── Planning View ─── */
           <div className="space-y-4">
