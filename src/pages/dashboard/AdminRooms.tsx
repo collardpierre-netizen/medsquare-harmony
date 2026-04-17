@@ -695,6 +695,20 @@ const AdminRooms = () => {
                           </li>
                         )}
                       </ul>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setShowCancelConflictsConfirm(true)}
+                        disabled={cancellingConflicts}
+                      >
+                        {cancellingConflicts ? (
+                          <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Annulation…</>
+                        ) : (
+                          <>Annuler toutes les réservations en conflit ({conflictBookings.length})</>
+                        )}
+                      </Button>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">
