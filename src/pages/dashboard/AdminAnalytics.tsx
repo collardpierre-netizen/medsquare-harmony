@@ -530,7 +530,8 @@ const AdminAnalytics = () => {
     : [];
 
   const revenueChartConfig = {
-    revenue: { label: "Revenus (€)", color: "hsl(var(--chart-1))" },
+    revenue: { label: "CA année N (€)", color: "hsl(var(--chart-1))" },
+    revenuePrevYear: { label: "CA année N-1 (€)", color: "hsl(var(--chart-2))" },
   };
   const occupancyChartConfig = {
     occupancy: { label: "Occupation (%)", color: "hsl(var(--chart-2))" },
