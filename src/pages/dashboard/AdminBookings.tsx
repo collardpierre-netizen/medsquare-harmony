@@ -296,6 +296,44 @@ const AdminBookings = () => {
     return { label, rooms: roomList, globalAvg };
   }, [allRooms, bookings, filterDateFrom, filterDateTo]);
 
+  // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
+  const conflicts = useMemo(() => {
+    const active = filteredBookings.filter((b) => b.status !== "cancelled");
+    const byRoom: Record<string, any[]> = {};
+    active.forEach((b) => {
+      if (!byRoom[b.room_id]) byRoom[b.room_id] = [];
+      byRoom[b.room_id].push(b);
+    });
+
+    const pairs: { a: any; b: any; roomName: string }[] = [];
+    Object.values(byRoom).forEach((list) => {
+      const sorted = [...list].sort(
+        (x, y) => new Date(x.start_time).getTime() - new Date(y.start_time).getTime()
+      );
+      for (let i = 0; i < sorted.length; i++) {
+        const a = sorted[i];
+        const aStart = new Date(a.start_time).getTime();
+        const aEnd = new Date(a.end_time).getTime();
+        for (let j = i + 1; j < sorted.length; j++) {
+          const b = sorted[j];
+          const bStart = new Date(b.start_time).getTime();
+          if (bStart >= aEnd) break;
+          const bEnd = new Date(b.end_time).getTime();
+          if (aStart < bEnd && bStart < aEnd && a.practitioner_id !== b.practitioner_id) {
+            pairs.push({ a, b, roomName: a.rooms?.name || "Salle" });
+          }
+        }
+      }
+    });
+    return pairs;
+  }, [filteredBookings]);
+
+  const conflictBookingIds = useMemo(() => {
+    const s = new Set<string>();
+    conflicts.forEach((c) => { s.add(c.a.id); s.add(c.b.id); });
+    return s;
+  }, [conflicts]);
+
   const handlePractitionerChange = (practitionerId: string) => {
     setNewBooking((b) => ({ ...b, practitioner_id: practitionerId, activity_id: "" }));
     fetchPractitionerActivities(practitionerId);
