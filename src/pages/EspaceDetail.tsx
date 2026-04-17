@@ -121,7 +121,9 @@ const EspaceDetail = () => {
   const photos =
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
-  const isPrivatized = !room.is_available || bookings.some((b) => b.notes?.includes("[Privatisé]"));
+  const isPrivatized = isRoomCurrentlyPrivatized(room) || bookings.some((b) => b.notes?.includes("[Privatisé]"));
+  const scheduledPrivatization = isPrivatizationScheduled(room);
+  const privLabel = getPrivatizationLabel(room);
 
   return (
     <Layout>
