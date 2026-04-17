@@ -221,6 +221,20 @@ const AdminPrivatizations = () => {
     fetchData();
   };
 
+  const reactivateRoom = async (room: Room) => {
+    const { error } = await supabase
+      .from("rooms")
+      .update({ is_available: true })
+      .eq("id", room.id);
+    if (error) {
+      toast.error("Erreur : " + error.message);
+      return;
+    }
+    toast.success(`${room.name} a été réactivé`);
+    setConfirmReactivate(null);
+    fetchData();
+  };
+
   // Group rows by month of privatized_from
   const grouped = rows.reduce<Record<string, PrivatizationRow[]>>((acc, r) => {
     const key = r.room.privatized_from
