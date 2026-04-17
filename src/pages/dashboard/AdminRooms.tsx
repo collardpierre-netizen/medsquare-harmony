@@ -51,6 +51,13 @@ interface Room {
   credits_info: string | null;
   privatized_from: string | null;
   privatized_until: string | null;
+  assigned_practitioner_id: string | null;
+}
+
+interface PractitionerOption {
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 const AdminRooms = () => {
