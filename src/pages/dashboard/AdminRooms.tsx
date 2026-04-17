@@ -612,6 +612,74 @@ const AdminRooms = () => {
                   ⚠ Le cabinet est privatisé immédiatement, la programmation est ignorée.
                 </p>
               )}
+
+              {/* Conflict warning: existing bookings overlapping the scheduled period */}
+              {editingRoom && form.is_available && form.privatized_from && (
+                <>
+                  {loadingConflicts ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Vérification des réservations existantes…
+                    </div>
+                  ) : conflictBookings.length > 0 ? (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                        <div className="text-xs">
+                          <p className="font-medium text-destructive">
+                            {conflictBookings.length} réservation{conflictBookings.length > 1 ? "s" : ""} en conflit avec cette période
+                          </p>
+                          <p className="text-muted-foreground mt-0.5">
+                            Ces créneaux sont déjà réservés sur la période programmée. Pensez à prévenir les praticiens concernés ou à les annuler manuellement avant la date d'effet.
+                          </p>
+                        </div>
+                      </div>
+                      <ul className="max-h-40 overflow-y-auto space-y-1 text-xs pl-6">
+                        {conflictBookings.slice(0, 20).map((b: any) => {
+                          const start = new Date(b.start_time);
+                          const end = new Date(b.end_time);
+                          const dateStr = new Intl.DateTimeFormat("fr-BE", {
+                            timeZone: "Europe/Brussels",
+                            day: "2-digit", month: "2-digit", year: "numeric",
+                          }).format(start);
+                          const startStr = new Intl.DateTimeFormat("fr-BE", {
+                            timeZone: "Europe/Brussels",
+                            hour: "2-digit", minute: "2-digit",
+                          }).format(start);
+                          const endStr = new Intl.DateTimeFormat("fr-BE", {
+                            timeZone: "Europe/Brussels",
+                            hour: "2-digit", minute: "2-digit",
+                          }).format(end);
+                          const name = b.profiles
+                            ? `${b.profiles.first_name || ""} ${b.profiles.last_name || ""}`.trim() || "Praticien"
+                            : "Praticien";
+                          return (
+                            <li key={b.id} className="flex items-center justify-between gap-2 text-foreground">
+                              <span className="truncate">
+                                <span className="font-medium">{dateStr}</span>{" "}
+                                <span className="text-muted-foreground">{startStr}–{endStr}</span>{" "}
+                                · {name}
+                              </span>
+                              {b.status === "pending" && (
+                                <Badge variant="outline" className="h-5 text-[10px]">en attente</Badge>
+                              )}
+                            </li>
+                          );
+                        })}
+                        {conflictBookings.length > 20 && (
+                          <li className="text-muted-foreground italic">
+                            …et {conflictBookings.length - 20} autre{conflictBookings.length - 20 > 1 ? "s" : ""}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      ✓ Aucune réservation existante sur cette période.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
