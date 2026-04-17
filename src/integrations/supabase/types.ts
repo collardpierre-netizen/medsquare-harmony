@@ -786,6 +786,8 @@ export type Database = {
           name: string
           photos: string[] | null
           pricing: Json | null
+          privatized_from: string | null
+          privatized_until: string | null
           surface_area: number | null
           updated_at: string
         }
@@ -804,6 +806,8 @@ export type Database = {
           name: string
           photos?: string[] | null
           pricing?: Json | null
+          privatized_from?: string | null
+          privatized_until?: string | null
           surface_area?: number | null
           updated_at?: string
         }
@@ -822,6 +826,8 @@ export type Database = {
           name?: string
           photos?: string[] | null
           pricing?: Json | null
+          privatized_from?: string | null
+          privatized_until?: string | null
           surface_area?: number | null
           updated_at?: string
         }
