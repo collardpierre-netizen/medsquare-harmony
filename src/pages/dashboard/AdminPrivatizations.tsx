@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CalendarClock, Edit, Lock, AlertTriangle, Loader2, Trash2, DoorOpen } from "lucide-react";
+import { CalendarClock, Edit, Lock, AlertTriangle, Loader2, Trash2, DoorOpen, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Room {
@@ -67,6 +67,7 @@ const monthLabel = (d: Date) =>
 
 const AdminPrivatizations = () => {
   const [rows, setRows] = useState<PrivatizationRow[]>([]);
+  const [unavailableRooms, setUnavailableRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Room | null>(null);
   const [editFrom, setEditFrom] = useState("");
@@ -75,9 +76,12 @@ const AdminPrivatizations = () => {
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
   const [confirmClear, setConfirmClear] = useState<Room | null>(null);
+  const [confirmReactivate, setConfirmReactivate] = useState<Room | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+
+    // 1. Scheduled privatizations (with dates, is_available=true)
     const { data: rooms, error } = await supabase
       .from("rooms")
       .select("id, name, floor, is_available, privatized_from, privatized_until")
@@ -94,6 +98,8 @@ const AdminPrivatizations = () => {
     const enriched: PrivatizationRow[] = [];
 
     for (const r of (rooms || []) as Room[]) {
+      // Skip rooms that are flagged unavailable — they're shown in the dedicated section below
+      if (!r.is_available) continue;
       // Skip past privatizations (ended before today)
       if (r.privatized_until && new Date(r.privatized_until) < t) continue;
       // Skip rooms with neither dates (shouldn't happen with our filter)
@@ -126,6 +132,15 @@ const AdminPrivatizations = () => {
     }
 
     setRows(enriched);
+
+    // 2. Unavailable rooms (permanent — is_available=false)
+    const { data: unavailable } = await supabase
+      .from("rooms")
+      .select("id, name, floor, is_available, privatized_from, privatized_until")
+      .eq("is_available", false)
+      .order("name", { ascending: true });
+
+    setUnavailableRooms((unavailable || []) as Room[]);
     setLoading(false);
   }, []);
 
@@ -206,6 +221,20 @@ const AdminPrivatizations = () => {
     fetchData();
   };
 
+  const reactivateRoom = async (room: Room) => {
+    const { error } = await supabase
+      .from("rooms")
+      .update({ is_available: true })
+      .eq("id", room.id);
+    if (error) {
+      toast.error("Erreur : " + error.message);
+      return;
+    }
+    toast.success(`${room.name} a été réactivé`);
+    setConfirmReactivate(null);
+    fetchData();
+  };
+
   // Group rows by month of privatized_from
   const grouped = rows.reduce<Record<string, PrivatizationRow[]>>((acc, r) => {
     const key = r.room.privatized_from
@@ -223,42 +252,140 @@ const AdminPrivatizations = () => {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <CalendarClock className="h-6 w-6" />
-              Privatisations programmées
+              Privatisations & cabinets indisponibles
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Vue d'ensemble des cabinets privatisés (en cours et à venir).
+              Vue d'ensemble : privatisations programmées (avec dates) et cabinets retirés du parc locatif (permanents).
             </p>
           </div>
-          <Badge variant="outline" className="text-sm">
-            {rows.length} privatisation{rows.length > 1 ? "s" : ""}
-          </Badge>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="text-sm">
+              {rows.length} programmée{rows.length > 1 ? "s" : ""}
+            </Badge>
+            {unavailableRooms.length > 0 && (
+              <Badge variant="secondary" className="text-sm gap-1">
+                <Ban className="h-3 w-3" />
+                {unavailableRooms.length} indisponible{unavailableRooms.length > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : rows.length === 0 ? (
-          <Card className="p-12 text-center">
-            <DoorOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">
-              Aucune privatisation programmée pour le moment.
-            </p>
-          </Card>
         ) : (
-          <div className="space-y-6">
-            {Object.entries(grouped).map(([month, items]) => (
-              <div key={month}>
-                <h2 className="text-sm font-semibold uppercase text-muted-foreground mb-2 capitalize">
-                  {month}
-                </h2>
+          <div className="space-y-8">
+            {/* Section: Scheduled privatizations */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-base font-semibold">Privatisations programmées</h2>
+                <span className="text-xs text-muted-foreground">(avec dates)</span>
+              </div>
+
+              {rows.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <DoorOpen className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Aucune privatisation programmée pour le moment.
+                  </p>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(grouped).map(([month, items]) => (
+                    <div key={month}>
+                      <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2 capitalize">
+                        {month}
+                      </h3>
+                      <div className="space-y-2">
+                        {items.map(({ room, status, conflictCount }) => (
+                          <Card key={room.id} className="p-4">
+                            <div className="flex items-start justify-between gap-4 flex-wrap">
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Lock className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-semibold">{room.name}</span>
+                                  {room.floor && (
+                                    <span className="text-xs text-muted-foreground">
+                                      · {room.floor}
+                                    </span>
+                                  )}
+                                  <Badge
+                                    variant={status === "active" ? "destructive" : "secondary"}
+                                    className="text-[10px]"
+                                  >
+                                    {status === "active" ? "En cours" : "À venir"}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Du <strong>{fmtDate(room.privatized_from)}</strong>{" "}
+                                  {room.privatized_until ? (
+                                    <>
+                                      au <strong>{fmtDate(room.privatized_until)}</strong>
+                                    </>
+                                  ) : (
+                                    <span className="italic">sans date de fin</span>
+                                  )}
+                                </p>
+                                {conflictCount > 0 && (
+                                  <div className="flex items-center gap-1 text-xs text-destructive">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {conflictCount} réservation{conflictCount > 1 ? "s" : ""} en conflit
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEdit(room)}
+                                >
+                                  <Edit className="h-3.5 w-3.5 mr-1" />
+                                  Modifier
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setConfirmClear(room)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Section: Permanently unavailable rooms */}
+            {unavailableRooms.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Ban className="h-4 w-4 text-muted-foreground" />
+                  <h2 className="text-base font-semibold">Cabinets indisponibles</h2>
+                  <span className="text-xs text-muted-foreground">
+                    (retirés du parc — pas de dates)
+                  </span>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Ces cabinets ne sont plus proposés à la location. Réactivez-les pour les rendre à nouveau réservables.
+                </p>
+
                 <div className="space-y-2">
-                  {items.map(({ room, status, conflictCount }) => (
-                    <Card key={room.id} className="p-4">
+                  {unavailableRooms.map((room) => (
+                    <Card key={room.id} className="p-4 bg-muted/30">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Lock className="h-4 w-4 text-muted-foreground" />
+                            <Ban className="h-4 w-4 text-muted-foreground" />
                             <span className="font-semibold">{room.name}</span>
                             {room.floor && (
                               <span className="text-xs text-muted-foreground">
@@ -266,53 +393,33 @@ const AdminPrivatizations = () => {
                               </span>
                             )}
                             <Badge
-                              variant={status === "active" ? "destructive" : "secondary"}
-                              className="text-[10px]"
+                              variant="secondary"
+                              className="text-[10px] gap-1 bg-muted text-muted-foreground border border-border"
                             >
-                              {status === "active" ? "En cours" : "À venir"}
+                              <Ban className="h-2.5 w-2.5" />
+                              Indisponible (permanent)
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Du <strong>{fmtDate(room.privatized_from)}</strong>{" "}
-                            {room.privatized_until ? (
-                              <>
-                                au <strong>{fmtDate(room.privatized_until)}</strong>
-                              </>
-                            ) : (
-                              <span className="italic">sans date de fin</span>
-                            )}
+                            Cabinet retiré du parc locatif — aucune date associée.
                           </p>
-                          {conflictCount > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-destructive">
-                              <AlertTriangle className="h-3 w-3" />
-                              {conflictCount} réservation{conflictCount > 1 ? "s" : ""} en conflit
-                            </div>
-                          )}
                         </div>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openEdit(room)}
+                            onClick={() => setConfirmReactivate(room)}
                           >
-                            <Edit className="h-3.5 w-3.5 mr-1" />
-                            Modifier
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setConfirmClear(room)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                            Réactiver
                           </Button>
                         </div>
                       </div>
                     </Card>
                   ))}
                 </div>
-              </div>
-            ))}
+              </section>
+            )}
           </div>
         )}
       </div>
@@ -430,6 +537,26 @@ const AdminPrivatizations = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm reactivate room (is_available -> true) */}
+      <AlertDialog open={!!confirmReactivate} onOpenChange={(o) => !o && setConfirmReactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réactiver ce cabinet ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{confirmReactivate?.name}</strong> sera à nouveau proposé à la location et redeviendra réservable par les praticiens. Vous pourrez programmer une privatisation à tout moment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmReactivate && reactivateRoom(confirmReactivate)}
+            >
+              Réactiver
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
