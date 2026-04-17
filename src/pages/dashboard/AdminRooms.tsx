@@ -63,6 +63,7 @@ interface PractitionerOption {
 const AdminRooms = () => {
   const { toast } = useToast();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [practitioners, setPractitioners] = useState<PractitionerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showDefaultsDialog, setShowDefaultsDialog] = useState(false);
