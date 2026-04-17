@@ -87,6 +87,7 @@ const EditBookingDialog = ({
   const [recurrence, setRecurrence] = useState(false);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+  const [dateOpen, setDateOpen] = useState(false);
 
   useEffect(() => {
     if (booking) {
