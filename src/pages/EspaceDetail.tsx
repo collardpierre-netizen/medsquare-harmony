@@ -122,9 +122,10 @@ const EspaceDetail = () => {
   const photos =
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
+  const isUnavailable = isRoomUnavailable(room);
   const isPrivatized = isRoomCurrentlyPrivatized(room) || bookings.some((b) => b.notes?.includes("[Privatisé]"));
-  const scheduledPrivatization = isPrivatizationScheduled(room);
-  const privLabel = getPrivatizationLabel(room);
+  const isBlocked = isUnavailable || isPrivatized;
+  const status = getRoomStatus(room);
 
   return (
     <Layout>
@@ -156,21 +157,9 @@ const EspaceDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <h1 className="font-display text-3xl md:text-4xl font-bold mb-3">
-              {room.name}
-              {(privLabel || isPrivatized) && (
-                <Badge
-                  variant="secondary"
-                  className={`ml-3 text-xs gap-1 ${
-                    scheduledPrivatization
-                      ? "bg-warning/10 text-warning border-warning/20"
-                      : "bg-destructive/10 text-destructive border-destructive/20"
-                  }`}
-                >
-                  {scheduledPrivatization ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                  {privLabel || "Espace privatisé"}
-                </Badge>
-              )}
+            <h1 className="font-display text-3xl md:text-4xl font-bold mb-3 flex items-center flex-wrap gap-3">
+              <span>{room.name}</span>
+              <RoomStatusBadge room={room} className="text-xs" />
             </h1>
 
             {/* Meta pills */}
