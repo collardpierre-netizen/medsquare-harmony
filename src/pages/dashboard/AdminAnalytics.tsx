@@ -1197,8 +1197,15 @@ const AdminAnalytics = () => {
                     <TableRow key={row.name}>
                       <TableCell className="font-medium">
                         {row.name}
-                        {row.isPrivatized && (
-                          <Badge variant="outline" className="ml-2 text-[10px] py-0">🔒 Privatisé</Badge>
+                        {row.isUnavailable && (
+                          <Badge variant="secondary" className="ml-2 text-[10px] py-0 gap-1 bg-muted text-muted-foreground">
+                            <Ban className="h-2.5 w-2.5" /> Indisponible
+                          </Badge>
+                        )}
+                        {!row.isUnavailable && row.isPrivatized && (
+                          <Badge variant="destructive" className="ml-2 text-[10px] py-0 gap-1">
+                            <Lock className="h-2.5 w-2.5" /> Privatisé
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">{row.totalHours}h</TableCell>
