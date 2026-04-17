@@ -295,13 +295,19 @@ const EspaceDetail = () => {
                       <Lock className="h-5 w-5 text-destructive" />
                     )}
                     <h3 className="font-display text-lg font-semibold">
-                      {isUnavailable ? "Espace indisponible" : "Espace privatisé"}
+                      {isUnavailable
+                        ? "Espace indisponible"
+                        : room.assigned_practitioner
+                          ? `Cabinet de ${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name}`
+                          : "Espace privatisé"}
                     </h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-5">
                     {isUnavailable
                       ? "Cet espace n'est pas proposé à la location actuellement."
-                      : "Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location."}
+                      : room.assigned_practitioner
+                        ? `Cet espace est privatisé pour ${room.assigned_practitioner.first_name} ${room.assigned_practitioner.last_name} et n'est pas disponible à la location.`
+                        : "Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location."}
                   </p>
                   <Link to="/contact">
                     <Button variant="outline" className="w-full" size="lg">
