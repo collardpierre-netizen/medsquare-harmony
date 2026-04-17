@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Lock, CalendarClock, Ban } from "lucide-react";
+import { Lock, CalendarClock, Ban, UserCheck } from "lucide-react";
 import {
   getRoomStatus,
   getPrivatizationLabel,
@@ -13,6 +13,8 @@ interface RoomStatusBadgeProps {
   hideWhenAvailable?: boolean;
   /** Use compact (smaller) sizing. */
   compact?: boolean;
+  /** Optional name of the practitioner the room is assigned to (when privatized for someone specific). */
+  assignedPractitionerName?: string | null;
   className?: string;
 }
 
@@ -24,11 +26,15 @@ interface RoomStatusBadgeProps {
  *  - Privatisé en cours                        → destructive  + Lock icon
  *  - Privatisation programmée (à venir)        → warning amber+ CalendarClock icon
  *  - Disponible                                → no badge (or null)
+ *
+ *  When `assignedPractitionerName` is provided AND the room is privatized/scheduled,
+ *  the badge label becomes "Cabinet de [Nom]" (with a UserCheck icon) instead of the date range.
  */
 const RoomStatusBadge = ({
   room,
   hideWhenAvailable = true,
   compact = false,
+  assignedPractitionerName,
   className,
 }: RoomStatusBadgeProps) => {
   const status = getRoomStatus(room);
@@ -65,6 +71,13 @@ const RoomStatusBadge = ({
     );
   }
 
+  const hasAssignee = !!assignedPractitionerName?.trim();
+  const Icon = hasAssignee ? UserCheck : status === "scheduled" ? CalendarClock : Lock;
+  const label = hasAssignee
+    ? `Cabinet de ${assignedPractitionerName}`
+    : getPrivatizationLabel(room) ||
+      (status === "scheduled" ? "Privatisation programmée" : "Privatisé");
+
   if (status === "scheduled") {
     return (
       <Badge
@@ -75,8 +88,8 @@ const RoomStatusBadge = ({
           className
         )}
       >
-        <CalendarClock className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
-        {getPrivatizationLabel(room) || "Privatisation programmée"}
+        <Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
+        {label}
       </Badge>
     );
   }
@@ -87,8 +100,8 @@ const RoomStatusBadge = ({
       variant="destructive"
       className={cn("gap-1", compact && "text-[10px] py-0 px-1.5", className)}
     >
-      <Lock className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
-      {getPrivatizationLabel(room) || "Privatisé"}
+      <Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
+      {label}
     </Badge>
   );
 };
