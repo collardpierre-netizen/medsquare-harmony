@@ -161,7 +161,7 @@ const Espaces = () => {
                         <Link to={`/espaces/${room.id}`}>
                           <Button>Voir les détails</Button>
                         </Link>
-                        {!currentlyPrivatized ? (
+                        {!blocked ? (
                           <Button
                             variant="outline"
                             onClick={() => setPricingRoom(room)}
