@@ -42,6 +42,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import ImageUpload from "@/components/dashboard/ImageUpload";
+import FeatureHighlightBanner from "@/components/dashboard/FeatureHighlightBanner";
+import { UserPlus } from "lucide-react";
 
 const CATEGORIES = [
   { value: "yoga", label: "Yoga" },
@@ -490,6 +492,15 @@ const Activities = () => {
             Nouvelle activité
           </Button>
         </div>
+
+        {!isAdmin && (
+          <FeatureHighlightBanner
+            storageKey="manual_registrations_v1"
+            icon={<UserPlus className="h-4 w-4" />}
+            title="Encodez vos inscriptions manuellement"
+            description="Vous pouvez désormais ajouter vous-même un participant à une séance (par téléphone, sur place, etc.) ou retirer un inscrit. Ouvrez une activité, dépliez une séance et utilisez « Ajouter un inscrit »."
+          />
+        )}
 
         {/* Admin: practitioner filter */}
         {isAdmin && practitioners.length > 0 && (
