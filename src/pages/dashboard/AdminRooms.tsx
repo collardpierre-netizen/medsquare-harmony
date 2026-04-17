@@ -924,12 +924,18 @@ const RoomCard = ({
   room,
   onEdit,
   onDelete,
+  practitioners,
 }: {
   room: Room;
   onEdit: () => void;
   onDelete: () => void;
+  practitioners: PractitionerOption[];
 }) => {
   const mainPhoto = room.photos?.[0];
+  const assignee = room.assigned_practitioner_id
+    ? practitioners.find((p) => p.id === room.assigned_practitioner_id)
+    : null;
+  const assigneeName = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() : null;
 
   return (
     <Card className="overflow-hidden group hover:shadow-md transition-shadow">
@@ -953,7 +959,12 @@ const RoomCard = ({
 
         {/* Status badge (Indisponible / Privatisé / Programmé) */}
         <div className="absolute top-2 left-2 max-w-[calc(100%-5rem)]">
-          <RoomStatusBadge room={room} compact className="shadow-sm" />
+          <RoomStatusBadge
+            room={room}
+            compact
+            className="shadow-sm"
+            assignedPractitionerName={assigneeName}
+          />
         </div>
 
         {/* Action buttons */}
