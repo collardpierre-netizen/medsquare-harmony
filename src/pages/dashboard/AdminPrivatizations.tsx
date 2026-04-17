@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CalendarClock, Edit, Lock, AlertTriangle, Loader2, Trash2, DoorOpen } from "lucide-react";
+import { CalendarClock, Edit, Lock, AlertTriangle, Loader2, Trash2, DoorOpen, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Room {
