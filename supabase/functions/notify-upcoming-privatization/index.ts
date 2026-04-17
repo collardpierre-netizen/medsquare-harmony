@@ -42,8 +42,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    // Auth gate: cron-only — must present service-role bearer
+    const authHeader = req.headers.get("Authorization");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (!authHeader?.startsWith("Bearer ") || authHeader.replace("Bearer ", "") !== serviceKey) {
+      return new Response(JSON.stringify({ error: "Unauthorized — cron only" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Window: privatized_from in [today+7, today+8)
