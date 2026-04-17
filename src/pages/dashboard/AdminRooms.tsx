@@ -65,6 +65,29 @@ const AdminRooms = () => {
   const [defaultsForm, setDefaultsForm] = useState<{ pricing: PricingItem[]; credits_info: string }>({ pricing: [], credits_info: "" });
   const [conflictBookings, setConflictBookings] = useState<any[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
+  const [showCancelConflictsConfirm, setShowCancelConflictsConfirm] = useState(false);
+  const [cancellingConflicts, setCancellingConflicts] = useState(false);
+
+  const handleCancelAllConflicts = async () => {
+    if (!conflictBookings.length) return;
+    setCancellingConflicts(true);
+    const ids = conflictBookings.map((b) => b.id);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .in("id", ids);
+    setCancellingConflicts(false);
+    setShowCancelConflictsConfirm(false);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: "Réservations annulées",
+      description: `${ids.length} réservation${ids.length > 1 ? "s" : ""} annulée${ids.length > 1 ? "s" : ""} avec succès.`,
+    });
+    setConflictBookings([]);
+  };
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -672,6 +695,20 @@ const AdminRooms = () => {
                           </li>
                         )}
                       </ul>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setShowCancelConflictsConfirm(true)}
+                        disabled={cancellingConflicts}
+                      >
+                        {cancellingConflicts ? (
+                          <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Annulation…</>
+                        ) : (
+                          <>Annuler toutes les réservations en conflit ({conflictBookings.length})</>
+                        )}
+                      </Button>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">
@@ -707,6 +744,28 @@ const AdminRooms = () => {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel all conflicting bookings confirmation */}
+      <AlertDialog open={showCancelConflictsConfirm} onOpenChange={setShowCancelConflictsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler {conflictBookings.length} réservation{conflictBookings.length > 1 ? "s" : ""} ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toutes les réservations en conflit avec la période de privatisation programmée vont passer au statut <strong>annulé</strong>. Les praticiens concernés recevront une notification automatique. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancellingConflicts}>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelAllConflicts}
+              disabled={cancellingConflicts}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancellingConflicts ? "Annulation…" : "Confirmer l'annulation"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
