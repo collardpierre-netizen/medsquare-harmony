@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Users, DoorOpen, Euro, X, Lock, CalendarClock } from "lucide-react";
+import { Users, DoorOpen, Euro, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
+
+import { isRoomBlockedNow } from "@/lib/roomPrivatization";
+import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
 import {
   Dialog,
   DialogContent,
@@ -99,9 +100,7 @@ const Espaces = () => {
                   ? room.photos[0]
                   : DEFAULT_IMAGE;
 
-                const currentlyPrivatized = isRoomCurrentlyPrivatized(room);
-                const scheduled = isPrivatizationScheduled(room);
-                const privLabel = getPrivatizationLabel(room);
+                const blocked = isRoomBlockedNow(room);
 
                 return (
                   <motion.div
@@ -125,19 +124,7 @@ const Espaces = () => {
                     <div className={index % 2 === 1 ? "lg:order-1" : ""}>
                       <h3 className="font-display text-2xl font-bold mb-3 flex items-center flex-wrap gap-2">
                         <span>{room.name}</span>
-                        {privLabel && (
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs gap-1 align-middle ${
-                              scheduled
-                                ? "bg-warning/10 text-warning border-warning/20"
-                                : "bg-destructive/10 text-destructive border-destructive/20"
-                            }`}
-                          >
-                            {scheduled ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                            {privLabel}
-                          </Badge>
-                        )}
+                        <RoomStatusBadge room={room} />
                       </h3>
                       <p className="text-muted-foreground leading-relaxed mb-4">
                         {room.description || "Un espace de qualité pour vos consultations."}
@@ -174,7 +161,7 @@ const Espaces = () => {
                         <Link to={`/espaces/${room.id}`}>
                           <Button>Voir les détails</Button>
                         </Link>
-                        {!currentlyPrivatized ? (
+                        {!blocked ? (
                           <Button
                             variant="outline"
                             onClick={() => setPricingRoom(room)}

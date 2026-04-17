@@ -1,11 +1,22 @@
 /**
- * Helpers for room privatization (immediate or scheduled).
+ * Helpers for room status (available / unavailable / privatized).
  *
- * Logic:
- * - `is_available = false` → permanently privatized (immediate, no end date)
- * - `is_available = true` + `privatized_from` set → scheduled privatization
- *   - active when today >= privatized_from AND (privatized_until is null OR today <= privatized_until)
+ * Three distinct statuses (NEVER conflate them):
+ *  1. "available"    → `is_available = true`, no privatization → bookable
+ *  2. "unavailable"  → `is_available = false`, no dates       → permanently OUT of the rental park
+ *                       (e.g. room demolished, under renovation, removed from offer)
+ *  3. "privatized"   → `is_available = true` + `privatized_from` set, today within range
+ *                       → reserved for a specific tenant on a date range
+ *  4. "scheduled"    → `is_available = true` + `privatized_from` set, today before range
+ *                       → privatization upcoming, still bookable until then
+ *
+ * Visual contract:
+ *  - "unavailable" uses a NEUTRAL/MUTED grey badge (it's not a privatization, the room just isn't part of the offer)
+ *  - "privatized"  uses the DESTRUCTIVE/RED badge (active reservation block)
+ *  - "scheduled"   uses a WARNING/AMBER badge (upcoming, informational)
  */
+
+export type RoomStatus = "available" | "unavailable" | "privatized" | "scheduled";
 
 export interface RoomPrivatizationFields {
   is_available: boolean;
@@ -25,9 +36,14 @@ const todayISO = () => {
   return fmt.format(d);
 };
 
-/** True if the room is privatized RIGHT NOW (immediate or scheduled-active). */
+/** True if the room is permanently UNAVAILABLE (removed from rental offer). NOT a privatization. */
+export const isRoomUnavailable = (room: RoomPrivatizationFields): boolean => {
+  return !room.is_available;
+};
+
+/** True if the room is privatized RIGHT NOW (scheduled-active). Excludes "unavailable" rooms. */
 export const isRoomCurrentlyPrivatized = (room: RoomPrivatizationFields): boolean => {
-  if (!room.is_available) return true;
+  if (!room.is_available) return false;
   if (!room.privatized_from) return false;
   const today = todayISO();
   if (today < room.privatized_from) return false;
@@ -42,9 +58,23 @@ export const isPrivatizationScheduled = (room: RoomPrivatizationFields): boolean
   return todayISO() < room.privatized_from;
 };
 
-/** True if the room is privatized on a specific given day (immediate or scheduled). */
+/** Single source of truth: returns the room's current status. */
+export const getRoomStatus = (room: RoomPrivatizationFields): RoomStatus => {
+  if (!room.is_available) return "unavailable";
+  if (isRoomCurrentlyPrivatized(room)) return "privatized";
+  if (isPrivatizationScheduled(room)) return "scheduled";
+  return "available";
+};
+
+/** True if the room is BLOCKED (can't be booked) RIGHT NOW — either unavailable or privatized. */
+export const isRoomBlockedNow = (room: RoomPrivatizationFields): boolean => {
+  const s = getRoomStatus(room);
+  return s === "unavailable" || s === "privatized";
+};
+
+/** True if the room is privatized on a specific given day (scheduled). Excludes "unavailable" rooms. */
 export const isRoomPrivatizedOnDay = (room: RoomPrivatizationFields, day: Date): boolean => {
-  if (!room.is_available) return true;
+  if (!room.is_available) return false;
   if (!room.privatized_from) return false;
   const dayISO = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Brussels",
@@ -57,15 +87,21 @@ export const isRoomPrivatizedOnDay = (room: RoomPrivatizationFields, day: Date):
   return true;
 };
 
+/** True if the room is BLOCKED on a specific day (unavailable OR privatized that day). */
+export const isRoomBlockedOnDay = (room: RoomPrivatizationFields, day: Date): boolean => {
+  if (!room.is_available) return true;
+  return isRoomPrivatizedOnDay(room, day);
+};
+
 /** Format a date string (YYYY-MM-DD) as DD/MM/YYYY (Brussels). */
 export const formatPrivatizationDate = (iso: string): string => {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 };
 
-/** Human-readable label about the privatization status. */
+/** Human-readable label about the PRIVATIZATION status only (returns null for "unavailable"). */
 export const getPrivatizationLabel = (room: RoomPrivatizationFields): string | null => {
-  if (!room.is_available) return "Privatisé";
+  if (!room.is_available) return null; // "unavailable" is NOT a privatization
   if (!room.privatized_from) return null;
 
   const today = todayISO();
@@ -77,10 +113,17 @@ export const getPrivatizationLabel = (room: RoomPrivatizationFields): string | n
       ? `Privatisé du ${from} au ${until}`
       : `Privatisé à partir du ${from}`;
   }
-  // Currently active scheduled privatization
   if (until) {
     if (today <= room.privatized_until!) return `Privatisé jusqu'au ${until}`;
-    return null; // expired
+    return null;
   }
   return `Privatisé depuis le ${from}`;
+};
+
+/** Human-readable label for ANY status (including "Indisponible"). */
+export const getRoomStatusLabel = (room: RoomPrivatizationFields): string | null => {
+  const status = getRoomStatus(room);
+  if (status === "available") return null;
+  if (status === "unavailable") return "Indisponible";
+  return getPrivatizationLabel(room);
 };

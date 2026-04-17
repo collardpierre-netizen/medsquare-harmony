@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery } from "@tanstack/react-query";
 import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend, differenceInDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, endOfDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info, Lock, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
-import { isRoomCurrentlyPrivatized, isRoomPrivatizedOnDay } from "@/lib/roomPrivatization";
+import { isRoomCurrentlyPrivatized, isRoomBlockedOnDay, isRoomUnavailable } from "@/lib/roomPrivatization";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -469,7 +469,7 @@ const AdminAnalytics = () => {
 
         for (const room of filteredRooms) {
           // Privatized rooms count as 100% occupied (immediate or scheduled-active for this day)
-          if (isRoomPrivatizedOnDay(room, day)) {
+          if (isRoomBlockedOnDay(room, day)) {
             occupiedSlots += daySlots;
             continue;
           }
@@ -537,7 +537,7 @@ const AdminAnalytics = () => {
           const daySlots = oE - oS;
           total += daySlots;
           // Privatized rooms count as 100% occupied
-          if (isRoomPrivatizedOnDay(room, day)) {
+          if (isRoomBlockedOnDay(room, day)) {
             occupied += daySlots;
             continue;
           }
@@ -586,7 +586,7 @@ const AdminAnalytics = () => {
           const daySlots = oE - oS;
           totalHours += daySlots;
           // Privatized rooms count as 100% occupied
-          if (isRoomPrivatizedOnDay(room, day)) {
+          if (isRoomBlockedOnDay(room, day)) {
             bookedHours += daySlots;
             continue;
           }
@@ -612,6 +612,7 @@ const AdminAnalytics = () => {
         totalHours,
         occupancy: totalHours > 0 ? Math.round((bookedHours / totalHours) * 100) : 0,
         isPrivatized: isRoomCurrentlyPrivatized(room),
+        isUnavailable: isRoomUnavailable(room),
       };
     });
 
@@ -1196,8 +1197,15 @@ const AdminAnalytics = () => {
                     <TableRow key={row.name}>
                       <TableCell className="font-medium">
                         {row.name}
-                        {row.isPrivatized && (
-                          <Badge variant="outline" className="ml-2 text-[10px] py-0">🔒 Privatisé</Badge>
+                        {row.isUnavailable && (
+                          <Badge variant="secondary" className="ml-2 text-[10px] py-0 gap-1 bg-muted text-muted-foreground">
+                            <Ban className="h-2.5 w-2.5" /> Indisponible
+                          </Badge>
+                        )}
+                        {!row.isUnavailable && row.isPrivatized && (
+                          <Badge variant="destructive" className="ml-2 text-[10px] py-0 gap-1">
+                            <Lock className="h-2.5 w-2.5" /> Privatisé
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">{row.totalHours}h</TableCell>

@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock, CalendarClock } from "lucide-react";
+import { ArrowLeft, Users, Euro, ChevronLeft, ChevronRight, Lock, Ban } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Separator } from "@/components/ui/separator";
 import RoomPhotoGallery from "@/components/rooms/RoomPhotoGallery";
 import RoomAvailability from "@/components/rooms/RoomAvailability";
-import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
+import { isRoomCurrentlyPrivatized, isRoomUnavailable } from "@/lib/roomPrivatization";
+import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&h=600&fit=crop";
@@ -121,9 +122,10 @@ const EspaceDetail = () => {
   const photos =
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
+  const isUnavailable = isRoomUnavailable(room);
   const isPrivatized = isRoomCurrentlyPrivatized(room) || bookings.some((b) => b.notes?.includes("[Privatisé]"));
-  const scheduledPrivatization = isPrivatizationScheduled(room);
-  const privLabel = getPrivatizationLabel(room);
+  const isBlocked = isUnavailable || isPrivatized;
+  
 
   return (
     <Layout>
@@ -155,21 +157,9 @@ const EspaceDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <h1 className="font-display text-3xl md:text-4xl font-bold mb-3">
-              {room.name}
-              {(privLabel || isPrivatized) && (
-                <Badge
-                  variant="secondary"
-                  className={`ml-3 text-xs gap-1 ${
-                    scheduledPrivatization
-                      ? "bg-warning/10 text-warning border-warning/20"
-                      : "bg-destructive/10 text-destructive border-destructive/20"
-                  }`}
-                >
-                  {scheduledPrivatization ? <CalendarClock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                  {privLabel || "Espace privatisé"}
-                </Badge>
-              )}
+            <h1 className="font-display text-3xl md:text-4xl font-bold mb-3 flex items-center flex-wrap gap-3">
+              <span>{room.name}</span>
+              <RoomStatusBadge room={room} className="text-xs" />
             </h1>
 
             {/* Meta pills */}
@@ -286,16 +276,22 @@ const EspaceDetail = () => {
             className="hidden lg:block"
           >
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sticky top-28">
-              {isPrivatized ? (
+              {isBlocked ? (
                 <>
                   <div className="flex items-center gap-2 mb-3">
-                    <Lock className="h-5 w-5 text-destructive" />
+                    {isUnavailable ? (
+                      <Ban className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Lock className="h-5 w-5 text-destructive" />
+                    )}
                     <h3 className="font-display text-lg font-semibold">
-                      Espace privatisé
+                      {isUnavailable ? "Espace indisponible" : "Espace privatisé"}
                     </h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-5">
-                    Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location.
+                    {isUnavailable
+                      ? "Cet espace n'est pas proposé à la location actuellement."
+                      : "Cet espace est actuellement réservé de manière exclusive et n'est pas disponible à la location."}
                   </p>
                   <Link to="/contact">
                     <Button variant="outline" className="w-full" size="lg">
@@ -353,7 +349,11 @@ const EspaceDetail = () => {
           <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
             <div>
               <p className="font-display font-semibold text-sm">{room.name}</p>
-              {isPrivatized ? (
+              {isUnavailable ? (
+                <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                  <Ban className="h-3 w-3" /> Indisponible
+                </p>
+              ) : isPrivatized ? (
                 <p className="text-xs text-destructive font-medium flex items-center gap-1">
                   <Lock className="h-3 w-3" /> Privatisé
                 </p>
@@ -364,8 +364,8 @@ const EspaceDetail = () => {
               ) : null}
             </div>
             <Link to="/contact">
-              <Button size="sm" variant={isPrivatized ? "outline" : "default"}>
-                {isPrivatized ? "Nous contacter" : "Réserver"}
+              <Button size="sm" variant={isBlocked ? "outline" : "default"}>
+                {isBlocked ? "Nous contacter" : "Réserver"}
               </Button>
             </Link>
           </div>
