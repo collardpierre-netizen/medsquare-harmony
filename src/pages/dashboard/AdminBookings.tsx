@@ -468,6 +468,88 @@ const AdminBookings = () => {
     setBulkDeleteOpen(false);
   };
 
+  const exportOccupancyCSV = () => {
+    const header = ["Salle", "Statut", "Réservations", "Heures réservées", "Heures disponibles", "Taux d'occupation (%)"];
+    const rows = occupancyData.rooms.map((r) => [
+      r.name,
+      r.isPrivatised ? "Privatisé" : "Actif",
+      r.isPrivatised ? "-" : String(r.bookingCount),
+      r.isPrivatised ? "-" : r.bookedHours.toFixed(1).replace(".", ","),
+      r.isPrivatised ? "-" : String(r.totalHours),
+      String(r.occupancyPct),
+    ]);
+    rows.push(["Moyenne globale", "", "", "", "", String(occupancyData.globalAvg)]);
+
+    const csv = [header, ...rows]
+      .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `occupation-salles-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export CSV téléchargé" });
+  };
+
+  const exportOccupancyPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Taux d'occupation par salle", pageWidth / 2, y, { align: "center" });
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Période : ${occupancyData.label}`, pageWidth / 2, y, { align: "center" });
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("Horaires : 08h–22h (lun–ven), 09h–21h (sam–dim) · 15 min de battement avant/après", pageWidth / 2, y, { align: "center" });
+    doc.setTextColor(0);
+    y += 10;
+
+    // Header row
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    const cols = [
+      { label: "Salle", x: 14, w: 70 },
+      { label: "Réservations", x: 84, w: 30 },
+      { label: "Heures", x: 114, w: 35 },
+      { label: "Taux", x: 149, w: 40 },
+    ];
+    cols.forEach((c) => doc.text(c.label, c.x, y));
+    y += 2;
+    doc.setLineWidth(0.3);
+    doc.line(14, y, pageWidth - 14, y);
+    y += 5;
+
+    doc.setFont("helvetica", "normal");
+    occupancyData.rooms.forEach((r) => {
+      doc.text(r.name + (r.isPrivatised ? " (Privatisé)" : ""), cols[0].x, y);
+      doc.text(r.isPrivatised ? "-" : String(r.bookingCount), cols[1].x, y);
+      doc.text(r.isPrivatised ? "-" : `${r.bookedHours.toFixed(1)}h / ${r.totalHours}h`, cols[2].x, y);
+      doc.text(`${r.occupancyPct}%`, cols[3].x, y);
+      y += 6;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+
+    y += 4;
+    doc.setLineWidth(0.5);
+    doc.line(14, y, pageWidth - 14, y);
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text("Taux d'occupation moyen global", cols[0].x, y);
+    doc.text(`${occupancyData.globalAvg}%`, cols[3].x, y);
+
+    doc.save(`occupation-salles-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    toast({ title: "Export PDF téléchargé" });
+  };
+
   const BookingRow = ({ booking }: { booking: any }) => {
     const isSelected = selectedIds.has(booking.id);
     return (
