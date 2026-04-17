@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock, Download, FileText } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock, Download, FileText, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import EditBookingDialog from "@/components/dashboard/bookings/EditBookingDialog";
