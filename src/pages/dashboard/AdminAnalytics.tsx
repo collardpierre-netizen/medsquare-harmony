@@ -623,6 +623,92 @@ const AdminAnalytics = () => {
           ))}
         </div>
 
+        {/* ─── Monthly revenue: 12 derniers mois (indépendant du filtre) ─── */}
+        <Card className="border-emerald-500/30">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between flex-wrap gap-2">
+              <div>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  Chiffre d'affaires — 12 derniers mois
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Vue indépendante du filtre de dates · basée sur le tarif horaire × heures réservées
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <div className="text-right">
+                  <div className="text-muted-foreground">Total 12 mois</div>
+                  <div className="font-bold text-base text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-muted-foreground">Moyenne / mois</div>
+                  <div className="font-bold text-base">{monthlyTotals.avg.toLocaleString("fr-BE")} €</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-muted-foreground">YTD ({today.getFullYear()})</div>
+                  <div className="font-bold text-base text-primary">{monthlyTotals.ytd.toLocaleString("fr-BE")} €</div>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ChartContainer config={revenueChartConfig} className="h-[220px] w-full">
+              <BarChart data={monthlyRevenueData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                <XAxis dataKey="monthShort" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${(v as number).toLocaleString("fr-BE")} €`} />} />
+                <Bar dataKey="revenue" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mois</TableHead>
+                  <TableHead className="text-right">Réservations</TableHead>
+                  <TableHead className="text-right">CA</TableHead>
+                  <TableHead className="text-right">Évolution</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {monthlyRevenueData.map((row, i) => {
+                  const prev = i > 0 ? monthlyRevenueData[i - 1] : null;
+                  const delta = prev ? row.revenue - prev.revenue : 0;
+                  const deltaPct = prev && prev.revenue > 0 ? Math.round((delta / prev.revenue) * 100) : null;
+                  return (
+                    <TableRow key={row.month}>
+                      <TableCell className="font-medium capitalize">{row.month}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{row.bookings}</TableCell>
+                      <TableCell className="text-right font-semibold">{row.revenue.toLocaleString("fr-BE")} €</TableCell>
+                      <TableCell className="text-right">
+                        {prev ? (
+                          <span className={delta >= 0 ? "text-emerald-600" : "text-destructive"}>
+                            {delta >= 0 ? "+" : ""}{delta.toLocaleString("fr-BE")} €
+                            {deltaPct !== null && (
+                              <span className="text-[10px] ml-1 opacity-75">
+                                ({delta >= 0 ? "+" : ""}{deltaPct}%)
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/30 font-semibold">
+                  <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{monthlyRevenueData.reduce((s, r) => s + r.bookings, 0)}</TableCell>
+                  <TableCell className="text-right text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right" />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
         {/* Charts grid */}
         <div className="grid lg:grid-cols-2 gap-4">
           {/* Revenue */}
