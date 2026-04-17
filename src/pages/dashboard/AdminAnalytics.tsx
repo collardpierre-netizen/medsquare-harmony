@@ -289,6 +289,147 @@ const AdminAnalytics = () => {
     return { total12m, totalPrevYear, avg, ytd, ytdPrev, ytdYoyDelta, ytdYoyPct, yoyDelta, yoyPct, monthDelta, monthDeltaPct };
   }, [monthlyRevenueData, today]);
 
+  const handleExportMonthlyExcel = useCallback(async () => {
+    if (!monthlyRevenueData.length || !rooms || !monthlyBookings) {
+      toast({ variant: "destructive", title: "Données indisponibles", description: "Le CA mensuel n'est pas encore chargé." });
+      return;
+    }
+    setIsExportingExcel(true);
+    try {
+      const XLSX = await import("xlsx");
+
+      // Build per-room × per-month matrix from raw bookings
+      const matrix: Record<string, Record<string, { revenue: number; hours: number; bookings: number }>> = {};
+      for (const room of rooms) matrix[room.id] = {};
+      for (const b of monthlyBookings) {
+        const ts = new Date(b.start_time);
+        const monthKey = format(ts, "yyyy-MM");
+        const room = rooms.find((r) => r.id === b.room_id);
+        if (!room) continue;
+        const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
+        const revenue = (room.hourly_rate || 0) * hours;
+        if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };
+        matrix[room.id][monthKey].revenue += revenue;
+        matrix[room.id][monthKey].hours += hours;
+        matrix[room.id][monthKey].bookings += 1;
+      }
+
+      // Sheet 1: Récapitulatif mensuel (N vs N-1)
+      const summaryRows: (string | number)[][] = [
+        ["Mois", "Réservations (N)", "CA N (€)", "CA N-1 (€)", "YoY (€)", "YoY (%)", "Évolution m-1 (€)", "Évolution m-1 (%)"],
+      ];
+      monthlyRevenueData.forEach((row, i) => {
+        const prev = i > 0 ? monthlyRevenueData[i - 1] : null;
+        const delta = prev ? row.revenue - prev.revenue : 0;
+        const deltaPct = prev && prev.revenue > 0 ? Math.round((delta / prev.revenue) * 100) : "";
+        summaryRows.push([
+          row.month, row.bookings, row.revenue, row.revenuePrevYear,
+          row.yoyDelta, row.yoyPct ?? "", prev ? delta : "", deltaPct,
+        ]);
+      });
+      summaryRows.push([
+        "TOTAL",
+        monthlyRevenueData.reduce((s, r) => s + r.bookings, 0),
+        monthlyTotals.total12m, monthlyTotals.totalPrevYear,
+        monthlyTotals.yoyDelta, monthlyTotals.yoyPct ?? "", "", "",
+      ]);
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+      wsSummary["!cols"] = [{ wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 18 }];
+
+      // Sheet 2: CA par salle × mois
+      const monthKeys = monthlyRevenueData.map((r) => format(r.date, "yyyy-MM"));
+      const monthLabels = monthlyRevenueData.map((r) => r.month);
+      const sortedRooms = [...rooms].sort((a, b) => a.name.localeCompare(b.name));
+
+      const byRoomRows: (string | number)[][] = [["Salle", ...monthLabels, "Total (€)"]];
+      const colTotals: number[] = monthKeys.map(() => 0);
+      let grandTotal = 0;
+      for (const room of sortedRooms) {
+        const row: (string | number)[] = [room.name];
+        let rowTotal = 0;
+        monthKeys.forEach((mk, idx) => {
+          const value = matrix[room.id]?.[mk] ? Math.round(matrix[room.id][mk].revenue) : 0;
+          row.push(value);
+          rowTotal += value;
+          colTotals[idx] += value;
+        });
+        row.push(rowTotal);
+        grandTotal += rowTotal;
+        byRoomRows.push(row);
+      }
+      byRoomRows.push(["TOTAL", ...colTotals, grandTotal]);
+      const wsByRoom = XLSX.utils.aoa_to_sheet(byRoomRows);
+      wsByRoom["!cols"] = [{ wch: 22 }, ...monthLabels.map(() => ({ wch: 12 })), { wch: 14 }];
+
+      // Sheet 3: Heures par salle × mois
+      const hoursRows: (string | number)[][] = [["Salle", ...monthLabels, "Total (h)"]];
+      const hoursColTotals: number[] = monthKeys.map(() => 0);
+      let hoursGrand = 0;
+      for (const room of sortedRooms) {
+        const row: (string | number)[] = [room.name];
+        let rowTotal = 0;
+        monthKeys.forEach((mk, idx) => {
+          const hrs = matrix[room.id]?.[mk] ? Math.round(matrix[room.id][mk].hours * 10) / 10 : 0;
+          row.push(hrs);
+          rowTotal += hrs;
+          hoursColTotals[idx] += hrs;
+        });
+        row.push(Math.round(rowTotal * 10) / 10);
+        hoursGrand += rowTotal;
+        hoursRows.push(row);
+      }
+      hoursRows.push(["TOTAL", ...hoursColTotals.map((v) => Math.round(v * 10) / 10), Math.round(hoursGrand * 10) / 10]);
+      const wsHours = XLSX.utils.aoa_to_sheet(hoursRows);
+      wsHours["!cols"] = [{ wch: 22 }, ...monthLabels.map(() => ({ wch: 10 })), { wch: 12 }];
+
+      // Sheet 4: Détail des réservations (12 derniers mois N)
+      const detailRows: (string | number)[][] = [
+        ["Mois", "Date début (Brussels)", "Date fin (Brussels)", "Salle", "Tarif horaire (€)", "Durée (h)", "CA (€)", "Statut"],
+      ];
+      const fmtBrussels = new Intl.DateTimeFormat("fr-BE", {
+        timeZone: "Europe/Brussels",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit",
+      });
+      const startN = monthlyRevenueData[0]?.date;
+      const detailBookings = monthlyBookings
+        .filter((b) => !startN || new Date(b.start_time) >= startN)
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+      for (const b of detailBookings) {
+        const room = rooms.find((r) => r.id === b.room_id);
+        const start = new Date(b.start_time);
+        const end = new Date(b.end_time);
+        const hours = Math.round(((end.getTime() - start.getTime()) / 3600000) * 10) / 10;
+        const rate = room?.hourly_rate || 0;
+        detailRows.push([
+          format(start, "MMM yyyy", { locale: fr }),
+          fmtBrussels.format(start),
+          fmtBrussels.format(end),
+          room?.name || "—",
+          rate, hours, Math.round(rate * hours), b.status,
+        ]);
+      }
+      const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+      wsDetail["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Récapitulatif N vs N-1");
+      XLSX.utils.book_append_sheet(wb, wsByRoom, "CA par salle");
+      XLSX.utils.book_append_sheet(wb, wsHours, "Heures par salle");
+      XLSX.utils.book_append_sheet(wb, wsDetail, "Détail réservations");
+
+      const filename = `medsquare-ca-mensuel-${format(today, "yyyy-MM-dd")}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      toast({ title: "Export réussi ✓", description: `Fichier ${filename} téléchargé.` });
+    } catch (err) {
+      console.error("Excel export error:", err);
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de générer le fichier Excel." });
+    } finally {
+      setIsExportingExcel(false);
+    }
+  }, [monthlyRevenueData, monthlyBookings, monthlyTotals, rooms, today, toast]);
+
   const getBrusselsOffset = (date: Date): number => {
     const month = date.getUTCMonth();
     const day = date.getUTCDate();
