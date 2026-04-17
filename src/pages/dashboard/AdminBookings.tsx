@@ -819,24 +819,44 @@ const AdminBookings = () => {
                         </div>
                       </div>
                       <Label className="text-xs">Date de fin de récurrence *</Label>
-                      <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !recurrenceEndDate && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {recurrenceEndDate ? format(recurrenceEndDate, "d MMMM yyyy", { locale: fr }) : "Choisir une date de fin…"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={recurrenceEndDate}
-                            onSelect={(d) => { setRecurrenceEndDate(d); setEndDateOpen(false); }}
-                            disabled={(d) => newBooking.date ? isBefore(d, parseISO(newBooking.date)) : false}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <div className="flex gap-2">
+                        <Input
+                          type="date"
+                          value={recurrenceEndDate ? format(recurrenceEndDate, "yyyy-MM-dd") : ""}
+                          min={newBooking.date || undefined}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setRecurrenceEndDate(v ? parseISO(v) : undefined);
+                          }}
+                          className="flex-1"
+                          placeholder="JJ/MM/AAAA"
+                        />
+                        <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon" type="button" aria-label="Ouvrir le calendrier">
+                              <CalendarIcon className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[320px] p-0" align="end" sideOffset={4}>
+                            <div className="w-[320px]">
+                              <Calendar
+                                mode="single"
+                                selected={recurrenceEndDate}
+                                onSelect={(d) => { setRecurrenceEndDate(d); setEndDateOpen(false); }}
+                                disabled={(d) => newBooking.date ? isBefore(d, parseISO(newBooking.date)) : false}
+                                defaultMonth={recurrenceEndDate || (newBooking.date ? parseISO(newBooking.date) : new Date())}
+                                initialFocus
+                                className="p-3 pointer-events-auto mx-auto"
+                              />
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      {recurrenceEndDate && (
+                        <p className="text-xs text-muted-foreground">
+                          Sélectionné : {format(recurrenceEndDate, "EEEE d MMMM yyyy", { locale: fr })}
+                        </p>
+                      )}
                       {previewDates.length > 0 && (
                         <p className="text-xs text-muted-foreground">
                           → {previewDates.length} réservation{previewDates.length > 1 ? "s" : ""} seront créées
