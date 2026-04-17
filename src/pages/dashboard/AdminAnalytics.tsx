@@ -187,20 +187,29 @@ const AdminAnalytics = () => {
     },
   });
 
-  // ─── Monthly revenue: independent of date filter, last 12 months ───
+  // ─── Monthly revenue: independent of date filter, last 24 months (N + N-1) ───
   const monthlyRange = useMemo(() => {
     const end = addDays(endOfMonth(today), 1); // exclusive
     const start = startOfMonth(subMonths(today, 11));
-    return { start: start.toISOString(), end: end.toISOString(), startDate: start, endDate: end };
+    // We also fetch the previous 12 months (N-1) for year-over-year comparison
+    const startNMinus1 = startOfMonth(subMonths(today, 23));
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      startDate: start,
+      endDate: end,
+      startNMinus1: startNMinus1.toISOString(),
+      startNMinus1Date: startNMinus1,
+    };
   }, [today.getMonth(), today.getFullYear()]);
 
   const { data: monthlyBookings } = useQuery({
-    queryKey: ["admin-analytics-monthly-revenue", monthlyRange.start, monthlyRange.end],
+    queryKey: ["admin-analytics-monthly-revenue", monthlyRange.startNMinus1, monthlyRange.end],
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
         .select("id, room_id, start_time, end_time, status")
-        .gte("start_time", monthlyRange.start)
+        .gte("start_time", monthlyRange.startNMinus1)
         .lt("start_time", monthlyRange.end)
         .neq("status", "cancelled");
       return data || [];
@@ -211,23 +220,43 @@ const AdminAnalytics = () => {
   const monthlyRevenueData = useMemo(() => {
     if (!rooms || !monthlyBookings) return [];
     const months = eachMonthOfInterval({ start: monthlyRange.startDate, end: subMonths(monthlyRange.endDate, 1) });
-    return months.map((m) => {
-      const start = startOfMonth(m);
-      const end = addDays(endOfMonth(m), 1);
+
+    const computeRevenueForRange = (start: Date, end: Date) => {
       let revenue = 0;
-      const monthBookings = monthlyBookings.filter(
-        (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
-      );
-      for (const b of monthBookings) {
+      let count = 0;
+      for (const b of monthlyBookings) {
+        const ts = new Date(b.start_time);
+        if (ts < start || ts >= end) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
+        count += 1;
       }
+      return { revenue: Math.round(revenue), count };
+    };
+
+    return months.map((m) => {
+      const start = startOfMonth(m);
+      const end = addDays(endOfMonth(m), 1);
+      const current = computeRevenueForRange(start, end);
+
+      // Same month, previous year
+      const startPrevYear = startOfMonth(subMonths(start, 12));
+      const endPrevYear = addDays(endOfMonth(startPrevYear), 1);
+      const previous = computeRevenueForRange(startPrevYear, endPrevYear);
+
+      const yoyDelta = current.revenue - previous.revenue;
+      const yoyPct = previous.revenue > 0 ? Math.round((yoyDelta / previous.revenue) * 100) : null;
+
       return {
         month: format(start, "MMM yyyy", { locale: fr }),
         monthShort: format(start, "MMM", { locale: fr }),
-        bookings: monthBookings.length,
-        revenue: Math.round(revenue),
+        bookings: current.count,
+        revenue: current.revenue,
+        revenuePrevYear: previous.revenue,
+        bookingsPrevYear: previous.count,
+        yoyDelta,
+        yoyPct,
         date: start,
       };
     });
@@ -235,16 +264,27 @@ const AdminAnalytics = () => {
 
   const monthlyTotals = useMemo(() => {
     const total12m = monthlyRevenueData.reduce((s, r) => s + r.revenue, 0);
+    const totalPrevYear = monthlyRevenueData.reduce((s, r) => s + r.revenuePrevYear, 0);
     const avg = monthlyRevenueData.length > 0 ? Math.round(total12m / monthlyRevenueData.length) : 0;
     const currentYear = today.getFullYear();
     const ytd = monthlyRevenueData
       .filter((r) => r.date.getFullYear() === currentYear)
       .reduce((s, r) => s + r.revenue, 0);
+    // YTD N-1: same number of months elapsed in previous year
+    const ytdPrev = monthlyRevenueData
+      .filter((r) => r.date.getFullYear() === currentYear)
+      .reduce((s, r) => s + r.revenuePrevYear, 0);
+    const ytdYoyDelta = ytd - ytdPrev;
+    const ytdYoyPct = ytdPrev > 0 ? Math.round((ytdYoyDelta / ytdPrev) * 100) : null;
+
+    const yoyDelta = total12m - totalPrevYear;
+    const yoyPct = totalPrevYear > 0 ? Math.round((yoyDelta / totalPrevYear) * 100) : null;
+
     const last = monthlyRevenueData[monthlyRevenueData.length - 1];
     const prev = monthlyRevenueData[monthlyRevenueData.length - 2];
     const monthDelta = last && prev ? last.revenue - prev.revenue : 0;
     const monthDeltaPct = last && prev && prev.revenue > 0 ? Math.round((monthDelta / prev.revenue) * 100) : 0;
-    return { total12m, avg, ytd, monthDelta, monthDeltaPct };
+    return { total12m, totalPrevYear, avg, ytd, ytdPrev, ytdYoyDelta, ytdYoyPct, yoyDelta, yoyPct, monthDelta, monthDeltaPct };
   }, [monthlyRevenueData, today]);
 
   const getBrusselsOffset = (date: Date): number => {
