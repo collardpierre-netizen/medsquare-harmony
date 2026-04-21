@@ -1043,6 +1043,99 @@ const AdminAnalytics = () => {
           </CardContent>
         </Card>
 
+        {/* Forward projection: next 3 months */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Projection des revenus — 3 prochains mois
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Revenus déjà engagés sur les réservations <strong>confirmées</strong> et <strong>en attente</strong> à partir de {format(startOfMonth(addMonths(today, 1)), "MMMM yyyy", { locale: fr })}.
+                </CardDescription>
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-xs">
+                <div className="text-right">
+                  <div className="text-muted-foreground">Confirmé</div>
+                  <div className="font-bold text-base text-emerald-600">
+                    {projectionTotals.confirmedRevenue.toLocaleString("fr-BE")} €
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {projectionTotals.confirmedCount} résa · {projectionTotals.confirmedHours} h
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-muted-foreground">En attente</div>
+                  <div className="font-bold text-base text-amber-600">
+                    {projectionTotals.pendingRevenue.toLocaleString("fr-BE")} €
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {projectionTotals.pendingCount} résa · {projectionTotals.pendingHours} h
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-muted-foreground">Total projeté</div>
+                  <div className="font-bold text-base text-primary">
+                    {projectionTotals.totalRevenue.toLocaleString("fr-BE")} €
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mois</TableHead>
+                  <TableHead className="text-right">Confirmées</TableHead>
+                  <TableHead className="text-right">CA confirmé</TableHead>
+                  <TableHead className="text-right">En attente</TableHead>
+                  <TableHead className="text-right">CA en attente</TableHead>
+                  <TableHead className="text-right">Total projeté</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projectionData.map((row) => (
+                  <TableRow key={row.month}>
+                    <TableCell className="font-medium capitalize">{row.month}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {row.confirmedCount} <span className="text-[10px]">({row.confirmedHours}h)</span>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-600">
+                      {row.confirmedRevenue.toLocaleString("fr-BE")} €
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {row.pendingCount} <span className="text-[10px]">({row.pendingHours}h)</span>
+                    </TableCell>
+                    <TableCell className="text-right text-amber-600">
+                      {row.pendingRevenue.toLocaleString("fr-BE")} €
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {row.totalRevenue.toLocaleString("fr-BE")} €
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-muted/30 font-semibold">
+                  <TableCell>Total 3 mois</TableCell>
+                  <TableCell className="text-right">
+                    {projectionTotals.confirmedCount} <span className="text-[10px]">({projectionTotals.confirmedHours}h)</span>
+                  </TableCell>
+                  <TableCell className="text-right text-emerald-600">{projectionTotals.confirmedRevenue.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right">
+                    {projectionTotals.pendingCount} <span className="text-[10px]">({projectionTotals.pendingHours}h)</span>
+                  </TableCell>
+                  <TableCell className="text-right text-amber-600">{projectionTotals.pendingRevenue.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right text-primary">{projectionTotals.totalRevenue.toLocaleString("fr-BE")} €</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            <p className="text-[10px] text-muted-foreground mt-3 leading-tight">
+              Calcul indicatif basé sur le tarif horaire de chaque salle × durée des créneaux. Les réservations annulées sont exclues.
+            </p>
+          </CardContent>
+        </Card>
         {/* Charts grid */}
         <div className="grid lg:grid-cols-2 gap-4">
           {/* Revenue */}
