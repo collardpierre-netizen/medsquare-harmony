@@ -347,7 +347,14 @@ const AdminRegistrations = () => {
                       return (
                         <TableRow key={r.id}>
                           <TableCell className="font-medium">
-                            {participantName}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span>{participantName}</span>
+                              {r.source === "manual" && (
+                                <Badge variant="outline" className="text-[10px] text-primary border-primary/40 bg-primary/5" title="Inscription encodée par le praticien">
+                                  Ajouté manuellement
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="space-y-0.5">
