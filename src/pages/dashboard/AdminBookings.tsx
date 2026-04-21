@@ -724,13 +724,16 @@ const AdminBookings = () => {
             </p>
           </div>
 
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDialog(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle réservation
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <MonthlyBillingExport />
+
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDialog(); }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvelle réservation
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Créer une réservation</DialogTitle>
