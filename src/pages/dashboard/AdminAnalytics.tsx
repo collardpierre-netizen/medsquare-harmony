@@ -190,6 +190,86 @@ const AdminAnalytics = () => {
     },
   });
 
+  // ─── Forward projection: next 3 months after current month ───
+  const projectionRange = useMemo(() => {
+    const start = startOfMonth(addMonths(today, 1));
+    const end = addDays(endOfMonth(addMonths(today, 3)), 1); // exclusive
+    return { start: start.toISOString(), end: end.toISOString(), startDate: start, endDate: end };
+  }, [today.getMonth(), today.getFullYear()]);
+
+  const { data: projectionBookings } = useQuery({
+    queryKey: ["admin-analytics-projection", projectionRange.start, projectionRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("id, room_id, start_time, end_time, status")
+        .gte("start_time", projectionRange.start)
+        .lt("start_time", projectionRange.end)
+        .in("status", ["confirmed", "pending"]);
+      return data || [];
+    },
+    enabled: !!rooms,
+  });
+
+  const projectionData = useMemo(() => {
+    if (!rooms || !projectionBookings) return [];
+    const months = eachMonthOfInterval({
+      start: projectionRange.startDate,
+      end: subMonths(projectionRange.endDate, 1),
+    });
+    return months.map((m) => {
+      const start = startOfMonth(m);
+      const end = addDays(endOfMonth(m), 1);
+      let confirmedRev = 0;
+      let pendingRev = 0;
+      let confirmedHours = 0;
+      let pendingHours = 0;
+      let confirmedCount = 0;
+      let pendingCount = 0;
+      for (const b of projectionBookings) {
+        const ts = new Date(b.start_time);
+        if (ts < start || ts >= end) continue;
+        const room = rooms.find((r) => r.id === b.room_id);
+        const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
+        const rev = (room?.hourly_rate || 0) * hours;
+        if (b.status === "confirmed") {
+          confirmedRev += rev;
+          confirmedHours += hours;
+          confirmedCount += 1;
+        } else {
+          pendingRev += rev;
+          pendingHours += hours;
+          pendingCount += 1;
+        }
+      }
+      return {
+        month: format(start, "MMM yyyy", { locale: fr }),
+        confirmedRevenue: Math.round(confirmedRev),
+        pendingRevenue: Math.round(pendingRev),
+        totalRevenue: Math.round(confirmedRev + pendingRev),
+        confirmedHours: Math.round(confirmedHours * 10) / 10,
+        pendingHours: Math.round(pendingHours * 10) / 10,
+        confirmedCount,
+        pendingCount,
+      };
+    });
+  }, [rooms, projectionBookings, projectionRange]);
+
+  const projectionTotals = useMemo(() => {
+    return projectionData.reduce(
+      (acc, r) => ({
+        confirmedRevenue: acc.confirmedRevenue + r.confirmedRevenue,
+        pendingRevenue: acc.pendingRevenue + r.pendingRevenue,
+        totalRevenue: acc.totalRevenue + r.totalRevenue,
+        confirmedHours: Math.round((acc.confirmedHours + r.confirmedHours) * 10) / 10,
+        pendingHours: Math.round((acc.pendingHours + r.pendingHours) * 10) / 10,
+        confirmedCount: acc.confirmedCount + r.confirmedCount,
+        pendingCount: acc.pendingCount + r.pendingCount,
+      }),
+      { confirmedRevenue: 0, pendingRevenue: 0, totalRevenue: 0, confirmedHours: 0, pendingHours: 0, confirmedCount: 0, pendingCount: 0 }
+    );
+  }, [projectionData]);
+
   // ─── Monthly revenue: independent of date filter, last 24 months (N + N-1) ───
   const monthlyRange = useMemo(() => {
     const end = addDays(endOfMonth(today), 1); // exclusive
