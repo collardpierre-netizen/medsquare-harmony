@@ -47,6 +47,7 @@ import {
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
+import MonthlyBillingExport from "@/components/dashboard/bookings/MonthlyBillingExport";
 import { Progress } from "@/components/ui/progress";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
@@ -724,13 +725,16 @@ const AdminBookings = () => {
             </p>
           </div>
 
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDialog(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle réservation
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <MonthlyBillingExport />
+
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDialog(); }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvelle réservation
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Créer une réservation</DialogTitle>
@@ -952,7 +956,8 @@ const AdminBookings = () => {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Status filters + View mode toggle */}
