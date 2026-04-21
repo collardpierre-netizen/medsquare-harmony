@@ -47,6 +47,7 @@ import {
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
+import MonthlyBillingExport from "@/components/dashboard/bookings/MonthlyBillingExport";
 import { Progress } from "@/components/ui/progress";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
