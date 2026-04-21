@@ -159,6 +159,7 @@ const Activities = () => {
       guest_email: regForm.guest_email.trim() || null,
       guest_phone: regForm.guest_phone.trim() || null,
       status,
+      source: "manual",
     });
 
     if (error) {
@@ -255,7 +256,7 @@ const Activities = () => {
       const ids = data.map((a: any) => a.id);
       const { data: sessionsData } = await supabase
         .from("activity_sessions")
-        .select("*, rooms(name), activity_registrations(id, status, guest_name, guest_email, guest_phone, user_id, created_at)")
+        .select("*, rooms(name), activity_registrations(id, status, guest_name, guest_email, guest_phone, user_id, created_at, source)")
         .in("activity_id", ids)
         .gte("start_time", new Date().toISOString())
         .order("start_time");
@@ -1147,6 +1148,11 @@ const Activities = () => {
                                   <span className="font-medium truncate">{reg.guest_name || "Utilisateur inscrit"}</span>
                                   {reg.status === "waitlisted" && (
                                     <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-400">Attente</Badge>
+                                  )}
+                                  {reg.source === "manual" && (
+                                    <Badge variant="outline" className="text-[9px] text-primary border-primary/40 bg-primary/5" title="Inscription encodée par le praticien">
+                                      Ajouté manuellement
+                                    </Badge>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 text-muted-foreground shrink-0">
