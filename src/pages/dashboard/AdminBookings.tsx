@@ -955,7 +955,8 @@ const AdminBookings = () => {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Status filters + View mode toggle */}
