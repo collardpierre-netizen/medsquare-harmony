@@ -347,7 +347,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           </Button>
 
           <p className="text-[10px] text-muted-foreground leading-tight">
-            Inclut les réservations <strong>confirmées</strong> et <strong>en attente</strong>. Calcul = durée × tarif horaire de la salle.
+            Inclut les réservations <strong>confirmées</strong> et <strong>en attente</strong>. Calcul = durée × tarif horaire de la salle. Tous les montants sont <strong>HTVA</strong>.
           </p>
         </div>
       </PopoverContent>
