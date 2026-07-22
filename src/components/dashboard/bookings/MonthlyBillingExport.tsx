@@ -12,7 +12,7 @@ const fmtBxl = (d: Date, pattern: string) =>
   format(new Date(d.toLocaleString("en-US", { timeZone: "Europe/Brussels" })), pattern, { locale: fr });
 
 const formatEUR = (n: number) =>
-  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n);
+  `${new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n)} HTVA`;
 
 interface Props {
   /** Optional default month; defaults to previous month (typical billing cycle). */
