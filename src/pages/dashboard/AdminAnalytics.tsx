@@ -900,7 +900,7 @@ const AdminAnalytics = () => {
                   Chiffre d'affaires — 12 derniers mois
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1
+                  Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1 · Montants <strong>HTVA</strong>
                 </CardDescription>
                 <Button
                   size="sm"
