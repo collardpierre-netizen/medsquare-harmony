@@ -1132,7 +1132,7 @@ const AdminAnalytics = () => {
               </TableBody>
             </Table>
             <p className="text-[10px] text-muted-foreground mt-3 leading-tight">
-              Calcul indicatif basé sur le tarif horaire de chaque salle × durée des créneaux. Les réservations annulées sont exclues.
+              Calcul indicatif basé sur le tarif horaire de chaque salle × durée des créneaux. Les réservations annulées sont exclues. Tous les montants sont <strong>HTVA</strong>.
             </p>
           </CardContent>
         </Card>
