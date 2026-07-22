@@ -1053,7 +1053,7 @@ const AdminAnalytics = () => {
                   Projection des revenus — 3 prochains mois
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Revenus déjà engagés sur les réservations <strong>confirmées</strong> et <strong>en attente</strong> à partir de {format(startOfMonth(addMonths(today, 1)), "MMMM yyyy", { locale: fr })}.
+                  Revenus déjà engagés sur les réservations <strong>confirmées</strong> et <strong>en attente</strong> à partir de {format(startOfMonth(addMonths(today, 1)), "MMMM yyyy", { locale: fr })}. Montants <strong>HTVA</strong>.
                 </CardDescription>
               </div>
               <div className="grid grid-cols-3 gap-4 text-xs">
