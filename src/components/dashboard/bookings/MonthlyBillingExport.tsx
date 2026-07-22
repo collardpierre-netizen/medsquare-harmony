@@ -12,7 +12,7 @@ const fmtBxl = (d: Date, pattern: string) =>
   format(new Date(d.toLocaleString("en-US", { timeZone: "Europe/Brussels" })), pattern, { locale: fr });
 
 const formatEUR = (n: number) =>
-  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n);
+  `${new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR" }).format(n)} HTVA`;
 
 interface Props {
   /** Optional default month; defaults to previous month (typical billing cycle). */
@@ -198,7 +198,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         doc.setFontSize(8);
         doc.setTextColor(140, 140, 140);
         doc.text(
-          "Calcul indicatif basé sur le tarif horaire de chaque salle. Les forfaits éventuels ne sont pas inclus.",
+          "Calcul indicatif basé sur le tarif horaire de chaque salle. Les forfaits éventuels ne sont pas inclus. Montants HTVA.",
           margin,
           pageH - 10
         );
@@ -347,7 +347,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           </Button>
 
           <p className="text-[10px] text-muted-foreground leading-tight">
-            Inclut les réservations <strong>confirmées</strong> et <strong>en attente</strong>. Calcul = durée × tarif horaire de la salle.
+            Inclut les réservations <strong>confirmées</strong> et <strong>en attente</strong>. Calcul = durée × tarif horaire de la salle. Tous les montants sont <strong>HTVA</strong>.
           </p>
         </div>
       </PopoverContent>

@@ -724,7 +724,7 @@ const AdminAnalytics = () => {
     ? [
         {
           title: "Revenus",
-          value: `${current.revenue} €`,
+          value: `${current.revenue} € HTVA`,
           delta: previous ? current.revenue - previous.revenue : 0,
           icon: DollarSign,
           color: "text-emerald-600",
@@ -900,7 +900,7 @@ const AdminAnalytics = () => {
                   Chiffre d'affaires — 12 derniers mois
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1
+                  Vue indépendante du filtre · CA = tarif horaire salle × heures réservées · comparaison année N vs N-1 · Montants <strong>HTVA</strong>
                 </CardDescription>
                 <Button
                   size="sm"
@@ -935,7 +935,7 @@ const AdminAnalytics = () => {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <div className="font-bold text-base text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</div>
+                  <div className="font-bold text-base text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} € HTVA</div>
                   {monthlyTotals.yoyPct !== null && (
                     <div className={`text-[10px] font-medium ${monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {monthlyTotals.yoyDelta >= 0 ? "▲" : "▼"} {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyPct}% vs N-1
@@ -944,11 +944,11 @@ const AdminAnalytics = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground">Moyenne / mois</div>
-                  <div className="font-bold text-base">{monthlyTotals.avg.toLocaleString("fr-BE")} €</div>
+                  <div className="font-bold text-base">{monthlyTotals.avg.toLocaleString("fr-BE")} € HTVA</div>
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground">YTD ({today.getFullYear()})</div>
-                  <div className="font-bold text-base text-primary">{monthlyTotals.ytd.toLocaleString("fr-BE")} €</div>
+                  <div className="font-bold text-base text-primary">{monthlyTotals.ytd.toLocaleString("fr-BE")} € HTVA</div>
                   {monthlyTotals.ytdYoyPct !== null && (
                     <div className={`text-[10px] font-medium ${monthlyTotals.ytdYoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {monthlyTotals.ytdYoyDelta >= 0 ? "▲" : "▼"} {monthlyTotals.ytdYoyDelta >= 0 ? "+" : ""}{monthlyTotals.ytdYoyPct}% vs N-1
@@ -964,7 +964,7 @@ const AdminAnalytics = () => {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                 <XAxis dataKey="monthShort" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
-                <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${(v as number).toLocaleString("fr-BE")} €`} />} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${(v as number).toLocaleString("fr-BE")} € HTVA`} />} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="revenuePrevYear" name="N-1" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} opacity={0.55} />
                 <Bar dataKey="revenue" name="N" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
@@ -990,14 +990,14 @@ const AdminAnalytics = () => {
                     <TableRow key={row.month}>
                       <TableCell className="font-medium capitalize">{row.month}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{row.bookings}</TableCell>
-                      <TableCell className="text-right font-semibold">{row.revenue.toLocaleString("fr-BE")} €</TableCell>
+                      <TableCell className="text-right font-semibold">{row.revenue.toLocaleString("fr-BE")} € HTVA</TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {row.revenuePrevYear > 0 ? `${row.revenuePrevYear.toLocaleString("fr-BE")} €` : <span className="text-xs">—</span>}
+                        {row.revenuePrevYear > 0 ? `${row.revenuePrevYear.toLocaleString("fr-BE")} € HTVA` : <span className="text-xs">—</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         {row.yoyPct !== null ? (
                           <span className={row.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}>
-                            {row.yoyDelta >= 0 ? "+" : ""}{row.yoyDelta.toLocaleString("fr-BE")} €
+                            {row.yoyDelta >= 0 ? "+" : ""}{row.yoyDelta.toLocaleString("fr-BE")} € HTVA
                             <span className="text-[10px] ml-1 opacity-75">
                               ({row.yoyDelta >= 0 ? "+" : ""}{row.yoyPct}%)
                             </span>
@@ -1009,7 +1009,7 @@ const AdminAnalytics = () => {
                       <TableCell className="text-right">
                         {prev ? (
                           <span className={delta >= 0 ? "text-emerald-600" : "text-destructive"}>
-                            {delta >= 0 ? "+" : ""}{delta.toLocaleString("fr-BE")} €
+                            {delta >= 0 ? "+" : ""}{delta.toLocaleString("fr-BE")} € HTVA
                             {deltaPct !== null && (
                               <span className="text-[10px] ml-1 opacity-75">
                                 ({delta >= 0 ? "+" : ""}{deltaPct}%)
@@ -1026,12 +1026,12 @@ const AdminAnalytics = () => {
                 <TableRow className="bg-muted/30 font-semibold">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right">{monthlyRevenueData.reduce((s, r) => s + r.bookings, 0)}</TableCell>
-                  <TableCell className="text-right text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} €</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{monthlyTotals.totalPrevYear.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right text-emerald-600">{monthlyTotals.total12m.toLocaleString("fr-BE")} € HTVA</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{monthlyTotals.totalPrevYear.toLocaleString("fr-BE")} € HTVA</TableCell>
                   <TableCell className="text-right">
                     {monthlyTotals.yoyPct !== null ? (
                       <span className={monthlyTotals.yoyDelta >= 0 ? "text-emerald-600" : "text-destructive"}>
-                        {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyDelta.toLocaleString("fr-BE")} €
+                        {monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyDelta.toLocaleString("fr-BE")} € HTVA
                         <span className="text-[10px] ml-1 opacity-75">({monthlyTotals.yoyDelta >= 0 ? "+" : ""}{monthlyTotals.yoyPct}%)</span>
                       </span>
                     ) : <span className="text-muted-foreground text-xs">—</span>}
@@ -1053,14 +1053,14 @@ const AdminAnalytics = () => {
                   Projection des revenus — 3 prochains mois
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Revenus déjà engagés sur les réservations <strong>confirmées</strong> et <strong>en attente</strong> à partir de {format(startOfMonth(addMonths(today, 1)), "MMMM yyyy", { locale: fr })}.
+                  Revenus déjà engagés sur les réservations <strong>confirmées</strong> et <strong>en attente</strong> à partir de {format(startOfMonth(addMonths(today, 1)), "MMMM yyyy", { locale: fr })}. Montants <strong>HTVA</strong>.
                 </CardDescription>
               </div>
               <div className="grid grid-cols-3 gap-4 text-xs">
                 <div className="text-right">
                   <div className="text-muted-foreground">Confirmé</div>
                   <div className="font-bold text-base text-emerald-600">
-                    {projectionTotals.confirmedRevenue.toLocaleString("fr-BE")} €
+                    {projectionTotals.confirmedRevenue.toLocaleString("fr-BE")} € HTVA
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {projectionTotals.confirmedCount} résa · {projectionTotals.confirmedHours} h
@@ -1069,7 +1069,7 @@ const AdminAnalytics = () => {
                 <div className="text-right">
                   <div className="text-muted-foreground">En attente</div>
                   <div className="font-bold text-base text-amber-600">
-                    {projectionTotals.pendingRevenue.toLocaleString("fr-BE")} €
+                    {projectionTotals.pendingRevenue.toLocaleString("fr-BE")} € HTVA
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {projectionTotals.pendingCount} résa · {projectionTotals.pendingHours} h
@@ -1078,7 +1078,7 @@ const AdminAnalytics = () => {
                 <div className="text-right">
                   <div className="text-muted-foreground">Total projeté</div>
                   <div className="font-bold text-base text-primary">
-                    {projectionTotals.totalRevenue.toLocaleString("fr-BE")} €
+                    {projectionTotals.totalRevenue.toLocaleString("fr-BE")} € HTVA
                   </div>
                 </div>
               </div>
@@ -1104,16 +1104,16 @@ const AdminAnalytics = () => {
                       {row.confirmedCount} <span className="text-[10px]">({row.confirmedHours}h)</span>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-emerald-600">
-                      {row.confirmedRevenue.toLocaleString("fr-BE")} €
+                      {row.confirmedRevenue.toLocaleString("fr-BE")} € HTVA
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       {row.pendingCount} <span className="text-[10px]">({row.pendingHours}h)</span>
                     </TableCell>
                     <TableCell className="text-right text-amber-600">
-                      {row.pendingRevenue.toLocaleString("fr-BE")} €
+                      {row.pendingRevenue.toLocaleString("fr-BE")} € HTVA
                     </TableCell>
                     <TableCell className="text-right font-bold">
-                      {row.totalRevenue.toLocaleString("fr-BE")} €
+                      {row.totalRevenue.toLocaleString("fr-BE")} € HTVA
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1122,17 +1122,17 @@ const AdminAnalytics = () => {
                   <TableCell className="text-right">
                     {projectionTotals.confirmedCount} <span className="text-[10px]">({projectionTotals.confirmedHours}h)</span>
                   </TableCell>
-                  <TableCell className="text-right text-emerald-600">{projectionTotals.confirmedRevenue.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right text-emerald-600">{projectionTotals.confirmedRevenue.toLocaleString("fr-BE")} € HTVA</TableCell>
                   <TableCell className="text-right">
                     {projectionTotals.pendingCount} <span className="text-[10px]">({projectionTotals.pendingHours}h)</span>
                   </TableCell>
-                  <TableCell className="text-right text-amber-600">{projectionTotals.pendingRevenue.toLocaleString("fr-BE")} €</TableCell>
-                  <TableCell className="text-right text-primary">{projectionTotals.totalRevenue.toLocaleString("fr-BE")} €</TableCell>
+                  <TableCell className="text-right text-amber-600">{projectionTotals.pendingRevenue.toLocaleString("fr-BE")} € HTVA</TableCell>
+                  <TableCell className="text-right text-primary">{projectionTotals.totalRevenue.toLocaleString("fr-BE")} € HTVA</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
             <p className="text-[10px] text-muted-foreground mt-3 leading-tight">
-              Calcul indicatif basé sur le tarif horaire de chaque salle × durée des créneaux. Les réservations annulées sont exclues.
+              Calcul indicatif basé sur le tarif horaire de chaque salle × durée des créneaux. Les réservations annulées sont exclues. Tous les montants sont <strong>HTVA</strong>.
             </p>
           </CardContent>
         </Card>
@@ -1155,7 +1155,7 @@ const AdminAnalytics = () => {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
-                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v} €`} />} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v} € HTVA`} />} />
                   <Bar dataKey="revenue" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartContainer>
@@ -1291,7 +1291,7 @@ const AdminAnalytics = () => {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v} €`} />
-                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v} €`} />} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v} € HTVA`} />} />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                   {filteredRoomsForChart.map((room, i) => (
                     <Bar
