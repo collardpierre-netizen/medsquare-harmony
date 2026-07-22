@@ -198,7 +198,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         doc.setFontSize(8);
         doc.setTextColor(140, 140, 140);
         doc.text(
-          "Calcul indicatif basé sur le tarif horaire de chaque salle. Les forfaits éventuels ne sont pas inclus.",
+          "Calcul indicatif basé sur le tarif horaire de chaque salle. Les forfaits éventuels ne sont pas inclus. Montants HTVA.",
           margin,
           pageH - 10
         );
