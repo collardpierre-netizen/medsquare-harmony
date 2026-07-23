@@ -722,6 +722,25 @@ const AdminRooms = () => {
                 </div>
               )}
 
+              {/* Monthly flat fee — replaces hourly-rate revenue calc for months covered by privatization */}
+              {(form.privatized_from || !form.is_available) && (
+                <div className="pt-2 border-t border-border/60">
+                  <Label className="text-xs">Forfait mensuel de privatisation (€ HTVA)</Label>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">
+                    Si renseigné, ce forfait remplace le calcul « heures × tarif horaire » dans les statistiques et l'export mensuel pour chaque mois couvert par la période de privatisation. Laissez vide pour conserver le calcul horaire.
+                  </p>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="ex. 550"
+                    value={form.privatization_monthly_fee}
+                    onChange={(e) => setForm({ ...form, privatization_monthly_fee: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+
               {/* Conflict warning: existing bookings overlapping the scheduled period */}
               {editingRoom && form.is_available && form.privatized_from && (
                 <>
