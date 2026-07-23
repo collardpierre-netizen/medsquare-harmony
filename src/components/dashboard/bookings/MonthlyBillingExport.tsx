@@ -306,9 +306,11 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         const amt = items.reduce((s, it) => {
           const h = (new Date(it.end_time).getTime() - new Date(it.start_time).getTime()) / 3_600_000;
           return s + h * Number(it.rooms?.hourly_rate ?? 0);
-        }, 0);
+        }, 0) + (g.flatFees ?? []).reduce((s, f) => s + f.fee, 0);
+        const flatCount = (g.flatFees ?? []).length;
+        const countLabel = flatCount > 0 ? `${items.length} + ${flatCount} forfait${flatCount > 1 ? "s" : ""}` : String(items.length);
         doc.text(g.name, margin + 2, sy);
-        doc.text(String(items.length), margin + 90, sy);
+        doc.text(countLabel, margin + 90, sy);
         doc.text(`${hrs.toFixed(2).replace(".", ",")} h`, margin + 125, sy);
         doc.text(formatEUR(amt), pageW - margin - 2, sy, { align: "right" });
         sy += 7;
