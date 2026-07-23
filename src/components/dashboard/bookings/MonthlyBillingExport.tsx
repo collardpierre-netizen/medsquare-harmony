@@ -332,7 +332,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
 
       toast({
         title: "Export généré",
-        description: `${sorted.length} praticien(s), ${rows.length} réservation(s) — ${formatEUR(grandTotal)}`,
+        description: `${sorted.length} praticien(s), ${filteredRows.length} réservation(s) — ${formatEUR(grandTotal)}`,
       });
       setOpen(false);
     } catch (err: any) {
