@@ -31,17 +31,6 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       const from = startOfMonth(month);
       const to = endOfMonth(month);
 
-      // Fetch bookings for the month with practitioner + room info
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("id, start_time, end_time, status, notes, practitioner_id, profiles(first_name, last_name), rooms(name, hourly_rate)")
-        .gte("start_time", from.toISOString())
-        .lte("start_time", to.toISOString())
-        .in("status", ["confirmed", "pending"])
-        .order("start_time", { ascending: true });
-
-      if (error) throw error;
-
       // Fetch flat-fee privatized rooms covering this month
       const monthStartISO = format(from, "yyyy-MM-dd");
       const monthEndISO = format(to, "yyyy-MM-dd");
@@ -52,7 +41,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
 
       const flatFeeRooms = (roomsData ?? []).filter((r: any) => {
         const fee = Number(r.privatization_monthly_fee || 0);
-        if (fee <= 0) return null;
+        if (fee <= 0) return false;
         if (!r.is_available) return true; // permanent
         if (!r.privatized_from) return false;
         if (r.privatized_from > monthEndISO) return false;
@@ -61,17 +50,17 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       });
       const flatFeeRoomIds = new Set(flatFeeRooms.map((r: any) => r.id));
 
-      const rows = (data ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id ?? (b as any).rooms?.id)) as any[];
-      // Note: bookings query doesn't return room_id in select; filter defensively via rooms(name) match below is fragile.
-      // Safer: re-fetch bookings with room_id explicitly.
-      const { data: dataWithRoomId } = await supabase
+      // Fetch bookings for the month (with room_id so we can exclude flat-fee rooms)
+      const { data, error } = await supabase
         .from("bookings")
         .select("id, start_time, end_time, status, notes, practitioner_id, room_id, profiles(first_name, last_name), rooms(name, hourly_rate)")
         .gte("start_time", from.toISOString())
         .lte("start_time", to.toISOString())
         .in("status", ["confirmed", "pending"])
         .order("start_time", { ascending: true });
-      const filteredRows = (dataWithRoomId ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id)) as any[];
+      if (error) throw error;
+
+      const filteredRows = (data ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id)) as any[];
 
       if (filteredRows.length === 0 && flatFeeRooms.length === 0) {
         toast({
