@@ -344,9 +344,19 @@ const AdminAnalytics = () => {
     const computeRevenueForRange = (start: Date, end: Date) => {
       let revenue = 0;
       let count = 0;
+      // Flat-fee rooms for this month → forfait replaces hourly calc
+      const flatFeeRoomIds = new Set<string>();
+      for (const room of rooms) {
+        const fee = getRoomMonthlyFee(room, start);
+        if (fee != null) {
+          flatFeeRoomIds.add(room.id);
+          revenue += fee;
+        }
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
+        if (flatFeeRoomIds.has(b.room_id)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
