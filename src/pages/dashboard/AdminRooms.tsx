@@ -53,6 +53,7 @@ interface Room {
   privatized_from: string | null;
   privatized_until: string | null;
   assigned_practitioner_id: string | null;
+  privatization_monthly_fee: number | null;
 }
 
 interface PractitionerOption {
