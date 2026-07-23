@@ -251,9 +251,21 @@ const AdminAnalytics = () => {
       let pendingHours = 0;
       let confirmedCount = 0;
       let pendingCount = 0;
+
+      // Rooms with a monthly flat fee that month → forfait only, ignore their bookings
+      const flatFeeRoomIds = new Set<string>();
+      for (const room of rooms) {
+        const fee = getRoomMonthlyFee(room, start);
+        if (fee != null) {
+          flatFeeRoomIds.add(room.id);
+          confirmedRev += fee; // forfait treated as contractual/confirmed
+        }
+      }
+
       for (const b of projectionBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
+        if (flatFeeRoomIds.has(b.room_id)) continue; // covered by forfait
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const rev = (room?.hourly_rate || 0) * hours;
