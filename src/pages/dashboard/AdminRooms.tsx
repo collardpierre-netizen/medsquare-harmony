@@ -303,6 +303,7 @@ const AdminRooms = () => {
       privatized_from: form.privatized_from || null,
       privatized_until: form.privatized_until || null,
       assigned_practitioner_id: form.assigned_practitioner_id || null,
+      privatization_monthly_fee: form.privatization_monthly_fee ? parseFloat(form.privatization_monthly_fee) : null,
     };
 
     // Validation: end date must be >= start date
