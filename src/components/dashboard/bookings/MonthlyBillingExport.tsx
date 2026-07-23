@@ -42,9 +42,38 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
 
       if (error) throw error;
 
-      const rows = (data ?? []) as any[];
+      // Fetch flat-fee privatized rooms covering this month
+      const monthStartISO = format(from, "yyyy-MM-dd");
+      const monthEndISO = format(to, "yyyy-MM-dd");
+      const { data: roomsData, error: roomsErr } = await supabase
+        .from("rooms")
+        .select("id, name, is_available, privatized_from, privatized_until, privatization_monthly_fee, assigned_practitioner_id, profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)");
+      if (roomsErr) throw roomsErr;
 
-      if (rows.length === 0) {
+      const flatFeeRooms = (roomsData ?? []).filter((r: any) => {
+        const fee = Number(r.privatization_monthly_fee || 0);
+        if (fee <= 0) return null;
+        if (!r.is_available) return true; // permanent
+        if (!r.privatized_from) return false;
+        if (r.privatized_from > monthEndISO) return false;
+        if (r.privatized_until && r.privatized_until < monthStartISO) return false;
+        return true;
+      });
+      const flatFeeRoomIds = new Set(flatFeeRooms.map((r: any) => r.id));
+
+      const rows = (data ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id ?? (b as any).rooms?.id)) as any[];
+      // Note: bookings query doesn't return room_id in select; filter defensively via rooms(name) match below is fragile.
+      // Safer: re-fetch bookings with room_id explicitly.
+      const { data: dataWithRoomId } = await supabase
+        .from("bookings")
+        .select("id, start_time, end_time, status, notes, practitioner_id, room_id, profiles(first_name, last_name), rooms(name, hourly_rate)")
+        .gte("start_time", from.toISOString())
+        .lte("start_time", to.toISOString())
+        .in("status", ["confirmed", "pending"])
+        .order("start_time", { ascending: true });
+      const filteredRows = (dataWithRoomId ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id)) as any[];
+
+      if (filteredRows.length === 0 && flatFeeRooms.length === 0) {
         toast({
           title: "Aucune réservation",
           description: `Pas de réservation confirmée ou en attente sur ${fmtBxl(month, "MMMM yyyy")}.`,
@@ -54,13 +83,23 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       }
 
       // Group by practitioner
-      const groups = new Map<string, { name: string; items: any[] }>();
-      rows.forEach((r) => {
+      const groups = new Map<string, { name: string; items: any[]; flatFees: { roomName: string; fee: number }[] }>();
+      filteredRows.forEach((r) => {
         const pid = r.practitioner_id;
         const name = `${r.profiles?.first_name ?? ""} ${r.profiles?.last_name ?? ""}`.trim() || "Praticien inconnu";
-        if (!groups.has(pid)) groups.set(pid, { name, items: [] });
+        if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
         groups.get(pid)!.items.push(r);
       });
+      // Attribute flat fees to assigned practitioner (or "Non attribué")
+      flatFeeRooms.forEach((r: any) => {
+        const pid = r.assigned_practitioner_id ?? `__unassigned_${r.id}`;
+        const name = r.assigned_practitioner_id
+          ? `${r.profiles?.first_name ?? ""} ${r.profiles?.last_name ?? ""}`.trim() || "Praticien assigné"
+          : "Cabinet non attribué";
+        if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
+        groups.get(pid)!.flatFees.push({ roomName: r.name, fee: Number(r.privatization_monthly_fee) });
+      });
+
 
       const sorted = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
