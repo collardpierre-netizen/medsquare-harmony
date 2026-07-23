@@ -116,6 +116,7 @@ const AdminRooms = () => {
     privatized_from: "",
     privatized_until: "",
     assigned_practitioner_id: "",
+    privatization_monthly_fee: "",
   });
 
   const fetchRooms = async () => {
