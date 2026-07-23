@@ -426,14 +426,28 @@ const AdminAnalytics = () => {
     try {
       const XLSX = await import("xlsx");
 
-      // Build per-room × per-month matrix from raw bookings
-      const matrix: Record<string, Record<string, { revenue: number; hours: number; bookings: number }>> = {};
+      // Build per-room × per-month matrix from raw bookings.
+      // For (room, month) with a monthly flat fee → use forfait, skip hourly bookings for that cell.
+      const matrix: Record<string, Record<string, { revenue: number; hours: number; bookings: number; flat?: boolean }>> = {};
       for (const room of rooms) matrix[room.id] = {};
+      // Seed flat-fee cells for each month in the range
+      const monthStartsForMatrix = monthlyRevenueData.map((r) => r.date);
+      for (const room of rooms) {
+        for (const ms of monthStartsForMatrix) {
+          const fee = getRoomMonthlyFee(room, ms);
+          if (fee != null) {
+            const mk = format(ms, "yyyy-MM");
+            matrix[room.id][mk] = { revenue: fee, hours: 0, bookings: 0, flat: true };
+          }
+        }
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         const monthKey = format(ts, "yyyy-MM");
         const room = rooms.find((r) => r.id === b.room_id);
         if (!room) continue;
+        // Skip bookings for rooms billed by forfait that month
+        if (matrix[room.id][monthKey]?.flat) continue;
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const revenue = (room.hourly_rate || 0) * hours;
         if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };
