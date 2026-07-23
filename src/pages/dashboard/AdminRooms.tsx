@@ -257,6 +257,7 @@ const AdminRooms = () => {
       privatized_from: room.privatized_from || "",
       privatized_until: room.privatized_until || "",
       assigned_practitioner_id: room.assigned_practitioner_id || "",
+      privatization_monthly_fee: room.privatization_monthly_fee != null ? String(room.privatization_monthly_fee) : "",
     });
     setShowDialog(true);
   };
