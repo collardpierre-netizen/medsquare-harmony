@@ -20,6 +20,31 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
+/**
+ * Returns the monthly flat fee (HTVA €) for a room on a given month,
+ * or null if no flat fee applies. A fee applies when:
+ *   - room has privatization_monthly_fee > 0, AND
+ *   - the room is privatized on any day of that month (permanent OR range covers it).
+ */
+const getRoomMonthlyFee = (
+  room: { is_available: boolean; privatized_from: string | null; privatized_until: string | null; privatization_monthly_fee: number | null },
+  monthStart: Date,
+): number | null => {
+  const fee = Number(room.privatization_monthly_fee || 0);
+  if (fee <= 0) return null;
+  // Permanent (is_available=false) → always billed
+  if (!room.is_available) return fee;
+  if (!room.privatized_from) return null;
+  // Compare month boundaries as YYYY-MM-DD strings (Brussels-safe since months line up)
+  const monthEndDate = endOfMonth(monthStart);
+  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+  const mS = fmt(monthStart);
+  const mE = fmt(monthEndDate);
+  if (room.privatized_from > mE) return null; // starts after month
+  if (room.privatized_until && room.privatized_until < mS) return null; // ended before month
+  return fee;
+};
+
 const AdminAnalytics = () => {
   const { toast } = useToast();
   const today = new Date();
@@ -146,7 +171,7 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until, privatization_monthly_fee");
       return data || [];
     },
   });
@@ -226,9 +251,21 @@ const AdminAnalytics = () => {
       let pendingHours = 0;
       let confirmedCount = 0;
       let pendingCount = 0;
+
+      // Rooms with a monthly flat fee that month → forfait only, ignore their bookings
+      const flatFeeRoomIds = new Set<string>();
+      for (const room of rooms) {
+        const fee = getRoomMonthlyFee(room, start);
+        if (fee != null) {
+          flatFeeRoomIds.add(room.id);
+          confirmedRev += fee; // forfait treated as contractual/confirmed
+        }
+      }
+
       for (const b of projectionBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
+        if (flatFeeRoomIds.has(b.room_id)) continue; // covered by forfait
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const rev = (room?.hourly_rate || 0) * hours;
@@ -307,9 +344,19 @@ const AdminAnalytics = () => {
     const computeRevenueForRange = (start: Date, end: Date) => {
       let revenue = 0;
       let count = 0;
+      // Flat-fee rooms for this month → forfait replaces hourly calc
+      const flatFeeRoomIds = new Set<string>();
+      for (const room of rooms) {
+        const fee = getRoomMonthlyFee(room, start);
+        if (fee != null) {
+          flatFeeRoomIds.add(room.id);
+          revenue += fee;
+        }
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
+        if (flatFeeRoomIds.has(b.room_id)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
@@ -379,14 +426,28 @@ const AdminAnalytics = () => {
     try {
       const XLSX = await import("xlsx");
 
-      // Build per-room × per-month matrix from raw bookings
-      const matrix: Record<string, Record<string, { revenue: number; hours: number; bookings: number }>> = {};
+      // Build per-room × per-month matrix from raw bookings.
+      // For (room, month) with a monthly flat fee → use forfait, skip hourly bookings for that cell.
+      const matrix: Record<string, Record<string, { revenue: number; hours: number; bookings: number; flat?: boolean }>> = {};
       for (const room of rooms) matrix[room.id] = {};
+      // Seed flat-fee cells for each month in the range
+      const monthStartsForMatrix = monthlyRevenueData.map((r) => r.date);
+      for (const room of rooms) {
+        for (const ms of monthStartsForMatrix) {
+          const fee = getRoomMonthlyFee(room, ms);
+          if (fee != null) {
+            const mk = format(ms, "yyyy-MM");
+            matrix[room.id][mk] = { revenue: fee, hours: 0, bookings: 0, flat: true };
+          }
+        }
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         const monthKey = format(ts, "yyyy-MM");
         const room = rooms.find((r) => r.id === b.room_id);
         if (!room) continue;
+        // Skip bookings for rooms billed by forfait that month
+        if (matrix[room.id][monthKey]?.flat) continue;
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const revenue = (room.hourly_rate || 0) * hours;
         if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };

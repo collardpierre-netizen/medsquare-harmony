@@ -31,20 +31,38 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       const from = startOfMonth(month);
       const to = endOfMonth(month);
 
-      // Fetch bookings for the month with practitioner + room info
+      // Fetch flat-fee privatized rooms covering this month
+      const monthStartISO = format(from, "yyyy-MM-dd");
+      const monthEndISO = format(to, "yyyy-MM-dd");
+      const { data: roomsData, error: roomsErr } = await supabase
+        .from("rooms")
+        .select("id, name, is_available, privatized_from, privatized_until, privatization_monthly_fee, assigned_practitioner_id, profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)");
+      if (roomsErr) throw roomsErr;
+
+      const flatFeeRooms = (roomsData ?? []).filter((r: any) => {
+        const fee = Number(r.privatization_monthly_fee || 0);
+        if (fee <= 0) return false;
+        if (!r.is_available) return true; // permanent
+        if (!r.privatized_from) return false;
+        if (r.privatized_from > monthEndISO) return false;
+        if (r.privatized_until && r.privatized_until < monthStartISO) return false;
+        return true;
+      });
+      const flatFeeRoomIds = new Set(flatFeeRooms.map((r: any) => r.id));
+
+      // Fetch bookings for the month (with room_id so we can exclude flat-fee rooms)
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, start_time, end_time, status, notes, practitioner_id, profiles(first_name, last_name), rooms(name, hourly_rate)")
+        .select("id, start_time, end_time, status, notes, practitioner_id, room_id, profiles(first_name, last_name), rooms(name, hourly_rate)")
         .gte("start_time", from.toISOString())
         .lte("start_time", to.toISOString())
         .in("status", ["confirmed", "pending"])
         .order("start_time", { ascending: true });
-
       if (error) throw error;
 
-      const rows = (data ?? []) as any[];
+      const filteredRows = (data ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id)) as any[];
 
-      if (rows.length === 0) {
+      if (filteredRows.length === 0 && flatFeeRooms.length === 0) {
         toast({
           title: "Aucune réservation",
           description: `Pas de réservation confirmée ou en attente sur ${fmtBxl(month, "MMMM yyyy")}.`,
@@ -54,13 +72,23 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       }
 
       // Group by practitioner
-      const groups = new Map<string, { name: string; items: any[] }>();
-      rows.forEach((r) => {
+      const groups = new Map<string, { name: string; items: any[]; flatFees: { roomName: string; fee: number }[] }>();
+      filteredRows.forEach((r) => {
         const pid = r.practitioner_id;
         const name = `${r.profiles?.first_name ?? ""} ${r.profiles?.last_name ?? ""}`.trim() || "Praticien inconnu";
-        if (!groups.has(pid)) groups.set(pid, { name, items: [] });
+        if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
         groups.get(pid)!.items.push(r);
       });
+      // Attribute flat fees to assigned practitioner (or "Non attribué")
+      flatFeeRooms.forEach((r: any) => {
+        const pid = r.assigned_practitioner_id ?? `__unassigned_${r.id}`;
+        const name = r.assigned_practitioner_id
+          ? `${r.profiles?.first_name ?? ""} ${r.profiles?.last_name ?? ""}`.trim() || "Praticien assigné"
+          : "Cabinet non attribué";
+        if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
+        groups.get(pid)!.flatFees.push({ roomName: r.name, fee: Number(r.privatization_monthly_fee) });
+      });
+
 
       const sorted = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
@@ -174,6 +202,23 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
             y += 6;
           });
 
+        // Flat-fee (forfait mensuel de privatisation) rows
+        (group.flatFees ?? []).forEach((f) => {
+          if (y > pageH - 40) { doc.addPage(); y = 20; }
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(40, 40, 40);
+          doc.text("Forfait", cols.date, y);
+          doc.text("—", cols.horaire, y);
+          const salleTrunc = f.roomName.length > 28 ? f.roomName.slice(0, 27) + "…" : f.roomName;
+          doc.text(salleTrunc, cols.salle, y);
+          doc.text("mois", cols.duree, y);
+          doc.text("—", cols.tarif, y);
+          doc.text(formatEUR(f.fee), cols.montant, y, { align: "right" });
+          practTotal += f.fee;
+          y += 6;
+        });
+        doc.setFont("helvetica", "normal");
+
         // Practitioner total
         if (y > pageH - 25) {
           doc.addPage();
@@ -198,7 +243,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         doc.setFontSize(8);
         doc.setTextColor(140, 140, 140);
         doc.text(
-          "Calcul indicatif basé sur le tarif horaire de chaque salle. Les forfaits éventuels ne sont pas inclus. Montants HTVA.",
+          "Calcul : durée × tarif horaire de chaque salle, ou forfait mensuel pour les salles privatisées avec forfait. Montants HTVA.",
           margin,
           pageH - 10
         );
@@ -250,9 +295,11 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         const amt = items.reduce((s, it) => {
           const h = (new Date(it.end_time).getTime() - new Date(it.start_time).getTime()) / 3_600_000;
           return s + h * Number(it.rooms?.hourly_rate ?? 0);
-        }, 0);
+        }, 0) + (g.flatFees ?? []).reduce((s, f) => s + f.fee, 0);
+        const flatCount = (g.flatFees ?? []).length;
+        const countLabel = flatCount > 0 ? `${items.length} + ${flatCount} forfait${flatCount > 1 ? "s" : ""}` : String(items.length);
         doc.text(g.name, margin + 2, sy);
-        doc.text(String(items.length), margin + 90, sy);
+        doc.text(countLabel, margin + 90, sy);
         doc.text(`${hrs.toFixed(2).replace(".", ",")} h`, margin + 125, sy);
         doc.text(formatEUR(amt), pageW - margin - 2, sy, { align: "right" });
         sy += 7;
@@ -274,7 +321,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
 
       toast({
         title: "Export généré",
-        description: `${sorted.length} praticien(s), ${rows.length} réservation(s) — ${formatEUR(grandTotal)}`,
+        description: `${sorted.length} praticien(s), ${filteredRows.length} réservation(s) — ${formatEUR(grandTotal)}`,
       });
       setOpen(false);
     } catch (err: any) {

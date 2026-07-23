@@ -1,0 +1,2 @@
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS privatization_monthly_fee numeric;
+COMMENT ON COLUMN public.rooms.privatization_monthly_fee IS 'Forfait mensuel HTVA (€) facturé au praticien assigné pendant la période de privatisation. Si défini, remplace le calcul heures × tarif horaire pour cette salle sur les mois couverts par privatized_from/privatized_until.';

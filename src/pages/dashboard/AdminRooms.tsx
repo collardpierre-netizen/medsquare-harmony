@@ -53,6 +53,7 @@ interface Room {
   privatized_from: string | null;
   privatized_until: string | null;
   assigned_practitioner_id: string | null;
+  privatization_monthly_fee: number | null;
 }
 
 interface PractitionerOption {
@@ -115,6 +116,7 @@ const AdminRooms = () => {
     privatized_from: "",
     privatized_until: "",
     assigned_practitioner_id: "",
+    privatization_monthly_fee: "",
   });
 
   const fetchRooms = async () => {
@@ -195,6 +197,7 @@ const AdminRooms = () => {
       privatized_from: "",
       privatized_until: "",
       assigned_practitioner_id: "",
+      privatization_monthly_fee: "",
     });
     setShowDialog(true);
   };
@@ -254,6 +257,7 @@ const AdminRooms = () => {
       privatized_from: room.privatized_from || "",
       privatized_until: room.privatized_until || "",
       assigned_practitioner_id: room.assigned_practitioner_id || "",
+      privatization_monthly_fee: room.privatization_monthly_fee != null ? String(room.privatization_monthly_fee) : "",
     });
     setShowDialog(true);
   };
@@ -299,6 +303,7 @@ const AdminRooms = () => {
       privatized_from: form.privatized_from || null,
       privatized_until: form.privatized_until || null,
       assigned_practitioner_id: form.assigned_practitioner_id || null,
+      privatization_monthly_fee: form.privatization_monthly_fee ? parseFloat(form.privatization_monthly_fee) : null,
     };
 
     // Validation: end date must be >= start date
@@ -714,6 +719,25 @@ const AdminRooms = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Monthly flat fee — replaces hourly-rate revenue calc for months covered by privatization */}
+              {(form.privatized_from || !form.is_available) && (
+                <div className="pt-2 border-t border-border/60">
+                  <Label className="text-xs">Forfait mensuel de privatisation (€ HTVA)</Label>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">
+                    Si renseigné, ce forfait remplace le calcul « heures × tarif horaire » dans les statistiques et l'export mensuel pour chaque mois couvert par la période de privatisation. Laissez vide pour conserver le calcul horaire.
+                  </p>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="ex. 550"
+                    value={form.privatization_monthly_fee}
+                    onChange={(e) => setForm({ ...form, privatization_monthly_fee: e.target.value })}
+                    className="mt-1"
+                  />
                 </div>
               )}
 
