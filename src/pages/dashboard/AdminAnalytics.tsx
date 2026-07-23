@@ -20,6 +20,31 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
+/**
+ * Returns the monthly flat fee (HTVA €) for a room on a given month,
+ * or null if no flat fee applies. A fee applies when:
+ *   - room has privatization_monthly_fee > 0, AND
+ *   - the room is privatized on any day of that month (permanent OR range covers it).
+ */
+const getRoomMonthlyFee = (
+  room: { is_available: boolean; privatized_from: string | null; privatized_until: string | null; privatization_monthly_fee: number | null },
+  monthStart: Date,
+): number | null => {
+  const fee = Number(room.privatization_monthly_fee || 0);
+  if (fee <= 0) return null;
+  // Permanent (is_available=false) → always billed
+  if (!room.is_available) return fee;
+  if (!room.privatized_from) return null;
+  // Compare month boundaries as YYYY-MM-DD strings (Brussels-safe since months line up)
+  const monthEndDate = endOfMonth(monthStart);
+  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+  const mS = fmt(monthStart);
+  const mE = fmt(monthEndDate);
+  if (room.privatized_from > mE) return null; // starts after month
+  if (room.privatized_until && room.privatized_until < mS) return null; // ended before month
+  return fee;
+};
+
 const AdminAnalytics = () => {
   const { toast } = useToast();
   const today = new Date();
