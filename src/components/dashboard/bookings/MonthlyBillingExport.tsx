@@ -213,6 +213,23 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
             y += 6;
           });
 
+        // Flat-fee (forfait mensuel de privatisation) rows
+        (group.flatFees ?? []).forEach((f) => {
+          if (y > pageH - 40) { doc.addPage(); y = 20; }
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(40, 40, 40);
+          doc.text("Forfait", cols.date, y);
+          doc.text("—", cols.horaire, y);
+          const salleTrunc = f.roomName.length > 28 ? f.roomName.slice(0, 27) + "…" : f.roomName;
+          doc.text(salleTrunc, cols.salle, y);
+          doc.text("mois", cols.duree, y);
+          doc.text("—", cols.tarif, y);
+          doc.text(formatEUR(f.fee), cols.montant, y, { align: "right" });
+          practTotal += f.fee;
+          y += 6;
+        });
+        doc.setFont("helvetica", "normal");
+
         // Practitioner total
         if (y > pageH - 25) {
           doc.addPage();
@@ -237,7 +254,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         doc.setFontSize(8);
         doc.setTextColor(140, 140, 140);
         doc.text(
-          "Calcul indicatif basé sur le tarif horaire de chaque salle. Les forfaits éventuels ne sont pas inclus. Montants HTVA.",
+          "Calcul : durée × tarif horaire de chaque salle, ou forfait mensuel pour les salles privatisées avec forfait. Montants HTVA.",
           margin,
           pageH - 10
         );
