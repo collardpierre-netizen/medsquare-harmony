@@ -775,16 +775,27 @@ const AdminAnalytics = () => {
       };
     });
 
-    // Per-room revenue data
+    // Per-room revenue data (applies forfait mensuel when active)
     const roomRevenueData = periods.map(({ start, end, label }) => {
       const row: Record<string, string | number> = { period: label };
+      const monthsInPeriod = eachMonthOfInterval({ start, end: addDays(end, -1) });
       for (const room of filteredRooms) {
         let rev = 0;
+        const flatMonths = new Set<string>();
+        for (const m of monthsInPeriod) {
+          const fee = getRoomMonthlyFee(room, startOfMonth(m));
+          if (fee != null) {
+            rev += fee;
+            flatMonths.add(format(m, "yyyy-MM"));
+          }
+        }
         const roomBookings = filteredBookings.filter(
           (b) => b.room_id === room.id && new Date(b.start_time) >= start && new Date(b.start_time) < end
         );
         for (const b of roomBookings) {
-          const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+          const bStart = new Date(b.start_time);
+          if (flatMonths.has(format(bStart, "yyyy-MM"))) continue;
+          const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
           rev += (room.hourly_rate || 0) * hours;
         }
         row[room.name] = Math.round(rev);
