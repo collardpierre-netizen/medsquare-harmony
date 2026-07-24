@@ -592,9 +592,27 @@ const AdminAnalytics = () => {
       const periodBookings = filteredBookings.filter(
         (b) => new Date(b.start_time) >= start && new Date(b.start_time) < end
       );
+      // Flat fee: for each month intersecting the period, add the forfait for rooms
+      // that have privatization_monthly_fee active. Bookings for these room-months
+      // are excluded to avoid double-counting.
+      const flatFeeKeys = new Set<string>(); // `${roomId}|${YYYY-MM}`
+      const monthsInPeriod = eachMonthOfInterval({ start, end: addDays(end, -1) });
+      for (const m of monthsInPeriod) {
+        const mKey = format(m, "yyyy-MM");
+        for (const room of filteredRooms) {
+          const fee = getRoomMonthlyFee(room, startOfMonth(m));
+          if (fee != null) {
+            revenue += fee;
+            flatFeeKeys.add(`${room.id}|${mKey}`);
+          }
+        }
+      }
       for (const b of periodBookings) {
+        const bStart = new Date(b.start_time);
+        const mKey = format(bStart, "yyyy-MM");
+        if (flatFeeKeys.has(`${b.room_id}|${mKey}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
-        const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+        const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
       }
 
