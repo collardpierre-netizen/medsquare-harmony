@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery } from "@tanstack/react-query";
 import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend, differenceInDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, endOfDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info, Lock, Ban } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info, Lock, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
