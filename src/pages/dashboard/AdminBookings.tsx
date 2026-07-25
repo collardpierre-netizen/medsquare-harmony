@@ -1274,6 +1274,9 @@ const AdminBookings = () => {
                               <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
                             </>
                           )}
+                          <span className="font-medium text-foreground">
+                            {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(room.revenue)} HTVA
+                          </span>
                           <Badge
                             className={cn(
                               "text-[10px] px-1.5 py-0",
