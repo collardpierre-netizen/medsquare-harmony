@@ -1255,8 +1255,9 @@ const AdminAnalytics = () => {
                 {projectionData.map((row) => {
                   const expanded = isMonthExpanded(row.monthKey);
                   return (
-                    <>
-                      <TableRow key={row.month} className="cursor-pointer hover:bg-muted/40" onClick={() => toggleProjectionMonth(row.monthKey)}>
+                    <Fragment key={row.monthKey}>
+                      <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => toggleProjectionMonth(row.monthKey)}>
+
                         <TableCell className="p-0 pl-2">
                           {row.details.length > 0 ? (
                             expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
