@@ -1,9 +1,9 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, Fragment } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { addDays, addWeeks, subWeeks, subMonths, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isWeekend, differenceInDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, endOfDay, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info, Lock, Ban } from "lucide-react";
+import { TrendingUp, DollarSign, Users, CalendarCheck, BarChart3, MapPin, FileDown, CalendarIcon, Info, Lock, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +55,16 @@ const AdminAnalytics = () => {
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [expandedProjectionMonths, setExpandedProjectionMonths] = useState<Set<string>>(new Set());
+  const [showAllProjectionDetails, setShowAllProjectionDetails] = useState(false);
+  const isMonthExpanded = (key: string) => showAllProjectionDetails || expandedProjectionMonths.has(key);
+  const toggleProjectionMonth = (key: string) => {
+    setExpandedProjectionMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
 
   const handleExportPDF = useCallback(async () => {
     if (!dashboardRef.current) return;
@@ -252,6 +262,29 @@ const AdminAnalytics = () => {
       let confirmedCount = 0;
       let pendingCount = 0;
 
+      // Per-room details for this month
+      type Detail = {
+        roomId: string;
+        roomName: string;
+        isForfait: boolean;
+        forfait: number;
+        confirmedCount: number;
+        pendingCount: number;
+        confirmedHours: number;
+        pendingHours: number;
+        confirmedRev: number;
+        pendingRev: number;
+      };
+      const details = new Map<string, Detail>();
+      const getDetail = (roomId: string, roomName: string): Detail => {
+        let d = details.get(roomId);
+        if (!d) {
+          d = { roomId, roomName, isForfait: false, forfait: 0, confirmedCount: 0, pendingCount: 0, confirmedHours: 0, pendingHours: 0, confirmedRev: 0, pendingRev: 0 };
+          details.set(roomId, d);
+        }
+        return d;
+      };
+
       // Rooms with a monthly flat fee that month → forfait only, ignore their bookings
       const flatFeeRoomIds = new Set<string>();
       for (const room of rooms) {
@@ -259,6 +292,10 @@ const AdminAnalytics = () => {
         if (fee != null) {
           flatFeeRoomIds.add(room.id);
           confirmedRev += fee; // forfait treated as contractual/confirmed
+          const d = getDetail(room.id, room.name);
+          d.isForfait = true;
+          d.forfait = fee;
+          d.confirmedRev += fee;
         }
       }
 
@@ -269,18 +306,26 @@ const AdminAnalytics = () => {
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const rev = (room?.hourly_rate || 0) * hours;
+        const d = getDetail(b.room_id, room?.name || "Salle inconnue");
         if (b.status === "confirmed") {
           confirmedRev += rev;
           confirmedHours += hours;
           confirmedCount += 1;
+          d.confirmedRev += rev;
+          d.confirmedHours += hours;
+          d.confirmedCount += 1;
         } else {
           pendingRev += rev;
           pendingHours += hours;
           pendingCount += 1;
+          d.pendingRev += rev;
+          d.pendingHours += hours;
+          d.pendingCount += 1;
         }
       }
       return {
         month: format(start, "MMM yyyy", { locale: fr }),
+        monthKey: format(start, "yyyy-MM"),
         confirmedRevenue: Math.round(confirmedRev),
         pendingRevenue: Math.round(pendingRev),
         totalRevenue: Math.round(confirmedRev + pendingRev),
@@ -288,9 +333,11 @@ const AdminAnalytics = () => {
         pendingHours: Math.round(pendingHours * 10) / 10,
         confirmedCount,
         pendingCount,
+        details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
   }, [rooms, projectionBookings, projectionRange]);
+
 
   const projectionTotals = useMemo(() => {
     return projectionData.reduce(
@@ -1175,9 +1222,27 @@ const AdminAnalytics = () => {
             </div>
           </CardHeader>
           <CardContent>
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setShowAllProjectionDetails((v) => !v);
+                  setExpandedProjectionMonths(new Set());
+                }}
+              >
+                {showAllProjectionDetails ? (
+                  <><ChevronDown className="h-3 w-3 mr-1" />Masquer le détail</>
+                ) : (
+                  <><ChevronRight className="h-3 w-3 mr-1" />Afficher le détail par salle</>
+                )}
+              </Button>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead>Mois</TableHead>
                   <TableHead className="text-right">Confirmées</TableHead>
                   <TableHead className="text-right">CA confirmé</TableHead>
@@ -1187,27 +1252,64 @@ const AdminAnalytics = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projectionData.map((row) => (
-                  <TableRow key={row.month}>
-                    <TableCell className="font-medium capitalize">{row.month}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {row.confirmedCount} <span className="text-[10px]">({row.confirmedHours}h)</span>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-600">
-                      {row.confirmedRevenue.toLocaleString("fr-BE")} € HTVA
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {row.pendingCount} <span className="text-[10px]">({row.pendingHours}h)</span>
-                    </TableCell>
-                    <TableCell className="text-right text-amber-600">
-                      {row.pendingRevenue.toLocaleString("fr-BE")} € HTVA
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {row.totalRevenue.toLocaleString("fr-BE")} € HTVA
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {projectionData.map((row) => {
+                  const expanded = isMonthExpanded(row.monthKey);
+                  return (
+                    <Fragment key={row.monthKey}>
+                      <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => toggleProjectionMonth(row.monthKey)}>
+
+                        <TableCell className="p-0 pl-2">
+                          {row.details.length > 0 ? (
+                            expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="font-medium capitalize">{row.month}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {row.confirmedCount} <span className="text-[10px]">({row.confirmedHours}h)</span>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-emerald-600">
+                          {row.confirmedRevenue.toLocaleString("fr-BE")} € HTVA
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {row.pendingCount} <span className="text-[10px]">({row.pendingHours}h)</span>
+                        </TableCell>
+                        <TableCell className="text-right text-amber-600">
+                          {row.pendingRevenue.toLocaleString("fr-BE")} € HTVA
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {row.totalRevenue.toLocaleString("fr-BE")} € HTVA
+                        </TableCell>
+                      </TableRow>
+                      {expanded && row.details.map((d) => (
+                        <TableRow key={`${row.monthKey}-${d.roomId}`} className="bg-muted/20 text-xs">
+                          <TableCell></TableCell>
+                          <TableCell className="pl-6 text-muted-foreground">
+                            ↳ {d.roomName}
+                            {d.isForfait && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Forfait</span>}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {d.isForfait ? "—" : <>{d.confirmedCount} <span className="text-[10px]">({Math.round(d.confirmedHours * 10) / 10}h)</span></>}
+                          </TableCell>
+                          <TableCell className="text-right text-emerald-600">
+                            {Math.round(d.confirmedRev).toLocaleString("fr-BE")} € HTVA
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {d.isForfait ? "—" : <>{d.pendingCount} <span className="text-[10px]">({Math.round(d.pendingHours * 10) / 10}h)</span></>}
+                          </TableCell>
+                          <TableCell className="text-right text-amber-600">
+                            {Math.round(d.pendingRev).toLocaleString("fr-BE")} € HTVA
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {Math.round(d.confirmedRev + d.pendingRev).toLocaleString("fr-BE")} € HTVA
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </Fragment>
+                  );
+                })}
+
                 <TableRow className="bg-muted/30 font-semibold">
+                  <TableCell></TableCell>
                   <TableCell>Total 3 mois</TableCell>
                   <TableCell className="text-right">
                     {projectionTotals.confirmedCount} <span className="text-[10px]">({projectionTotals.confirmedHours}h)</span>
