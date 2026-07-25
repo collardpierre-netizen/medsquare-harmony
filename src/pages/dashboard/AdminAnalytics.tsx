@@ -252,6 +252,29 @@ const AdminAnalytics = () => {
       let confirmedCount = 0;
       let pendingCount = 0;
 
+      // Per-room details for this month
+      type Detail = {
+        roomId: string;
+        roomName: string;
+        isForfait: boolean;
+        forfait: number;
+        confirmedCount: number;
+        pendingCount: number;
+        confirmedHours: number;
+        pendingHours: number;
+        confirmedRev: number;
+        pendingRev: number;
+      };
+      const details = new Map<string, Detail>();
+      const getDetail = (roomId: string, roomName: string): Detail => {
+        let d = details.get(roomId);
+        if (!d) {
+          d = { roomId, roomName, isForfait: false, forfait: 0, confirmedCount: 0, pendingCount: 0, confirmedHours: 0, pendingHours: 0, confirmedRev: 0, pendingRev: 0 };
+          details.set(roomId, d);
+        }
+        return d;
+      };
+
       // Rooms with a monthly flat fee that month → forfait only, ignore their bookings
       const flatFeeRoomIds = new Set<string>();
       for (const room of rooms) {
@@ -259,6 +282,10 @@ const AdminAnalytics = () => {
         if (fee != null) {
           flatFeeRoomIds.add(room.id);
           confirmedRev += fee; // forfait treated as contractual/confirmed
+          const d = getDetail(room.id, room.name);
+          d.isForfait = true;
+          d.forfait = fee;
+          d.confirmedRev += fee;
         }
       }
 
@@ -269,18 +296,26 @@ const AdminAnalytics = () => {
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const rev = (room?.hourly_rate || 0) * hours;
+        const d = getDetail(b.room_id, room?.name || "Salle inconnue");
         if (b.status === "confirmed") {
           confirmedRev += rev;
           confirmedHours += hours;
           confirmedCount += 1;
+          d.confirmedRev += rev;
+          d.confirmedHours += hours;
+          d.confirmedCount += 1;
         } else {
           pendingRev += rev;
           pendingHours += hours;
           pendingCount += 1;
+          d.pendingRev += rev;
+          d.pendingHours += hours;
+          d.pendingCount += 1;
         }
       }
       return {
         month: format(start, "MMM yyyy", { locale: fr }),
+        monthKey: format(start, "yyyy-MM"),
         confirmedRevenue: Math.round(confirmedRev),
         pendingRevenue: Math.round(pendingRev),
         totalRevenue: Math.round(confirmedRev + pendingRev),
@@ -288,9 +323,11 @@ const AdminAnalytics = () => {
         pendingHours: Math.round(pendingHours * 10) / 10,
         confirmedCount,
         pendingCount,
+        details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
   }, [rooms, projectionBookings, projectionRange]);
+
 
   const projectionTotals = useMemo(() => {
     return projectionData.reduce(
