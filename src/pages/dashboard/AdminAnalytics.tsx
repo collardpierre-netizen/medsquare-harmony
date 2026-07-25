@@ -1304,7 +1304,7 @@ const AdminAnalytics = () => {
                           </TableCell>
                         </TableRow>
                       ))}
-                    </>
+                    </Fragment>
                   );
                 })}
 
