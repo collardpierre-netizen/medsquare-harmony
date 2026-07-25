@@ -55,6 +55,16 @@ const AdminAnalytics = () => {
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [expandedProjectionMonths, setExpandedProjectionMonths] = useState<Set<string>>(new Set());
+  const [showAllProjectionDetails, setShowAllProjectionDetails] = useState(false);
+  const isMonthExpanded = (key: string) => showAllProjectionDetails || expandedProjectionMonths.has(key);
+  const toggleProjectionMonth = (key: string) => {
+    setExpandedProjectionMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
 
   const handleExportPDF = useCallback(async () => {
     if (!dashboardRef.current) return;
