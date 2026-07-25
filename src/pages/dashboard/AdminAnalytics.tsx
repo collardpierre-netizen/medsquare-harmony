@@ -1308,6 +1308,7 @@ const AdminAnalytics = () => {
                 })}
 
                 <TableRow className="bg-muted/30 font-semibold">
+                  <TableCell></TableCell>
                   <TableCell>Total 3 mois</TableCell>
                   <TableCell className="text-right">
                     {projectionTotals.confirmedCount} <span className="text-[10px]">({projectionTotals.confirmedHours}h)</span>
