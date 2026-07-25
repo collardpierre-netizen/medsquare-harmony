@@ -1222,9 +1222,27 @@ const AdminAnalytics = () => {
             </div>
           </CardHeader>
           <CardContent>
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setShowAllProjectionDetails((v) => !v);
+                  setExpandedProjectionMonths(new Set());
+                }}
+              >
+                {showAllProjectionDetails ? (
+                  <><ChevronDown className="h-3 w-3 mr-1" />Masquer le détail</>
+                ) : (
+                  <><ChevronRight className="h-3 w-3 mr-1" />Afficher le détail par salle</>
+                )}
+              </Button>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead>Mois</TableHead>
                   <TableHead className="text-right">Confirmées</TableHead>
                   <TableHead className="text-right">CA confirmé</TableHead>
@@ -1234,26 +1252,61 @@ const AdminAnalytics = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projectionData.map((row) => (
-                  <TableRow key={row.month}>
-                    <TableCell className="font-medium capitalize">{row.month}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {row.confirmedCount} <span className="text-[10px]">({row.confirmedHours}h)</span>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-600">
-                      {row.confirmedRevenue.toLocaleString("fr-BE")} € HTVA
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {row.pendingCount} <span className="text-[10px]">({row.pendingHours}h)</span>
-                    </TableCell>
-                    <TableCell className="text-right text-amber-600">
-                      {row.pendingRevenue.toLocaleString("fr-BE")} € HTVA
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {row.totalRevenue.toLocaleString("fr-BE")} € HTVA
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {projectionData.map((row) => {
+                  const expanded = isMonthExpanded(row.monthKey);
+                  return (
+                    <>
+                      <TableRow key={row.month} className="cursor-pointer hover:bg-muted/40" onClick={() => toggleProjectionMonth(row.monthKey)}>
+                        <TableCell className="p-0 pl-2">
+                          {row.details.length > 0 ? (
+                            expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="font-medium capitalize">{row.month}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {row.confirmedCount} <span className="text-[10px]">({row.confirmedHours}h)</span>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-emerald-600">
+                          {row.confirmedRevenue.toLocaleString("fr-BE")} € HTVA
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {row.pendingCount} <span className="text-[10px]">({row.pendingHours}h)</span>
+                        </TableCell>
+                        <TableCell className="text-right text-amber-600">
+                          {row.pendingRevenue.toLocaleString("fr-BE")} € HTVA
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {row.totalRevenue.toLocaleString("fr-BE")} € HTVA
+                        </TableCell>
+                      </TableRow>
+                      {expanded && row.details.map((d) => (
+                        <TableRow key={`${row.monthKey}-${d.roomId}`} className="bg-muted/20 text-xs">
+                          <TableCell></TableCell>
+                          <TableCell className="pl-6 text-muted-foreground">
+                            ↳ {d.roomName}
+                            {d.isForfait && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Forfait</span>}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {d.isForfait ? "—" : <>{d.confirmedCount} <span className="text-[10px]">({Math.round(d.confirmedHours * 10) / 10}h)</span></>}
+                          </TableCell>
+                          <TableCell className="text-right text-emerald-600">
+                            {Math.round(d.confirmedRev).toLocaleString("fr-BE")} € HTVA
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {d.isForfait ? "—" : <>{d.pendingCount} <span className="text-[10px]">({Math.round(d.pendingHours * 10) / 10}h)</span></>}
+                          </TableCell>
+                          <TableCell className="text-right text-amber-600">
+                            {Math.round(d.pendingRev).toLocaleString("fr-BE")} € HTVA
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {Math.round(d.confirmedRev + d.pendingRev).toLocaleString("fr-BE")} € HTVA
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </>
+                  );
+                })}
+
                 <TableRow className="bg-muted/30 font-semibold">
                   <TableCell>Total 3 mois</TableCell>
                   <TableCell className="text-right">
