@@ -280,7 +280,10 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; revenue: number; flatMonths: Set<string> }> = {};
+
+    // Compute flat-fee revenue per room for months intersecting the range
+    const monthsInRange = eachMonthOfInterval({ start: startOfMonth(rangeStart), end: startOfMonth(rangeEnd) });
 
     allRooms.forEach((r) => {
       let totalHours = 0;
@@ -295,7 +298,31 @@ const AdminBookings = () => {
       });
       // "isPrivatised" flag = entièrement privatisé sur la période affichée
       const isPrivatised = totalHours > 0 && privatizedHours === totalHours;
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised };
+
+      // Flat-fee revenue: sum fee for each month in range where fee applies
+      let revenue = 0;
+      const flatMonths = new Set<string>();
+      const fee = Number((r as any).privatization_monthly_fee || 0);
+      if (fee > 0) {
+        monthsInRange.forEach((m) => {
+          const mS = format(m, "yyyy-MM-dd");
+          const mE = format(endOfMonth(m), "yyyy-MM-dd");
+          let applies = false;
+          if (!r.is_available) {
+            applies = true;
+          } else if (r.privatized_from) {
+            const startsBeforeEnd = r.privatized_from <= mE;
+            const endsAfterStart = !r.privatized_until || r.privatized_until >= mS;
+            applies = startsBeforeEnd && endsAfterStart;
+          }
+          if (applies) {
+            revenue += fee;
+            flatMonths.add(format(m, "yyyy-MM"));
+          }
+        });
+      }
+
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
     });
 
     bookings.forEach((b) => {
@@ -306,14 +333,24 @@ const AdminBookings = () => {
       const inRange = days.some((d) => isSameDay(d, bDay));
       if (!inRange) return;
 
-      if (roomStats[b.room_id]) {
+      const stats = roomStats[b.room_id];
+      if (stats) {
         // Durée de la réservation + 2 x 15 min de battement
         const durationMs = end.getTime() - start.getTime();
         const bufferMs = 2 * BUFFER_MINUTES * 60 * 1000;
         const totalMs = durationMs + bufferMs;
         const hours = totalMs / (1000 * 60 * 60);
-        roomStats[b.room_id].bookedHours += hours;
-        roomStats[b.room_id].bookingCount += 1;
+        stats.bookedHours += hours;
+        stats.bookingCount += 1;
+
+        // Add hourly revenue only if this month is NOT billed by a flat fee for this room
+        const mKey = format(start, "yyyy-MM");
+        if (!stats.flatMonths.has(mKey)) {
+          const room = allRooms.find((r) => r.id === b.room_id);
+          const rate = Number(room?.hourly_rate || 0);
+          const durationHours = durationMs / (1000 * 60 * 60);
+          stats.revenue += rate * durationHours;
+        }
       }
     });
 
@@ -337,7 +374,9 @@ const AdminBookings = () => {
       ? Math.round(roomList.reduce((sum, r) => sum + r.occupancyPct, 0) / roomList.length)
       : 0;
 
-    return { label, rooms: roomList, globalAvg };
+    const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
+
+    return { label, rooms: roomList, globalAvg, totalRevenue };
   }, [allRooms, bookings, filterDateFrom, filterDateTo]);
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
