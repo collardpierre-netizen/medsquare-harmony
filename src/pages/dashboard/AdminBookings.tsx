@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay, startOfMonth, endOfMonth } from "date-fns";
+import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -168,7 +168,7 @@ const AdminBookings = () => {
     const [{ data: profs }, { data: roomsData }, { data: allRoomsData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
-      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until").order("name"),
+      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee").order("name"),
     ]);
     setPractitioners(profs || []);
     setRooms(roomsData || []);
@@ -280,7 +280,10 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; revenue: number; flatMonths: Set<string> }> = {};
+
+    // Compute flat-fee revenue per room for months intersecting the range
+    const monthsInRange = eachMonthOfInterval({ start: startOfMonth(rangeStart), end: startOfMonth(rangeEnd) });
 
     allRooms.forEach((r) => {
       let totalHours = 0;
@@ -295,7 +298,31 @@ const AdminBookings = () => {
       });
       // "isPrivatised" flag = entièrement privatisé sur la période affichée
       const isPrivatised = totalHours > 0 && privatizedHours === totalHours;
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised };
+
+      // Flat-fee revenue: sum fee for each month in range where fee applies
+      let revenue = 0;
+      const flatMonths = new Set<string>();
+      const fee = Number((r as any).privatization_monthly_fee || 0);
+      if (fee > 0) {
+        monthsInRange.forEach((m) => {
+          const mS = format(m, "yyyy-MM-dd");
+          const mE = format(endOfMonth(m), "yyyy-MM-dd");
+          let applies = false;
+          if (!r.is_available) {
+            applies = true;
+          } else if (r.privatized_from) {
+            const startsBeforeEnd = r.privatized_from <= mE;
+            const endsAfterStart = !r.privatized_until || r.privatized_until >= mS;
+            applies = startsBeforeEnd && endsAfterStart;
+          }
+          if (applies) {
+            revenue += fee;
+            flatMonths.add(format(m, "yyyy-MM"));
+          }
+        });
+      }
+
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
     });
 
     bookings.forEach((b) => {
@@ -306,14 +333,24 @@ const AdminBookings = () => {
       const inRange = days.some((d) => isSameDay(d, bDay));
       if (!inRange) return;
 
-      if (roomStats[b.room_id]) {
+      const stats = roomStats[b.room_id];
+      if (stats) {
         // Durée de la réservation + 2 x 15 min de battement
         const durationMs = end.getTime() - start.getTime();
         const bufferMs = 2 * BUFFER_MINUTES * 60 * 1000;
         const totalMs = durationMs + bufferMs;
         const hours = totalMs / (1000 * 60 * 60);
-        roomStats[b.room_id].bookedHours += hours;
-        roomStats[b.room_id].bookingCount += 1;
+        stats.bookedHours += hours;
+        stats.bookingCount += 1;
+
+        // Add hourly revenue only if this month is NOT billed by a flat fee for this room
+        const mKey = format(start, "yyyy-MM");
+        if (!stats.flatMonths.has(mKey)) {
+          const room = allRooms.find((r) => r.id === b.room_id);
+          const rate = Number(room?.hourly_rate || 0);
+          const durationHours = durationMs / (1000 * 60 * 60);
+          stats.revenue += rate * durationHours;
+        }
       }
     });
 
@@ -337,7 +374,9 @@ const AdminBookings = () => {
       ? Math.round(roomList.reduce((sum, r) => sum + r.occupancyPct, 0) / roomList.length)
       : 0;
 
-    return { label, rooms: roomList, globalAvg };
+    const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
+
+    return { label, rooms: roomList, globalAvg, totalRevenue };
   }, [allRooms, bookings, filterDateFrom, filterDateTo]);
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
@@ -1235,6 +1274,9 @@ const AdminBookings = () => {
                               <span>{room.bookedHours.toFixed(1)}h / {room.totalHours}h</span>
                             </>
                           )}
+                          <span className="font-medium text-foreground">
+                            {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(room.revenue)} HTVA
+                          </span>
                           <Badge
                             className={cn(
                               "text-[10px] px-1.5 py-0",
@@ -1260,18 +1302,23 @@ const AdminBookings = () => {
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold">Taux d'occupation moyen global</span>
-                      <Badge
-                        className={cn(
-                          "text-xs px-2 py-0.5",
-                          occupancyData.globalAvg >= 70
-                            ? "bg-destructive/10 text-destructive border-destructive/20"
-                            : occupancyData.globalAvg >= 40
-                            ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                            : "bg-primary/10 text-primary border-primary/20"
-                        )}
-                      >
-                        {occupancyData.globalAvg}%
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-foreground">
+                          Total : {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(occupancyData.totalRevenue)} HTVA
+                        </span>
+                        <Badge
+                          className={cn(
+                            "text-xs px-2 py-0.5",
+                            occupancyData.globalAvg >= 70
+                              ? "bg-destructive/10 text-destructive border-destructive/20"
+                              : occupancyData.globalAvg >= 40
+                              ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                              : "bg-primary/10 text-primary border-primary/20"
+                          )}
+                        >
+                          {occupancyData.globalAvg}%
+                        </Badge>
+                      </div>
                     </div>
                     <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
                   </div>
