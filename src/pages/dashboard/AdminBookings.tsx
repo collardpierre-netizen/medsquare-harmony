@@ -1302,18 +1302,23 @@ const AdminBookings = () => {
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold">Taux d'occupation moyen global</span>
-                      <Badge
-                        className={cn(
-                          "text-xs px-2 py-0.5",
-                          occupancyData.globalAvg >= 70
-                            ? "bg-destructive/10 text-destructive border-destructive/20"
-                            : occupancyData.globalAvg >= 40
-                            ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                            : "bg-primary/10 text-primary border-primary/20"
-                        )}
-                      >
-                        {occupancyData.globalAvg}%
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-foreground">
+                          Total : {new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(occupancyData.totalRevenue)} HTVA
+                        </span>
+                        <Badge
+                          className={cn(
+                            "text-xs px-2 py-0.5",
+                            occupancyData.globalAvg >= 70
+                              ? "bg-destructive/10 text-destructive border-destructive/20"
+                              : occupancyData.globalAvg >= 40
+                              ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                              : "bg-primary/10 text-primary border-primary/20"
+                          )}
+                        >
+                          {occupancyData.globalAvg}%
+                        </Badge>
+                      </div>
                     </div>
                     <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
                   </div>
