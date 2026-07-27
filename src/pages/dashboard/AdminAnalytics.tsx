@@ -474,7 +474,7 @@ const AdminAnalytics = () => {
         date: start,
       };
     });
-  }, [rooms, monthlyBookings, monthlyRange]);
+  }, [rooms, monthlyBookings, monthlyRange, packages]);
 
   const monthlyTotals = useMemo(() => {
     const total12m = monthlyRevenueData.reduce((s, r) => s + r.revenue, 0);
