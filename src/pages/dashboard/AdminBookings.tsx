@@ -395,7 +395,7 @@ const AdminBookings = () => {
     const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
 
     return { label, rooms: roomList, globalAvg, totalRevenue };
-  }, [allRooms, bookings, filterDateFrom, filterDateTo]);
+  }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
   const conflicts = useMemo(() => {
