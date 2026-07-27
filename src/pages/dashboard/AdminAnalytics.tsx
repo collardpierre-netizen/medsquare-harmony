@@ -695,6 +695,7 @@ const AdminAnalytics = () => {
       // that have privatization_monthly_fee active. Bookings for these room-months
       // are excluded to avoid double-counting.
       const flatFeeKeys = new Set<string>(); // `${roomId}|${YYYY-MM}`
+      const packagedKeys = new Set<string>(); // `${practitionerId}|${roomId}|${YYYY-MM}`
       const monthsInPeriod = eachMonthOfInterval({ start, end: addDays(end, -1) });
       for (const m of monthsInPeriod) {
         const mKey = format(m, "yyyy-MM");
@@ -705,11 +706,19 @@ const AdminAnalytics = () => {
             flatFeeKeys.add(`${room.id}|${mKey}`);
           }
         }
+        // Practitioner packages: add forfait per month per praticien+salle
+        for (const pkg of (packages ?? [])) {
+          if (flatFeeKeys.has(`${pkg.room_id}|${mKey}`)) continue;
+          if (!filteredRooms.some((r) => r.id === pkg.room_id)) continue;
+          revenue += Number(pkg.monthly_fee);
+          packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
+        }
       }
       for (const b of periodBookings) {
         const bStart = new Date(b.start_time);
         const mKey = format(bStart, "yyyy-MM");
         if (flatFeeKeys.has(`${b.room_id}|${mKey}`)) continue;
+        if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}|${mKey}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
