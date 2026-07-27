@@ -322,6 +322,10 @@ const AdminBookings = () => {
             revenue += fee;
             flatMonths.add(format(m, "yyyy-MM"));
           }
+        });
+      }
+
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
     });
 
     // Practitioner packages: forfait mensuel praticien+salle
@@ -337,9 +341,6 @@ const AdminBookings = () => {
         if (!packagedKeys[pkg.room_id]) packagedKeys[pkg.room_id] = new Set();
         packagedKeys[pkg.room_id].add(`${pkg.practitioner_id}|${mKey}`);
       });
-      }
-
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
     });
 
     bookings.forEach((b) => {
