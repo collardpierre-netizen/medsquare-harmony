@@ -226,7 +226,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           if (y > pageH - 40) { doc.addPage(); y = 20; }
           doc.setFont("helvetica", "italic");
           doc.setTextColor(40, 40, 40);
-          doc.text("Forfait", cols.date, y);
+          doc.text(f.label || "Forfait", cols.date, y);
           doc.text("—", cols.horaire, y);
           const salleTrunc = f.roomName.length > 28 ? f.roomName.slice(0, 27) + "…" : f.roomName;
           doc.text(salleTrunc, cols.salle, y);
