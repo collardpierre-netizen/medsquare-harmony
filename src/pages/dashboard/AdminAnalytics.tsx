@@ -404,7 +404,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, start_time, end_time, status")
+        .select("id, room_id, practitioner_id, start_time, end_time, status")
         .gte("start_time", monthlyRange.startNMinus1)
         .lt("start_time", monthlyRange.end)
         .neq("status", "cancelled");
