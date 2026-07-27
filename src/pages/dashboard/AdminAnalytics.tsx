@@ -365,7 +365,7 @@ const AdminAnalytics = () => {
         details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
-  }, [rooms, projectionBookings, projectionRange]);
+  }, [rooms, projectionBookings, projectionRange, packages]);
 
 
   const projectionTotals = useMemo(() => {
