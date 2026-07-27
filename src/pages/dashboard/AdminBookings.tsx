@@ -61,6 +61,7 @@ const AdminBookings = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
+  const [packages, setPackages] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Edit dialog
@@ -165,12 +166,14 @@ const AdminBookings = () => {
   };
 
   const fetchResources = async () => {
-    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }] = await Promise.all([
+    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
       supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee").order("name"),
+      supabase.from("practitioner_room_packages").select("practitioner_id, room_id, monthly_fee").eq("is_active", true),
     ]);
     setPractitioners(profs || []);
+    setPackages(pkgData || []);
     setRooms(roomsData || []);
     setAllRooms(allRoomsData || []);
     if (roomsData && roomsData.length > 0 && !planningRoom) {
@@ -325,6 +328,21 @@ const AdminBookings = () => {
       roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
     });
 
+    // Practitioner packages: forfait mensuel praticien+salle
+    const packagedKeys: Record<string, Set<string>> = {}; // roomId -> Set(`${practId}|${YYYY-MM}`)
+    packages.forEach((pkg) => {
+      const stats = roomStats[pkg.room_id];
+      if (!stats) return;
+      const fee = Number(pkg.monthly_fee);
+      monthsInRange.forEach((m) => {
+        const mKey = format(m, "yyyy-MM");
+        if (stats.flatMonths.has(mKey)) return;
+        stats.revenue += fee;
+        if (!packagedKeys[pkg.room_id]) packagedKeys[pkg.room_id] = new Set();
+        packagedKeys[pkg.room_id].add(`${pkg.practitioner_id}|${mKey}`);
+      });
+    });
+
     bookings.forEach((b) => {
       if (b.status === "cancelled") return;
       const start = new Date(b.start_time);
@@ -345,7 +363,7 @@ const AdminBookings = () => {
 
         // Add hourly revenue only if this month is NOT billed by a flat fee for this room
         const mKey = format(start, "yyyy-MM");
-        if (!stats.flatMonths.has(mKey)) {
+        if (!stats.flatMonths.has(mKey) && !packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`)) {
           const room = allRooms.find((r) => r.id === b.room_id);
           const rate = Number(room?.hourly_rate || 0);
           const durationHours = durationMs / (1000 * 60 * 60);
@@ -377,7 +395,7 @@ const AdminBookings = () => {
     const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
 
     return { label, rooms: roomList, globalAvg, totalRevenue };
-  }, [allRooms, bookings, filterDateFrom, filterDateTo]);
+  }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
   const conflicts = useMemo(() => {

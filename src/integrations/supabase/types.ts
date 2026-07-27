@@ -656,6 +656,57 @@ export type Database = {
           },
         ]
       }
+      practitioner_room_packages: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          monthly_fee: number
+          notes: string | null
+          package_label: string
+          practitioner_id: string
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_fee: number
+          notes?: string | null
+          package_label: string
+          practitioner_id: string
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_fee?: number
+          notes?: string | null
+          package_label?: string
+          practitioner_id?: string
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_room_packages_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practitioner_room_packages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           accepts_new_patients: boolean

@@ -50,6 +50,15 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       });
       const flatFeeRoomIds = new Set(flatFeeRooms.map((r: any) => r.id));
 
+      // Fetch practitioner packages (praticien + salle, forfaits actifs)
+      const { data: pkgData } = await supabase
+        .from("practitioner_room_packages")
+        .select("practitioner_id, room_id, monthly_fee, package_label, profiles!practitioner_room_packages_practitioner_id_fkey(first_name, last_name), rooms(name)")
+        .eq("is_active", true);
+      const packages = (pkgData ?? []).filter((p: any) => !flatFeeRoomIds.has(p.room_id));
+      const packagedKey = (pid: string, rid: string) => `${pid}|${rid}`;
+      const packagedSet = new Set(packages.map((p: any) => packagedKey(p.practitioner_id, p.room_id)));
+
       // Fetch bookings for the month (with room_id so we can exclude flat-fee rooms)
       const { data, error } = await supabase
         .from("bookings")
@@ -60,9 +69,11 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         .order("start_time", { ascending: true });
       if (error) throw error;
 
-      const filteredRows = (data ?? []).filter((b: any) => !flatFeeRoomIds.has(b.room_id)) as any[];
+      const filteredRows = (data ?? []).filter(
+        (b: any) => !flatFeeRoomIds.has(b.room_id) && !packagedSet.has(packagedKey(b.practitioner_id, b.room_id)),
+      ) as any[];
 
-      if (filteredRows.length === 0 && flatFeeRooms.length === 0) {
+      if (filteredRows.length === 0 && flatFeeRooms.length === 0 && packages.length === 0) {
         toast({
           title: "Aucune réservation",
           description: `Pas de réservation confirmée ou en attente sur ${fmtBxl(month, "MMMM yyyy")}.`,
@@ -72,22 +83,30 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       }
 
       // Group by practitioner
-      const groups = new Map<string, { name: string; items: any[]; flatFees: { roomName: string; fee: number }[] }>();
+      const groups = new Map<string, { name: string; items: any[]; flatFees: { roomName: string; fee: number; label?: string }[] }>();
       filteredRows.forEach((r) => {
         const pid = r.practitioner_id;
         const name = `${r.profiles?.first_name ?? ""} ${r.profiles?.last_name ?? ""}`.trim() || "Praticien inconnu";
         if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
         groups.get(pid)!.items.push(r);
       });
-      // Attribute flat fees to assigned practitioner (or "Non attribué")
+      // Attribute flat fees (privatisation) to assigned practitioner (or "Non attribué")
       flatFeeRooms.forEach((r: any) => {
         const pid = r.assigned_practitioner_id ?? `__unassigned_${r.id}`;
         const name = r.assigned_practitioner_id
           ? `${r.profiles?.first_name ?? ""} ${r.profiles?.last_name ?? ""}`.trim() || "Praticien assigné"
           : "Cabinet non attribué";
         if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
-        groups.get(pid)!.flatFees.push({ roomName: r.name, fee: Number(r.privatization_monthly_fee) });
+        groups.get(pid)!.flatFees.push({ roomName: r.name, fee: Number(r.privatization_monthly_fee), label: "Privatisation" });
       });
+      // Attribute practitioner packages (praticien+salle) au praticien concerné
+      packages.forEach((p: any) => {
+        const pid = p.practitioner_id;
+        const name = `${p.profiles?.first_name ?? ""} ${p.profiles?.last_name ?? ""}`.trim() || "Praticien";
+        if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
+        groups.get(pid)!.flatFees.push({ roomName: p.rooms?.name ?? "—", fee: Number(p.monthly_fee), label: p.package_label });
+      });
+
 
 
       const sorted = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, "fr"));
@@ -207,7 +226,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           if (y > pageH - 40) { doc.addPage(); y = 20; }
           doc.setFont("helvetica", "italic");
           doc.setTextColor(40, 40, 40);
-          doc.text("Forfait", cols.date, y);
+          doc.text(f.label || "Forfait", cols.date, y);
           doc.text("—", cols.horaire, y);
           const salleTrunc = f.roomName.length > 28 ? f.roomName.slice(0, 27) + "…" : f.roomName;
           doc.text(salleTrunc, cols.salle, y);

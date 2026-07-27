@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import type { PractitionerPackage } from "@/lib/practitionerPackages";
 
 /**
  * Returns the monthly flat fee (HTVA €) for a room on a given month,
@@ -186,6 +187,17 @@ const AdminAnalytics = () => {
     },
   });
 
+  const { data: packages } = useQuery({
+    queryKey: ["admin-analytics-packages"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("practitioner_room_packages")
+        .select("id, practitioner_id, room_id, package_label, monthly_fee, is_active")
+        .eq("is_active", true);
+      return (data ?? []) as unknown as PractitionerPackage[];
+    },
+  });
+
   const { data: bookings } = useQuery({
     queryKey: ["admin-analytics-bookings", globalStart, globalEnd],
     queryFn: async () => {
@@ -237,7 +249,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, start_time, end_time, status")
+        .select("id, room_id, practitioner_id, start_time, end_time, status")
         .gte("start_time", projectionRange.start)
         .lt("start_time", projectionRange.end)
         .in("status", ["confirmed", "pending"]);
@@ -299,10 +311,27 @@ const AdminAnalytics = () => {
         }
       }
 
+      // Practitioner packages (praticien+salle, mensuel récurrent)
+      // Ajoute le forfait au CA confirmé et exclut les bookings horaires du praticien sur cette salle.
+      const packagedKeys = new Set<string>(); // `${practitioner_id}|${room_id}`
+      for (const pkg of (packages ?? [])) {
+        if (flatFeeRoomIds.has(pkg.room_id)) continue; // déjà couvert par forfait salle
+        const room = rooms.find((r) => r.id === pkg.room_id);
+        if (!room) continue;
+        const fee = Number(pkg.monthly_fee);
+        confirmedRev += fee;
+        const d = getDetail(pkg.room_id, room.name);
+        d.isForfait = true;
+        d.forfait += fee;
+        d.confirmedRev += fee;
+        packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
+      }
+
       for (const b of projectionBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
-        if (flatFeeRoomIds.has(b.room_id)) continue; // covered by forfait
+        if (flatFeeRoomIds.has(b.room_id)) continue; // covered by forfait salle
+        if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue; // couvert par forfait praticien
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const rev = (room?.hourly_rate || 0) * hours;
@@ -336,7 +365,7 @@ const AdminAnalytics = () => {
         details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
-  }, [rooms, projectionBookings, projectionRange]);
+  }, [rooms, projectionBookings, projectionRange, packages]);
 
 
   const projectionTotals = useMemo(() => {
@@ -375,7 +404,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, start_time, end_time, status")
+        .select("id, room_id, practitioner_id, start_time, end_time, status")
         .gte("start_time", monthlyRange.startNMinus1)
         .lt("start_time", monthlyRange.end)
         .neq("status", "cancelled");
@@ -400,10 +429,18 @@ const AdminAnalytics = () => {
           revenue += fee;
         }
       }
+      // Practitioner packages → add forfait + exclure les bookings du praticien sur la salle
+      const packagedKeys = new Set<string>();
+      for (const pkg of (packages ?? [])) {
+        if (flatFeeRoomIds.has(pkg.room_id)) continue;
+        revenue += Number(pkg.monthly_fee);
+        packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
         if (flatFeeRoomIds.has(b.room_id)) continue;
+        if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
@@ -437,7 +474,7 @@ const AdminAnalytics = () => {
         date: start,
       };
     });
-  }, [rooms, monthlyBookings, monthlyRange]);
+  }, [rooms, monthlyBookings, monthlyRange, packages]);
 
   const monthlyTotals = useMemo(() => {
     const total12m = monthlyRevenueData.reduce((s, r) => s + r.revenue, 0);
@@ -488,6 +525,19 @@ const AdminAnalytics = () => {
           }
         }
       }
+      // Seed practitioner packages (add fee to room-month, mark as packaged so we skip covered bookings)
+      const packagedRoomPractitioners: Record<string, Set<string>> = {}; // roomId → set of practitionerId
+      for (const pkg of (packages ?? [])) {
+        if (!matrix[pkg.room_id]) continue;
+        if (!packagedRoomPractitioners[pkg.room_id]) packagedRoomPractitioners[pkg.room_id] = new Set();
+        packagedRoomPractitioners[pkg.room_id].add(pkg.practitioner_id);
+        for (const ms of monthStartsForMatrix) {
+          const mk = format(ms, "yyyy-MM");
+          if (matrix[pkg.room_id][mk]?.flat) continue; // déjà couvert par forfait salle
+          if (!matrix[pkg.room_id][mk]) matrix[pkg.room_id][mk] = { revenue: 0, hours: 0, bookings: 0 };
+          matrix[pkg.room_id][mk].revenue += Number(pkg.monthly_fee);
+        }
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         const monthKey = format(ts, "yyyy-MM");
@@ -495,6 +545,8 @@ const AdminAnalytics = () => {
         if (!room) continue;
         // Skip bookings for rooms billed by forfait that month
         if (matrix[room.id][monthKey]?.flat) continue;
+        // Skip bookings for practitioners covered by a package on this room
+        if (packagedRoomPractitioners[room.id]?.has((b as any).practitioner_id)) continue;
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const revenue = (room.hourly_rate || 0) * hours;
         if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };
@@ -643,6 +695,7 @@ const AdminAnalytics = () => {
       // that have privatization_monthly_fee active. Bookings for these room-months
       // are excluded to avoid double-counting.
       const flatFeeKeys = new Set<string>(); // `${roomId}|${YYYY-MM}`
+      const packagedKeys = new Set<string>(); // `${practitionerId}|${roomId}|${YYYY-MM}`
       const monthsInPeriod = eachMonthOfInterval({ start, end: addDays(end, -1) });
       for (const m of monthsInPeriod) {
         const mKey = format(m, "yyyy-MM");
@@ -653,11 +706,19 @@ const AdminAnalytics = () => {
             flatFeeKeys.add(`${room.id}|${mKey}`);
           }
         }
+        // Practitioner packages: add forfait per month per praticien+salle
+        for (const pkg of (packages ?? [])) {
+          if (flatFeeKeys.has(`${pkg.room_id}|${mKey}`)) continue;
+          if (!filteredRooms.some((r) => r.id === pkg.room_id)) continue;
+          revenue += Number(pkg.monthly_fee);
+          packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
+        }
       }
       for (const b of periodBookings) {
         const bStart = new Date(b.start_time);
         const mKey = format(bStart, "yyyy-MM");
         if (flatFeeKeys.has(`${b.room_id}|${mKey}`)) continue;
+        if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}|${mKey}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
@@ -829,11 +890,20 @@ const AdminAnalytics = () => {
       for (const room of filteredRooms) {
         let rev = 0;
         const flatMonths = new Set<string>();
+        const packagedMonthKeys = new Set<string>(); // `${practitionerId}|${YYYY-MM}`
         for (const m of monthsInPeriod) {
+          const mKey = format(m, "yyyy-MM");
           const fee = getRoomMonthlyFee(room, startOfMonth(m));
           if (fee != null) {
             rev += fee;
-            flatMonths.add(format(m, "yyyy-MM"));
+            flatMonths.add(mKey);
+            continue;
+          }
+          // Practitioner packages on this room
+          for (const pkg of (packages ?? [])) {
+            if (pkg.room_id !== room.id) continue;
+            rev += Number(pkg.monthly_fee);
+            packagedMonthKeys.add(`${pkg.practitioner_id}|${mKey}`);
           }
         }
         const roomBookings = filteredBookings.filter(
@@ -841,7 +911,9 @@ const AdminAnalytics = () => {
         );
         for (const b of roomBookings) {
           const bStart = new Date(b.start_time);
-          if (flatMonths.has(format(bStart, "yyyy-MM"))) continue;
+          const mKey = format(bStart, "yyyy-MM");
+          if (flatMonths.has(mKey)) continue;
+          if (packagedMonthKeys.has(`${b.practitioner_id}|${mKey}`)) continue;
           const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
           rev += (room.hourly_rate || 0) * hours;
         }
@@ -851,7 +923,7 @@ const AdminAnalytics = () => {
     });
 
     return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
-  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
+  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId, packages]);
 
   // Current period summary (last period)
   const current = chartData[chartData.length - 1];
