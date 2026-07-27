@@ -363,7 +363,7 @@ const AdminBookings = () => {
 
         // Add hourly revenue only if this month is NOT billed by a flat fee for this room
         const mKey = format(start, "yyyy-MM");
-        if (!stats.flatMonths.has(mKey)) {
+        if (!stats.flatMonths.has(mKey) && !packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`)) {
           const room = allRooms.find((r) => r.id === b.room_id);
           const rate = Number(room?.hourly_rate || 0);
           const durationHours = durationMs / (1000 * 60 * 60);
