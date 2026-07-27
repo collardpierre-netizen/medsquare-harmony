@@ -322,7 +322,21 @@ const AdminBookings = () => {
             revenue += fee;
             flatMonths.add(format(m, "yyyy-MM"));
           }
-        });
+    });
+
+    // Practitioner packages: forfait mensuel praticien+salle
+    const packagedKeys: Record<string, Set<string>> = {}; // roomId -> Set(`${practId}|${YYYY-MM}`)
+    packages.forEach((pkg) => {
+      const stats = roomStats[pkg.room_id];
+      if (!stats) return;
+      const fee = Number(pkg.monthly_fee);
+      monthsInRange.forEach((m) => {
+        const mKey = format(m, "yyyy-MM");
+        if (stats.flatMonths.has(mKey)) return;
+        stats.revenue += fee;
+        if (!packagedKeys[pkg.room_id]) packagedKeys[pkg.room_id] = new Set();
+        packagedKeys[pkg.room_id].add(`${pkg.practitioner_id}|${mKey}`);
+      });
       }
 
       roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
