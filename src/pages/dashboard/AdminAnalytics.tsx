@@ -311,10 +311,27 @@ const AdminAnalytics = () => {
         }
       }
 
+      // Practitioner packages (praticien+salle, mensuel récurrent)
+      // Ajoute le forfait au CA confirmé et exclut les bookings horaires du praticien sur cette salle.
+      const packagedKeys = new Set<string>(); // `${practitioner_id}|${room_id}`
+      for (const pkg of (packages ?? [])) {
+        if (flatFeeRoomIds.has(pkg.room_id)) continue; // déjà couvert par forfait salle
+        const room = rooms.find((r) => r.id === pkg.room_id);
+        if (!room) continue;
+        const fee = Number(pkg.monthly_fee);
+        confirmedRev += fee;
+        const d = getDetail(pkg.room_id, room.name);
+        d.isForfait = true;
+        d.forfait += fee;
+        d.confirmedRev += fee;
+        packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
+      }
+
       for (const b of projectionBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
-        if (flatFeeRoomIds.has(b.room_id)) continue; // covered by forfait
+        if (flatFeeRoomIds.has(b.room_id)) continue; // covered by forfait salle
+        if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue; // couvert par forfait praticien
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const rev = (room?.hourly_rate || 0) * hours;
