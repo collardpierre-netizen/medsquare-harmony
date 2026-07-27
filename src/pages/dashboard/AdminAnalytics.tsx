@@ -890,11 +890,20 @@ const AdminAnalytics = () => {
       for (const room of filteredRooms) {
         let rev = 0;
         const flatMonths = new Set<string>();
+        const packagedMonthKeys = new Set<string>(); // `${practitionerId}|${YYYY-MM}`
         for (const m of monthsInPeriod) {
+          const mKey = format(m, "yyyy-MM");
           const fee = getRoomMonthlyFee(room, startOfMonth(m));
           if (fee != null) {
             rev += fee;
-            flatMonths.add(format(m, "yyyy-MM"));
+            flatMonths.add(mKey);
+            continue;
+          }
+          // Practitioner packages on this room
+          for (const pkg of (packages ?? [])) {
+            if (pkg.room_id !== room.id) continue;
+            rev += Number(pkg.monthly_fee);
+            packagedMonthKeys.add(`${pkg.practitioner_id}|${mKey}`);
           }
         }
         const roomBookings = filteredBookings.filter(
@@ -902,7 +911,9 @@ const AdminAnalytics = () => {
         );
         for (const b of roomBookings) {
           const bStart = new Date(b.start_time);
-          if (flatMonths.has(format(bStart, "yyyy-MM"))) continue;
+          const mKey = format(bStart, "yyyy-MM");
+          if (flatMonths.has(mKey)) continue;
+          if (packagedMonthKeys.has(`${b.practitioner_id}|${mKey}`)) continue;
           const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
           rev += (room.hourly_rate || 0) * hours;
         }
@@ -912,7 +923,7 @@ const AdminAnalytics = () => {
     });
 
     return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
-  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId]);
+  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId, packages]);
 
   // Current period summary (last period)
   const current = chartData[chartData.length - 1];
