@@ -429,10 +429,18 @@ const AdminAnalytics = () => {
           revenue += fee;
         }
       }
+      // Practitioner packages → add forfait + exclure les bookings du praticien sur la salle
+      const packagedKeys = new Set<string>();
+      for (const pkg of (packages ?? [])) {
+        if (flatFeeRoomIds.has(pkg.room_id)) continue;
+        revenue += Number(pkg.monthly_fee);
+        packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
         if (flatFeeRoomIds.has(b.room_id)) continue;
+        if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
         revenue += (room?.hourly_rate || 0) * hours;
