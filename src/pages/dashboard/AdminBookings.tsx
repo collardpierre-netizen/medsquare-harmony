@@ -61,6 +61,7 @@ const AdminBookings = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
+  const [packages, setPackages] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Edit dialog
