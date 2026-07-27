@@ -187,6 +187,17 @@ const AdminAnalytics = () => {
     },
   });
 
+  const { data: packages } = useQuery({
+    queryKey: ["admin-analytics-packages"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("practitioner_room_packages")
+        .select("id, practitioner_id, room_id, package_label, monthly_fee, is_active")
+        .eq("is_active", true);
+      return (data ?? []) as unknown as PractitionerPackage[];
+    },
+  });
+
   const { data: bookings } = useQuery({
     queryKey: ["admin-analytics-bookings", globalStart, globalEnd],
     queryFn: async () => {
