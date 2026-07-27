@@ -525,6 +525,19 @@ const AdminAnalytics = () => {
           }
         }
       }
+      // Seed practitioner packages (add fee to room-month, mark as packaged so we skip covered bookings)
+      const packagedRoomPractitioners: Record<string, Set<string>> = {}; // roomId → set of practitionerId
+      for (const pkg of (packages ?? [])) {
+        if (!matrix[pkg.room_id]) continue;
+        if (!packagedRoomPractitioners[pkg.room_id]) packagedRoomPractitioners[pkg.room_id] = new Set();
+        packagedRoomPractitioners[pkg.room_id].add(pkg.practitioner_id);
+        for (const ms of monthStartsForMatrix) {
+          const mk = format(ms, "yyyy-MM");
+          if (matrix[pkg.room_id][mk]?.flat) continue; // déjà couvert par forfait salle
+          if (!matrix[pkg.room_id][mk]) matrix[pkg.room_id][mk] = { revenue: 0, hours: 0, bookings: 0 };
+          matrix[pkg.room_id][mk].revenue += Number(pkg.monthly_fee);
+        }
+      }
       for (const b of monthlyBookings) {
         const ts = new Date(b.start_time);
         const monthKey = format(ts, "yyyy-MM");
@@ -532,6 +545,8 @@ const AdminAnalytics = () => {
         if (!room) continue;
         // Skip bookings for rooms billed by forfait that month
         if (matrix[room.id][monthKey]?.flat) continue;
+        // Skip bookings for practitioners covered by a package on this room
+        if (packagedRoomPractitioners[room.id]?.has((b as any).practitioner_id)) continue;
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
         const revenue = (room.hourly_rate || 0) * hours;
         if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };
