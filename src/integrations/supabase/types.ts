@@ -965,6 +965,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_review_author_emails: {
+        Args: { review_ids: string[] }
+        Returns: {
+          author_email: string
+          review_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

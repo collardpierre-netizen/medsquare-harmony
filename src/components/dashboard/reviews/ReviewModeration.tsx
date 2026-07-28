@@ -47,12 +47,24 @@ const ReviewModeration = () => {
     if (!profile) return;
     const { data } = await supabase
       .from("practitioner_reviews")
-      .select("*")
+      .select("id, score_global, score_punctuality, score_listening, score_premises, score_explanation, review_text, author_name, is_approved, is_verified, created_at")
       .eq("practitioner_id", profile.id)
       .order("created_at", { ascending: false });
-    setReviews((data as Review[]) || []);
+
+    const list = ((data as Review[]) || []).map((r) => ({ ...r, author_email: null as string | null }));
+
+    if (list.length > 0) {
+      const { data: emails } = await supabase.rpc("get_review_author_emails", {
+        review_ids: list.map((r) => r.id),
+      });
+      const map = new Map((emails || []).map((e: any) => [e.review_id, e.author_email]));
+      list.forEach((r) => { r.author_email = map.get(r.id) ?? null; });
+    }
+
+    setReviews(list);
     setLoading(false);
   };
+
 
   useEffect(() => {
     fetchReviews();
