@@ -313,16 +313,42 @@ const AllRoomsOverview = ({
                   <th className="text-left text-xs font-semibold text-muted-foreground p-2 w-16 sticky left-0 bg-card z-10">
                     Heure
                   </th>
-                  {visibleRooms.map((room) => (
-                    <th
-                      key={room.id}
-                      className="text-center p-2 min-w-[120px]"
-                    >
-                      <span className="text-xs font-semibold text-foreground">
-                        {room.name}
-                      </span>
-                    </th>
-                  ))}
+                  {visibleRooms.map((room) => {
+                    const openHours = allHours.filter(isHourInOpeningRange);
+                    const occupiedHours = openHours.filter(
+                      (h) =>
+                        getBookingsForRoomHour(room.id, h).length > 0 ||
+                        getActivitiesForRoomHour(room.id, h).length > 0
+                    ).length;
+                    const blocked = isRoomBlockedOnDay(room, selectedDate);
+                    return (
+                      <th key={room.id} className="text-center p-2 min-w-[120px] align-top">
+                        <span className="block text-xs font-semibold text-foreground">
+                          {room.name}
+                        </span>
+                        <span className="mt-1 flex flex-col items-center gap-1">
+                          <RoomStatusBadge room={room} compact />
+                          {!blocked && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-medium border",
+                                occupiedHours === 0
+                                  ? "border-success/40 text-success"
+                                  : occupiedHours >= openHours.length
+                                  ? "border-destructive/40 text-destructive"
+                                  : "border-primary/40 text-primary"
+                              )}
+                            >
+                              {occupiedHours === 0
+                                ? "Libre toute la journée"
+                                : `${occupiedHours}/${openHours.length}h occupé`}
+                            </span>
+                          )}
+                        </span>
+                      </th>
+                    );
+                  })}
+
                 </tr>
               </thead>
               <tbody>
