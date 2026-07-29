@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/select";
 import { Filter, X, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
+import { isRoomBlockedOnDay } from "@/lib/roomPrivatization";
+
 
 interface AllRoomsOverviewProps {
   selectedDate: Date;
