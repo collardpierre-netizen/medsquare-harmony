@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
+import PractitionerNoticeBanner from "@/components/dashboard/PractitionerNoticeBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,7 @@ const Dashboard = () => {
           </Button>
         )}
         {(!isAdmin || demoMode) && <ProfileCompletionBanner demoMode={demoMode} />}
+        <PractitionerNoticeBanner />
         <div>
           <h2 className="font-display text-2xl font-bold">
             Bonjour, {profile?.first_name || "Praticien"} 👋
