@@ -239,6 +239,10 @@ const AdminLegalDocuments = () => {
           </Button>
         </div>
 
+        <LegalNoticeEditor />
+
+
+
         <Card>
           <CardContent className="pt-6">
             {loading ? (
