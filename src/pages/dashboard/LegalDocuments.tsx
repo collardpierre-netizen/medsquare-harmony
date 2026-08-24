@@ -53,6 +53,7 @@ const LegalDocuments = () => {
   const [loading, setLoading] = useState(true);
   const [viewDoc, setViewDoc] = useState<LegalDocument | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const notice = useLegalNotice();
 
