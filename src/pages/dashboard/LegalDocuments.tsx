@@ -326,7 +326,7 @@ const LegalDocuments = () => {
       </div>
 
       {/* View Document Dialog */}
-      <Dialog open={!!viewDoc} onOpenChange={() => setViewDoc(null)}>
+      <Dialog open={!!viewDoc} onOpenChange={() => { setViewDoc(null); setAccepted(false); }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           {viewDoc && (
             <>
