@@ -5,7 +5,9 @@ import {
   CheckCircle,
   Clock,
   Eye,
+  Info,
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -169,6 +171,16 @@ const LegalDocuments = () => {
             Consultez les conditions générales, règlement et documents du centre.
           </p>
         </div>
+
+        <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-900 dark:bg-amber-950/20 dark:border-amber-800/40 dark:text-amber-100">
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertTitle className="text-amber-900 dark:text-amber-100">
+            Tarifs horaires et réductions
+          </AlertTitle>
+          <AlertDescription className="text-amber-800/90 dark:text-amber-200/90">
+            Les tarifs horaires et réductions accordées restent évolutifs et peuvent faire l'objet d'une adaptation annuelle pour tenir compte des variations des coûts d'exploitation (chauffage, énergie, nettoyage, services partagés). Toute modification sera notifiée par écrit avec un préavis de trois (3) mois. Le locataire conserve le droit de résilier son bail si la révision lui est inacceptable.
+          </AlertDescription>
+        </Alert>
 
         <Card>
           <CardContent className="pt-6">
