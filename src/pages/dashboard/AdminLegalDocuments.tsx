@@ -40,6 +40,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import RichTextEditor from "@/components/dashboard/legal/RichTextEditor";
+import LegalNoticeEditor from "@/components/dashboard/legal/LegalNoticeEditor";
+
 
 interface LegalDocument {
   id: string;
@@ -238,6 +240,10 @@ const AdminLegalDocuments = () => {
             Nouveau document
           </Button>
         </div>
+
+        <LegalNoticeEditor />
+
+
 
         <Card>
           <CardContent className="pt-6">

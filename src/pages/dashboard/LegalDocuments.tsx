@@ -25,6 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import jsPDF from "jspdf";
+import { useLegalNotice, toPdfSafeText } from "@/components/dashboard/legal/legalNotice";
+
 
 interface LegalDocument {
   id: string;
@@ -50,6 +52,8 @@ const LegalDocuments = () => {
   const [viewDoc, setViewDoc] = useState<LegalDocument | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const notice = useLegalNotice();
+
 
   const fetchData = async () => {
     const [{ data: docs }, { data: acks }] = await Promise.all([
@@ -149,35 +153,37 @@ const LegalDocuments = () => {
       y += 6;
     }
 
-    // Encart : révision annuelle des tarifs
-    const noticeText =
-      "Les tarifs horaires et reductions accordees restent evolutifs et peuvent faire l'objet d'une adaptation annuelle pour tenir compte des variations des couts d'exploitation (chauffage, energie, nettoyage, services partages). Toute modification sera notifiee par ecrit avec un preavis de trois (3) mois. Le locataire conserve le droit de resilier son bail si la revision lui est inacceptable.";
-    pdf.setFontSize(10);
-    const noticeLines = pdf.splitTextToSize(noticeText, 160);
-    const boxHeight = noticeLines.length * 5 + 14;
+    // Encart configurable depuis l'espace admin
+    if (notice?.enabled) {
+      const noticeText = toPdfSafeText(notice.message);
+      pdf.setFontSize(10);
+      const noticeLines = pdf.splitTextToSize(noticeText, 160);
+      const boxHeight = noticeLines.length * 5 + 14;
 
-    y += 6;
-    if (y + boxHeight > pageHeight) {
-      pdf.addPage();
-      y = 20;
+      y += 6;
+      if (y + boxHeight > pageHeight) {
+        pdf.addPage();
+        y = 20;
+      }
+
+      pdf.setFillColor(245, 245, 240);
+      pdf.setDrawColor(200, 195, 180);
+      pdf.rect(20, y, 170, boxHeight, "FD");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(toPdfSafeText(notice.title), 25, y + 7);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(70, 70, 70);
+      let ny = y + 13;
+      for (const line of noticeLines) {
+        pdf.text(line, 25, ny);
+        ny += 5;
+      }
+      y += boxHeight + 6;
     }
 
-    pdf.setFillColor(245, 245, 240);
-    pdf.setDrawColor(200, 195, 180);
-    pdf.rect(20, y, 170, boxHeight, "FD");
-
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(60, 60, 60);
-    pdf.text("Revision annuelle des tarifs", 25, y + 7);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(70, 70, 70);
-    let ny = y + 13;
-    for (const line of noticeLines) {
-      pdf.text(line, 25, ny);
-      ny += 5;
-    }
-    y += boxHeight + 6;
 
 
     // Footer
@@ -203,15 +209,18 @@ const LegalDocuments = () => {
           </p>
         </div>
 
-        <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-900 dark:bg-amber-950/20 dark:border-amber-800/40 dark:text-amber-100">
-          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <AlertTitle className="text-amber-900 dark:text-amber-100">
-            Tarifs horaires et réductions
-          </AlertTitle>
-          <AlertDescription className="text-amber-800/90 dark:text-amber-200/90">
-            Les tarifs horaires et réductions accordées restent évolutifs et peuvent faire l'objet d'une adaptation annuelle pour tenir compte des variations des coûts d'exploitation (chauffage, énergie, nettoyage, services partagés). Toute modification sera notifiée par écrit avec un préavis de trois (3) mois. Le locataire conserve le droit de résilier son bail si la révision lui est inacceptable.
-          </AlertDescription>
-        </Alert>
+        {notice?.enabled && (
+          <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-900 dark:bg-amber-950/20 dark:border-amber-800/40 dark:text-amber-100">
+            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertTitle className="text-amber-900 dark:text-amber-100">
+              {notice.title}
+            </AlertTitle>
+            <AlertDescription className="text-amber-800/90 dark:text-amber-200/90 whitespace-pre-line">
+              {notice.message}
+            </AlertDescription>
+          </Alert>
+        )}
+
 
         <Card>
           <CardContent className="pt-6">
