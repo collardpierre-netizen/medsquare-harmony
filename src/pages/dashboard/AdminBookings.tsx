@@ -689,6 +689,13 @@ const AdminBookings = () => {
     toast({ title: "Export PDF téléchargé" });
   };
 
+  const bookingHours = (b: any) =>
+    (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+
+  const formatHours = (h: number) =>
+    `${Number.isInteger(h) ? h : h.toFixed(1).replace(".", ",")} h`;
+
+
   const BookingRow = ({ booking }: { booking: any }) => {
     const isSelected = selectedIds.has(booking.id);
     const isConflict = conflictBookingIds.has(booking.id);
