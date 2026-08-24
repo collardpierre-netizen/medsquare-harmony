@@ -61,6 +61,7 @@ const navItems: NavItem[] = [
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
   { label: "Documents juridiques", href: "/dashboard/admin/legal-documents", icon: Scale, adminOnly: true },
   { label: "Notifications", href: "/dashboard/admin/notifications", icon: Bell, adminOnly: true },
+  { label: "Annonce praticiens", href: "/dashboard/admin/practitioner-notice", icon: Megaphone, adminOnly: true },
   { label: "Paramètres du site", href: "/dashboard/admin/site-settings", icon: Settings, adminOnly: true },
 ];
 
