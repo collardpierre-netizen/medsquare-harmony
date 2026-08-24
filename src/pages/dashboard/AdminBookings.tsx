@@ -689,6 +689,13 @@ const AdminBookings = () => {
     toast({ title: "Export PDF téléchargé" });
   };
 
+  const bookingHours = (b: any) =>
+    (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
+
+  const formatHours = (h: number) =>
+    `${Number.isInteger(h) ? h : h.toFixed(1).replace(".", ",")} h`;
+
+
   const BookingRow = ({ booking }: { booking: any }) => {
     const isSelected = selectedIds.has(booking.id);
     const isConflict = conflictBookingIds.has(booking.id);
@@ -737,7 +744,10 @@ const AdminBookings = () => {
               {format(new Date(booking.start_time), "EEEE d MMMM • HH:mm", { locale: fr })}
               {" — "}
               {format(new Date(booking.end_time), "HH:mm")}
+              {" • "}
+              <span className="font-medium text-foreground">{formatHours(bookingHours(booking))}</span>
             </p>
+
             {booking.notes && !hideNotes && (
               <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
             )}
@@ -1435,6 +1445,10 @@ const AdminBookings = () => {
                             <p className="font-semibold text-sm">{group.name}</p>
                             <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
                           </div>
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
+                          </Badge>
+
                           <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
                         </button>
                         <Button
