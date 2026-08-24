@@ -139,7 +139,14 @@ const ResetPassword = () => {
             className="max-w-md mx-auto"
           >
             <div className="bg-card rounded-2xl shadow-lg p-8 border border-border">
-              {done ? (
+              {checking && !done ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-8">
+                  <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  <p className="text-muted-foreground text-sm">
+                    Vérification du lien…
+                  </p>
+                </div>
+              ) : done ? (
                 <div className="text-center space-y-4">
                   <CheckCircle className="h-12 w-12 text-primary mx-auto" />
                   <h1 className="font-display text-2xl font-bold">Mot de passe modifié</h1>
