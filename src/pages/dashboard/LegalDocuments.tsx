@@ -21,6 +21,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -51,6 +53,7 @@ const LegalDocuments = () => {
   const [loading, setLoading] = useState(true);
   const [viewDoc, setViewDoc] = useState<LegalDocument | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const notice = useLegalNotice();
 
@@ -82,7 +85,7 @@ const LegalDocuments = () => {
   };
 
   const handleAcknowledge = async (doc: LegalDocument) => {
-    if (!user) return;
+    if (!user || !accepted) return;
     setAcknowledging(true);
 
     const existing = acknowledgments.find((a) => a.document_id === doc.id);
@@ -301,7 +304,7 @@ const LegalDocuments = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setViewDoc(doc)}
+                          onClick={() => { setAccepted(false); setViewDoc(doc); }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -323,7 +326,7 @@ const LegalDocuments = () => {
       </div>
 
       {/* View Document Dialog */}
-      <Dialog open={!!viewDoc} onOpenChange={() => setViewDoc(null)}>
+      <Dialog open={!!viewDoc} onOpenChange={() => { setViewDoc(null); setAccepted(false); }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           {viewDoc && (
             <>
@@ -341,6 +344,53 @@ const LegalDocuments = () => {
                 className="prose prose-sm max-w-none py-4"
                 dangerouslySetInnerHTML={{ __html: viewDoc.content }}
               />
+
+              {notice?.enabled && (
+                <Alert className="bg-amber-50/50 border-amber-200/60 text-amber-900 dark:bg-amber-950/20 dark:border-amber-800/40 dark:text-amber-100">
+                  <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <AlertTitle className="text-amber-900 dark:text-amber-100">
+                    {notice.title}
+                  </AlertTitle>
+                  <AlertDescription className="text-amber-800/90 dark:text-amber-200/90 whitespace-pre-line">
+                    {notice.message}
+                  </AlertDescription>
+                  {(notice.effectiveDate || notice.updatedAt) && (
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+                      {notice.effectiveDate && (
+                        <span>Date d'effet : {formatNoticeDate(notice.effectiveDate)}</span>
+                      )}
+                      {notice.updatedAt && (
+                        <span>
+                          Dernière mise à jour : {formatNoticeDate(notice.updatedAt)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </Alert>
+              )}
+
+              {!isAcknowledged(viewDoc) && (
+                <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3 mt-2">
+                  <Checkbox
+                    id="legal-accept"
+                    checked={accepted}
+                    onCheckedChange={(v) => setAccepted(v === true)}
+                    className="mt-0.5"
+                  />
+                  <Label
+                    htmlFor="legal-accept"
+                    className="text-xs leading-relaxed font-normal cursor-pointer"
+                  >
+                    J'ai lu et j'accepte le contenu de ce document
+                    {notice?.enabled ? `, y compris la clause « ${notice.title} »` : ""}
+                    {notice?.enabled && notice.effectiveDate
+                      ? ` applicable à partir du ${formatNoticeDate(notice.effectiveDate)}`
+                      : ""}
+                    .
+                  </Label>
+                </div>
+              )}
+
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   variant="outline"
@@ -352,13 +402,14 @@ const LegalDocuments = () => {
                 {!isAcknowledged(viewDoc) && (
                   <Button
                     onClick={() => handleAcknowledge(viewDoc)}
-                    disabled={acknowledging}
+                    disabled={acknowledging || !accepted}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
                     {acknowledging ? "En cours..." : "Lu et approuvé"}
                   </Button>
                 )}
               </DialogFooter>
+
             </>
           )}
         </DialogContent>
