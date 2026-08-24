@@ -23,6 +23,7 @@ import {
   Bell,
   Lock,
   FileSignature,
+  Megaphone,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
