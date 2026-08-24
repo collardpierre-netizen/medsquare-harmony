@@ -14,26 +14,78 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [done, setDone] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
+    let active = true;
+
     // Listen for PASSWORD_RECOVERY event from the magic link
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        if (!active) return;
         setIsRecovery(true);
+        setChecking(false);
       }
     });
 
-    // Also check URL hash for type=recovery (fallback)
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
-      setIsRecovery(true);
-    }
+    const resolveLink = async () => {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const tokenHash = params.get("token_hash") || params.get("token");
+      const type = params.get("type");
 
-    return () => subscription.unsubscribe();
+      // 1) Hash-based link (#access_token=...&type=recovery)
+      if (hash.includes("type=recovery") || hash.includes("access_token=")) {
+        if (active) {
+          setIsRecovery(true);
+          setChecking(false);
+        }
+        return;
+      }
+
+      // 2) PKCE link (?code=...)
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (active) {
+          setIsRecovery(!error);
+          setChecking(false);
+        }
+        return;
+      }
+
+      // 3) Token hash link (?token_hash=...&type=recovery)
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: (type as any) || "recovery",
+        });
+        if (active) {
+          setIsRecovery(!error);
+          setChecking(false);
+        }
+        return;
+      }
+
+      // 4) Fallback: an active session (link already consumed by the SDK)
+      const { data } = await supabase.auth.getSession();
+      if (active) {
+        setIsRecovery(!!data.session);
+        setChecking(false);
+      }
+    };
+
+    resolveLink();
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
