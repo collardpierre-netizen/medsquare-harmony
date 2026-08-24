@@ -99,6 +99,7 @@ const App = () => (
             <Route path="/dashboard/admin/site-settings" element={<ProtectedRoute requireAdmin><AdminSiteSettings /></ProtectedRoute>} />
             <Route path="/dashboard/admin/legal-documents" element={<ProtectedRoute requireAdmin><AdminLegalDocuments /></ProtectedRoute>} />
             <Route path="/dashboard/admin/notifications" element={<ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/practitioner-notice" element={<ProtectedRoute requireAdmin><AdminPractitionerNotice /></ProtectedRoute>} />
             <Route path="/dashboard/admin/registrations" element={<ProtectedRoute requireAdmin><AdminRegistrations /></ProtectedRoute>} />
             <Route path="/dashboard/admin/contracts" element={<ProtectedRoute requireAdmin><AdminContracts /></ProtectedRoute>} />
 
