@@ -85,7 +85,7 @@ const LegalDocuments = () => {
   };
 
   const handleAcknowledge = async (doc: LegalDocument) => {
-    if (!user) return;
+    if (!user || !accepted) return;
     setAcknowledging(true);
 
     const existing = acknowledgments.find((a) => a.document_id === doc.id);
