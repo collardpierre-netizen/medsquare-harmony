@@ -1445,6 +1445,10 @@ const AdminBookings = () => {
                             <p className="font-semibold text-sm">{group.name}</p>
                             <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
                           </div>
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
+                          </Badge>
+
                           <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
                         </button>
                         <Button
