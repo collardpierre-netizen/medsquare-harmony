@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import jsPDF from "jspdf";
-import { useLegalNotice, toPdfSafeText } from "@/components/dashboard/legal/legalNotice";
+import { useLegalNotice, toPdfSafeText, formatNoticeDate } from "@/components/dashboard/legal/legalNotice";
 
 
 interface LegalDocument {
