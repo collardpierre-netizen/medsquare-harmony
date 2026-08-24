@@ -304,7 +304,7 @@ const LegalDocuments = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setViewDoc(doc)}
+                          onClick={() => { setAccepted(false); setViewDoc(doc); }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
