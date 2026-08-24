@@ -1,0 +1,48 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+export const LEGAL_NOTICE_KEY = "legal_notice";
+
+export interface LegalNotice {
+  enabled: boolean;
+  title: string;
+  message: string;
+}
+
+export const DEFAULT_LEGAL_NOTICE: LegalNotice = {
+  enabled: true,
+  title: "Tarifs horaires et réductions",
+  message:
+    "Les tarifs horaires et réductions accordées restent évolutifs et peuvent faire l'objet d'une adaptation annuelle pour tenir compte des variations des coûts d'exploitation (chauffage, énergie, nettoyage, services partagés). Toute modification sera notifiée par écrit avec un préavis de trois (3) mois. Le locataire conserve le droit de résilier son bail si la révision lui est inacceptable.",
+};
+
+export const fetchLegalNotice = async (): Promise<LegalNotice> => {
+  const { data } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", LEGAL_NOTICE_KEY)
+    .maybeSingle();
+
+  const value = (data?.value as Partial<LegalNotice> | null) || null;
+  if (!value) return DEFAULT_LEGAL_NOTICE;
+
+  return {
+    enabled: value.enabled ?? DEFAULT_LEGAL_NOTICE.enabled,
+    title: value.title || DEFAULT_LEGAL_NOTICE.title,
+    message: value.message || DEFAULT_LEGAL_NOTICE.message,
+  };
+};
+
+export const useLegalNotice = () => {
+  const [notice, setNotice] = useState<LegalNotice | null>(null);
+
+  useEffect(() => {
+    fetchLegalNotice().then(setNotice);
+  }, []);
+
+  return notice;
+};
+
+/** jsPDF built-in fonts don't support accents — strip diacritics for PDF output. */
+export const toPdfSafeText = (text: string) =>
+  text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
