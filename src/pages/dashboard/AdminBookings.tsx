@@ -737,7 +737,10 @@ const AdminBookings = () => {
               {format(new Date(booking.start_time), "EEEE d MMMM • HH:mm", { locale: fr })}
               {" — "}
               {format(new Date(booking.end_time), "HH:mm")}
+              {" • "}
+              <span className="font-medium text-foreground">{formatHours(bookingHours(booking))}</span>
             </p>
+
             {booking.notes && !hideNotes && (
               <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
             )}
