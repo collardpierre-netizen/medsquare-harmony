@@ -218,8 +218,23 @@ const LegalDocuments = () => {
             <AlertDescription className="text-amber-800/90 dark:text-amber-200/90 whitespace-pre-line">
               {notice.message}
             </AlertDescription>
+            {(notice.effectiveDate || notice.updatedAt) && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+                {notice.effectiveDate && (
+                  <span>
+                    Date d'effet : {formatNoticeDate(notice.effectiveDate)}
+                  </span>
+                )}
+                {notice.updatedAt && (
+                  <span>
+                    Dernière mise à jour : {formatNoticeDate(notice.updatedAt)}
+                  </span>
+                )}
+              </div>
+            )}
           </Alert>
         )}
+
 
 
         <Card>
