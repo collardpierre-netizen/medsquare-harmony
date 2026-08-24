@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import jsPDF from "jspdf";
-import { useLegalNotice, toPdfSafeText } from "@/components/dashboard/legal/legalNotice";
+import { useLegalNotice, toPdfSafeText, formatNoticeDate } from "@/components/dashboard/legal/legalNotice";
 
 
 interface LegalDocument {
@@ -158,7 +158,15 @@ const LegalDocuments = () => {
       const noticeText = toPdfSafeText(notice.message);
       pdf.setFontSize(10);
       const noticeLines = pdf.splitTextToSize(noticeText, 160);
-      const boxHeight = noticeLines.length * 5 + 14;
+      const metaParts: string[] = [];
+      if (notice.effectiveDate)
+        metaParts.push(`Date d'effet : ${formatNoticeDate(notice.effectiveDate)}`);
+      if (notice.updatedAt)
+        metaParts.push(
+          `Derniere mise a jour : ${formatNoticeDate(notice.updatedAt)}`
+        );
+      const metaLine = toPdfSafeText(metaParts.join("   |   "));
+      const boxHeight = noticeLines.length * 5 + 14 + (metaLine ? 6 : 0);
 
       y += 6;
       if (y + boxHeight > pageHeight) {
@@ -181,8 +189,15 @@ const LegalDocuments = () => {
         pdf.text(line, 25, ny);
         ny += 5;
       }
+      if (metaLine) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(metaLine, 25, ny + 1);
+        pdf.setFontSize(10);
+      }
       y += boxHeight + 6;
     }
+
 
 
 
@@ -218,8 +233,23 @@ const LegalDocuments = () => {
             <AlertDescription className="text-amber-800/90 dark:text-amber-200/90 whitespace-pre-line">
               {notice.message}
             </AlertDescription>
+            {(notice.effectiveDate || notice.updatedAt) && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+                {notice.effectiveDate && (
+                  <span>
+                    Date d'effet : {formatNoticeDate(notice.effectiveDate)}
+                  </span>
+                )}
+                {notice.updatedAt && (
+                  <span>
+                    Dernière mise à jour : {formatNoticeDate(notice.updatedAt)}
+                  </span>
+                )}
+              </div>
+            )}
           </Alert>
         )}
+
 
 
         <Card>

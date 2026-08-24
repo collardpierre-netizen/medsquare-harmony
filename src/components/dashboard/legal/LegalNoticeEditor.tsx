@@ -13,6 +13,7 @@ import {
   DEFAULT_LEGAL_NOTICE,
   LEGAL_NOTICE_KEY,
   fetchLegalNotice,
+  formatNoticeDate,
 } from "./legalNotice";
 
 const LegalNoticeEditor = () => {
@@ -20,6 +21,8 @@ const LegalNoticeEditor = () => {
   const [enabled, setEnabled] = useState(true);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -28,19 +31,22 @@ const LegalNoticeEditor = () => {
       setEnabled(n.enabled);
       setTitle(n.title);
       setMessage(n.message);
+      setEffectiveDate(n.effectiveDate);
+      setUpdatedAt(n.updatedAt);
       setLoading(false);
     });
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("settings")
       .upsert(
         {
           key: LEGAL_NOTICE_KEY,
-          value: { enabled, title, message } as any,
-          updated_at: new Date().toISOString(),
+          value: { enabled, title, message, effectiveDate } as any,
+          updated_at: now,
         } as any,
         { onConflict: "key" }
       );
@@ -54,6 +60,7 @@ const LegalNoticeEditor = () => {
       });
       return;
     }
+    setUpdatedAt(now);
     toast({ title: "Encart mis à jour ✅" });
   };
 
@@ -61,7 +68,9 @@ const LegalNoticeEditor = () => {
     setEnabled(DEFAULT_LEGAL_NOTICE.enabled);
     setTitle(DEFAULT_LEGAL_NOTICE.title);
     setMessage(DEFAULT_LEGAL_NOTICE.message);
+    setEffectiveDate(DEFAULT_LEGAL_NOTICE.effectiveDate);
   };
+
 
   return (
     <Card>
@@ -112,6 +121,22 @@ const LegalNoticeEditor = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="notice-date">Date d'effet</Label>
+              <Input
+                id="notice-date"
+                type="date"
+                value={effectiveDate}
+                onChange={(e) => setEffectiveDate(e.target.value)}
+                className="max-w-[220px]"
+              />
+              <p className="text-muted-foreground text-xs">
+                {updatedAt
+                  ? `Dernière mise à jour : ${formatNoticeDate(updatedAt)}`
+                  : "Jamais enregistré"}
+              </p>
+            </div>
+
             {enabled && (title || message) && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Aperçu</Label>
@@ -123,9 +148,22 @@ const LegalNoticeEditor = () => {
                   <AlertDescription className="text-amber-800/90 dark:text-amber-200/90 whitespace-pre-line">
                     {message}
                   </AlertDescription>
+                  {(effectiveDate || updatedAt) && (
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+                      {effectiveDate && (
+                        <span>Date d'effet : {formatNoticeDate(effectiveDate)}</span>
+                      )}
+                      {updatedAt && (
+                        <span>
+                          Dernière mise à jour : {formatNoticeDate(updatedAt)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </Alert>
               </div>
             )}
+
 
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleSave} disabled={saving}>
