@@ -13,6 +13,7 @@ import {
   DEFAULT_LEGAL_NOTICE,
   LEGAL_NOTICE_KEY,
   fetchLegalNotice,
+  formatNoticeDate,
 } from "./legalNotice";
 
 const LegalNoticeEditor = () => {
@@ -20,6 +21,8 @@ const LegalNoticeEditor = () => {
   const [enabled, setEnabled] = useState(true);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -28,19 +31,22 @@ const LegalNoticeEditor = () => {
       setEnabled(n.enabled);
       setTitle(n.title);
       setMessage(n.message);
+      setEffectiveDate(n.effectiveDate);
+      setUpdatedAt(n.updatedAt);
       setLoading(false);
     });
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("settings")
       .upsert(
         {
           key: LEGAL_NOTICE_KEY,
-          value: { enabled, title, message } as any,
-          updated_at: new Date().toISOString(),
+          value: { enabled, title, message, effectiveDate } as any,
+          updated_at: now,
         } as any,
         { onConflict: "key" }
       );
@@ -54,6 +60,7 @@ const LegalNoticeEditor = () => {
       });
       return;
     }
+    setUpdatedAt(now);
     toast({ title: "Encart mis à jour ✅" });
   };
 
@@ -61,7 +68,9 @@ const LegalNoticeEditor = () => {
     setEnabled(DEFAULT_LEGAL_NOTICE.enabled);
     setTitle(DEFAULT_LEGAL_NOTICE.title);
     setMessage(DEFAULT_LEGAL_NOTICE.message);
+    setEffectiveDate(DEFAULT_LEGAL_NOTICE.effectiveDate);
   };
+
 
   return (
     <Card>
