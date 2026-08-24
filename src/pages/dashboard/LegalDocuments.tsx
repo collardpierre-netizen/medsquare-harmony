@@ -52,6 +52,8 @@ const LegalDocuments = () => {
   const [viewDoc, setViewDoc] = useState<LegalDocument | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const notice = useLegalNotice();
+
 
   const fetchData = async () => {
     const [{ data: docs }, { data: acks }] = await Promise.all([
