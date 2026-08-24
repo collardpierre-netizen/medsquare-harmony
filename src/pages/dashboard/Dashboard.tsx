@@ -108,6 +108,7 @@ const Dashboard = () => {
           </Button>
         )}
         {(!isAdmin || demoMode) && <ProfileCompletionBanner demoMode={demoMode} />}
+        <PractitionerNoticeBanner />
         <div>
           <h2 className="font-display text-2xl font-bold">
             Bonjour, {profile?.first_name || "Praticien"} 👋
