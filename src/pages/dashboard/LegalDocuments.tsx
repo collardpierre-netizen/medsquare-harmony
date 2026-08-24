@@ -158,7 +158,15 @@ const LegalDocuments = () => {
       const noticeText = toPdfSafeText(notice.message);
       pdf.setFontSize(10);
       const noticeLines = pdf.splitTextToSize(noticeText, 160);
-      const boxHeight = noticeLines.length * 5 + 14;
+      const metaParts: string[] = [];
+      if (notice.effectiveDate)
+        metaParts.push(`Date d'effet : ${formatNoticeDate(notice.effectiveDate)}`);
+      if (notice.updatedAt)
+        metaParts.push(
+          `Derniere mise a jour : ${formatNoticeDate(notice.updatedAt)}`
+        );
+      const metaLine = toPdfSafeText(metaParts.join("   |   "));
+      const boxHeight = noticeLines.length * 5 + 14 + (metaLine ? 6 : 0);
 
       y += 6;
       if (y + boxHeight > pageHeight) {
@@ -181,8 +189,15 @@ const LegalDocuments = () => {
         pdf.text(line, 25, ny);
         ny += 5;
       }
+      if (metaLine) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(metaLine, 25, ny + 1);
+        pdf.setFontSize(10);
+      }
       y += boxHeight + 6;
     }
+
 
 
 
