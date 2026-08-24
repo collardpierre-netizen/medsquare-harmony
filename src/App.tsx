@@ -35,6 +35,7 @@ import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
 import LegalDocuments from "./pages/dashboard/LegalDocuments";
 import AdminLegalDocuments from "./pages/dashboard/AdminLegalDocuments";
 import AdminNotifications from "./pages/dashboard/AdminNotifications";
+import AdminPractitionerNotice from "./pages/dashboard/AdminPractitionerNotice";
 import AdminRegistrations from "./pages/dashboard/AdminRegistrations";
 import AdminContracts from "./pages/dashboard/AdminContracts";
 import NotFound from "./pages/NotFound";
