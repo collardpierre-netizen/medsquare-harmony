@@ -121,6 +121,22 @@ const LegalNoticeEditor = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="notice-date">Date d'effet</Label>
+              <Input
+                id="notice-date"
+                type="date"
+                value={effectiveDate}
+                onChange={(e) => setEffectiveDate(e.target.value)}
+                className="max-w-[220px]"
+              />
+              <p className="text-muted-foreground text-xs">
+                {updatedAt
+                  ? `Dernière mise à jour : ${formatNoticeDate(updatedAt)}`
+                  : "Jamais enregistré"}
+              </p>
+            </div>
+
             {enabled && (title || message) && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Aperçu</Label>
@@ -132,9 +148,22 @@ const LegalNoticeEditor = () => {
                   <AlertDescription className="text-amber-800/90 dark:text-amber-200/90 whitespace-pre-line">
                     {message}
                   </AlertDescription>
+                  {(effectiveDate || updatedAt) && (
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+                      {effectiveDate && (
+                        <span>Date d'effet : {formatNoticeDate(effectiveDate)}</span>
+                      )}
+                      {updatedAt && (
+                        <span>
+                          Dernière mise à jour : {formatNoticeDate(updatedAt)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </Alert>
               </div>
             )}
+
 
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleSave} disabled={saving}>
