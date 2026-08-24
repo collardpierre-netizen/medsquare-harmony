@@ -52,6 +52,20 @@ export const useLegalNotice = () => {
   return notice;
 };
 
+/** Formatage FR/Bruxelles d'une date ISO (jour/mois/année). */
+export const formatNoticeDate = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("fr-BE", {
+    timeZone: "Europe/Brussels",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(d);
+};
+
+
 /** jsPDF built-in fonts don't support accents — strip diacritics for PDF output. */
 export const toPdfSafeText = (text: string) =>
   text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
