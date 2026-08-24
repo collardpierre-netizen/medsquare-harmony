@@ -149,6 +149,37 @@ const LegalDocuments = () => {
       y += 6;
     }
 
+    // Encart : révision annuelle des tarifs
+    const noticeText =
+      "Les tarifs horaires et reductions accordees restent evolutifs et peuvent faire l'objet d'une adaptation annuelle pour tenir compte des variations des couts d'exploitation (chauffage, energie, nettoyage, services partages). Toute modification sera notifiee par ecrit avec un preavis de trois (3) mois. Le locataire conserve le droit de resilier son bail si la revision lui est inacceptable.";
+    pdf.setFontSize(10);
+    const noticeLines = pdf.splitTextToSize(noticeText, 160);
+    const boxHeight = noticeLines.length * 5 + 14;
+
+    y += 6;
+    if (y + boxHeight > pageHeight) {
+      pdf.addPage();
+      y = 20;
+    }
+
+    pdf.setFillColor(245, 245, 240);
+    pdf.setDrawColor(200, 195, 180);
+    pdf.rect(20, y, 170, boxHeight, "FD");
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(60, 60, 60);
+    pdf.text("Revision annuelle des tarifs", 25, y + 7);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(70, 70, 70);
+    let ny = y + 13;
+    for (const line of noticeLines) {
+      pdf.text(line, 25, ny);
+      ny += 5;
+    }
+    y += boxHeight + 6;
+
+
     // Footer
     const totalPages = pdf.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
