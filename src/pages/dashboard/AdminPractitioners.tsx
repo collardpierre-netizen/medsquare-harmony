@@ -191,6 +191,7 @@ const AdminPractitioners = () => {
   const resetInviteForm = () => {
     setInviteForm({ email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "" });
     setInviteSchedule(DEFAULT_SCHEDULE);
+    setInviteAccountType("practitioner");
     setShowAdvanced(false);
   };
 
@@ -206,6 +207,7 @@ const AdminPractitioners = () => {
           email: inviteForm.email,
           first_name: inviteForm.first_name,
           last_name: inviteForm.last_name,
+          account_type: inviteAccountType,
           specialty: inviteForm.specialty,
           bio: inviteForm.bio,
           phone: inviteForm.phone,
@@ -223,6 +225,36 @@ const AdminPractitioners = () => {
       toast({ title: "Erreur", description: err.message || "Impossible d'envoyer l'invitation", variant: "destructive" });
     }
     setInviting(false);
+  };
+
+  // ---- Change account profile (patient <-> practitioner) ----
+  const confirmRoleChange = async () => {
+    if (!roleChange) return;
+    const { profile, newRole } = roleChange;
+    setChangingRole(true);
+    try {
+      const { error: delError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", profile.user_id)
+        .in("role", ["patient", "practitioner"]);
+      if (delError) throw delError;
+
+      const { error: insError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: profile.user_id, role: newRole });
+      if (insError) throw insError;
+
+      toast({
+        title: "Profil mis à jour",
+        description: `${profile.first_name} ${profile.last_name} est désormais ${newRole === "practitioner" ? "professionnel" : "patient"}. La personne doit se reconnecter pour voir son nouvel espace.`,
+      });
+      setRoleChange(null);
+      fetchPractitioners();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de changer le profil", variant: "destructive" });
+    }
+    setChangingRole(false);
   };
 
   const handleResendInvite = async (practitioner: any) => {
