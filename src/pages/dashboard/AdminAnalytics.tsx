@@ -1747,6 +1747,95 @@ const AdminAnalytics = () => {
           </Card>
         )}
 
+        {(revenueByRoom.length > 0 || revenueByPractitioner.length > 0) && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {revenueByRoom.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Répartition du CA par cabinet
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Part de chaque salle sur la période sélectionnée — montants HTVA
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={{}} className="h-[300px] w-full">
+                    <PieChart>
+                      <Pie
+                        data={revenueByRoom}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={95}
+                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                        labelLine={false}
+                      >
+                        {revenueByRoom.map((entry, i) => (
+                          <Cell key={entry.name} fill={pieColors[i % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(v, n) => `${n} : ${Number(v).toLocaleString("fr-BE")} € HTVA`}
+                          />
+                        }
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {revenueByPractitioner.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Répartition du CA par prestataire
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Part de chaque praticien (forfaits + réservations horaires) — montants HTVA
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={{}} className="h-[300px] w-full">
+                    <PieChart>
+                      <Pie
+                        data={revenueByPractitioner}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={95}
+                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                        labelLine={false}
+                      >
+                        {revenueByPractitioner.map((entry, i) => (
+                          <Cell key={entry.name} fill={pieColors[i % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(v, n) => `${n} : ${Number(v).toLocaleString("fr-BE")} € HTVA`}
+                          />
+                        }
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+
         {roomSummaryData && roomSummaryData.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
