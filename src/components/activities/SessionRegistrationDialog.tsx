@@ -17,6 +17,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
+interface PriceTier {
+  id: string;
+  label: string;
+  price: number;
+  billing_frequency: string;
+  vat_mode: "htva" | "ttc";
+  sort_order: number;
+}
+
 interface SessionRegistrationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,12 +36,14 @@ interface SessionRegistrationDialogProps {
     max_participants: number | null;
     rooms?: { name: string } | null;
     activities?: {
+      id?: string;
       title: string;
       category: string;
       description?: string | null;
       is_free?: boolean;
       price?: number | null;
       profiles?: { first_name: string; last_name: string } | null;
+      prices?: PriceTier[];
     } | null;
   } | null;
   onRegistrationChange?: () => void;
