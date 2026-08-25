@@ -12,7 +12,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Legend, PieChart, Pie, Cell } from "recharts";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
 import { isRoomCurrentlyPrivatized, isRoomBlockedOnDay, isRoomUnavailable } from "@/lib/roomPrivatization";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -182,10 +182,19 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until, privatization_monthly_fee");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until, privatization_monthly_fee, assigned_practitioner_id");
       return data || [];
     },
   });
+
+  const { data: practitionerProfiles } = useQuery({
+    queryKey: ["admin-analytics-practitioner-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, first_name, last_name");
+      return data || [];
+    },
+  });
+
 
   const { data: packages } = useQuery({
     queryKey: ["admin-analytics-packages"],
@@ -954,6 +963,90 @@ const AdminAnalytics = () => {
     return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
   }, [periods, rooms, bookings, sessions, registrations, selectedRoomId, packages]);
 
+  // ─── Répartition du CA (période sélectionnée) : par cabinet et par prestataire ───
+  const { revenueByRoom, revenueByPractitioner } = useMemo(() => {
+    if (!rooms || !bookings || periods.length === 0) {
+      return { revenueByRoom: [] as { name: string; value: number }[], revenueByPractitioner: [] as { name: string; value: number }[] };
+    }
+    const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
+    const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
+    const periodStart = periods[0].start;
+    const periodEnd = periods[periods.length - 1].end;
+    const monthsInPeriod = eachMonthOfInterval({ start: periodStart, end: addDays(periodEnd, -1) });
+
+    const practitionerName = (id: string | null | undefined) => {
+      if (!id) return "Non attribué";
+      const p = (practitionerProfiles ?? []).find((x) => x.id === id);
+      return p ? `${p.first_name} ${p.last_name}` : "Praticien inconnu";
+    };
+
+    const roomTotals = new Map<string, number>();
+    const practitionerTotals = new Map<string, number>();
+    const addTo = (map: Map<string, number>, key: string, amount: number) => {
+      if (amount <= 0) return;
+      map.set(key, (map.get(key) || 0) + amount);
+    };
+
+    const flatKeys = new Set<string>(); // `${roomId}|${YYYY-MM}`
+    const packagedKeys = new Set<string>(); // `${practitionerId}|${roomId}|${YYYY-MM}`
+
+    for (const m of monthsInPeriod) {
+      const mKey = format(m, "yyyy-MM");
+      for (const room of filteredRooms) {
+        const fee = getRoomMonthlyFee(room, startOfMonth(m));
+        if (fee != null) {
+          flatKeys.add(`${room.id}|${mKey}`);
+          addTo(roomTotals, room.name, fee);
+          addTo(practitionerTotals, practitionerName(room.assigned_practitioner_id), fee);
+        }
+      }
+      for (const pkg of packages ?? []) {
+        if (flatKeys.has(`${pkg.room_id}|${mKey}`)) continue;
+        const room = filteredRooms.find((r) => r.id === pkg.room_id);
+        if (!room) continue;
+        const fee = Number(pkg.monthly_fee || 0);
+        packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
+        addTo(roomTotals, room.name, fee);
+        addTo(practitionerTotals, practitionerName(pkg.practitioner_id), fee);
+      }
+    }
+
+    for (const b of filteredBookings) {
+      const bStart = new Date(b.start_time);
+      if (bStart < periodStart || bStart >= periodEnd) continue;
+      const mKey = format(bStart, "yyyy-MM");
+      if (flatKeys.has(`${b.room_id}|${mKey}`)) continue;
+      if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}|${mKey}`)) continue;
+      const room = filteredRooms.find((r) => r.id === b.room_id);
+      if (!room) continue;
+      const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
+      const amount = Number(room.hourly_rate || 0) * hours;
+      addTo(roomTotals, room.name, amount);
+      addTo(practitionerTotals, practitionerName(b.practitioner_id), amount);
+    }
+
+    const toSorted = (map: Map<string, number>) =>
+      Array.from(map.entries())
+        .map(([name, value]) => ({ name, value: Math.round(value) }))
+        .filter((r) => r.value > 0)
+        .sort((a, b) => b.value - a.value);
+
+    return { revenueByRoom: toSorted(roomTotals), revenueByPractitioner: toSorted(practitionerTotals) };
+  }, [rooms, bookings, packages, periods, selectedRoomId, practitionerProfiles]);
+
+  const pieColors = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(var(--primary))",
+    "hsl(var(--sage-dark))",
+    "hsl(var(--warning))",
+  ];
+
+
+
   // Current period summary (last period)
   const current = chartData[chartData.length - 1];
   const previous = chartData.length >= 2 ? chartData[chartData.length - 2] : null;
@@ -1653,6 +1746,95 @@ const AdminAnalytics = () => {
             </CardContent>
           </Card>
         )}
+
+        {(revenueByRoom.length > 0 || revenueByPractitioner.length > 0) && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {revenueByRoom.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Répartition du CA par cabinet
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Part de chaque salle sur la période sélectionnée — montants HTVA
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={{}} className="h-[300px] w-full">
+                    <PieChart>
+                      <Pie
+                        data={revenueByRoom}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={95}
+                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                        labelLine={false}
+                      >
+                        {revenueByRoom.map((entry, i) => (
+                          <Cell key={entry.name} fill={pieColors[i % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(v, n) => `${n} : ${Number(v).toLocaleString("fr-BE")} € HTVA`}
+                          />
+                        }
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {revenueByPractitioner.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Répartition du CA par prestataire
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Part de chaque praticien (forfaits + réservations horaires) — montants HTVA
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={{}} className="h-[300px] w-full">
+                    <PieChart>
+                      <Pie
+                        data={revenueByPractitioner}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={95}
+                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                        labelLine={false}
+                      >
+                        {revenueByPractitioner.map((entry, i) => (
+                          <Cell key={entry.name} fill={pieColors[i % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(v, n) => `${n} : ${Number(v).toLocaleString("fr-BE")} € HTVA`}
+                          />
+                        }
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
 
         {roomSummaryData && roomSummaryData.length > 0 && (
           <Card>
