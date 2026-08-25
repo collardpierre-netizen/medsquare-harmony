@@ -944,6 +944,14 @@ const AdminRooms = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Plages d'ouverture */}
+      <RoomOpeningHoursDialog
+        open={!!hoursRoom}
+        onOpenChange={(o) => !o && setHoursRoom(null)}
+        room={hoursRoom}
+        onSaved={fetchRooms}
+      />
     </DashboardLayout>
   );
 };
