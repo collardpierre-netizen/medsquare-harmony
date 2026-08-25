@@ -16,6 +16,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface PriceTier {
+  id: string;
+  label: string;
+  price: number;
+  billing_frequency: string;
+  vat_mode: "htva" | "ttc";
+  sort_order: number;
+}
 
 interface SessionRegistrationDialogProps {
   open: boolean;
@@ -27,12 +43,14 @@ interface SessionRegistrationDialogProps {
     max_participants: number | null;
     rooms?: { name: string } | null;
     activities?: {
+      id?: string;
       title: string;
       category: string;
       description?: string | null;
       is_free?: boolean;
       price?: number | null;
       profiles?: { first_name: string; last_name: string } | null;
+      prices?: PriceTier[];
     } | null;
   } | null;
   onRegistrationChange?: () => void;
@@ -53,6 +71,8 @@ const SessionRegistrationDialog = ({
   const [checking, setChecking] = useState(true);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "" });
+  const [activityPrices, setActivityPrices] = useState<PriceTier[]>(session?.activities?.prices || []);
+  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !session) {
@@ -84,6 +104,23 @@ const SessionRegistrationDialog = ({
         setIsRegistered(!!data);
       } else {
         setIsRegistered(false);
+      }
+
+      // Load price tiers if not already passed
+      if (session.activities?.id && (!session.activities.prices || session.activities.prices.length === 0)) {
+        const { data: pricesData } = await supabase
+          .from("activity_prices")
+          .select("id, label, price, billing_frequency, vat_mode, sort_order")
+          .eq("activity_id", session.activities.id)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+        const prices = (pricesData || []) as PriceTier[];
+        setActivityPrices(prices);
+        setSelectedPriceId(prices[0]?.id || null);
+      } else {
+        const prices = session.activities?.prices || [];
+        setActivityPrices(prices);
+        setSelectedPriceId(prices[0]?.id || null);
       }
 
       setChecking(false);
@@ -141,6 +178,7 @@ const SessionRegistrationDialog = ({
       session_id: session.id,
       user_id: user.id,
       status,
+      ...(selectedPriceId ? { price_id: selectedPriceId } : {}),
     } as any).select("id").single();
 
     if (error) {
@@ -191,6 +229,7 @@ const SessionRegistrationDialog = ({
       guest_email: guestForm.email.trim(),
       guest_phone: guestForm.phone.trim() || null,
       status,
+      ...(selectedPriceId ? { price_id: selectedPriceId } : {}),
     } as any).select("id").single();
 
     if (error) {
@@ -329,10 +368,34 @@ const SessionRegistrationDialog = ({
 
           {/* Price */}
           {activity && (
-            <div className="rounded-lg bg-accent/50 border border-border p-3">
-              <p className="text-sm font-medium">
-                {activity.is_free ? "Gratuit" : `${activity.price ?? "—"} €`}
-              </p>
+            <div className="rounded-lg bg-accent/50 border border-border p-3 space-y-2">
+              {activity.is_free ? (
+                <p className="text-sm font-medium">Gratuit</p>
+              ) : activityPrices.length > 0 ? (
+                <>
+                  <Label className="text-xs">Tarif choisi</Label>
+                  <Select
+                    value={selectedPriceId || undefined}
+                    onValueChange={(v) => setSelectedPriceId(v)}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Choisir un tarif" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activityPrices.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.label} — {p.price} € {p.vat_mode === "ttc" ? "TTC" : "HTVA"}
+                          {" "}({p.billing_frequency === "unit" ? "à l'unité" : p.billing_frequency})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                <p className="text-sm font-medium">
+                  {activity.price ?? "—"} € HTVA
+                </p>
+              )}
             </div>
           )}
 

@@ -231,7 +231,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("activity_registrations")
-        .select("id, session_id, created_at, status")
+        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode), activity_sessions!inner(start_time)")
         .eq("status", "registered");
       return data || [];
     },
@@ -258,6 +258,17 @@ const AdminAnalytics = () => {
     enabled: !!rooms,
   });
 
+  const { data: projectionRegistrations } = useQuery({
+    queryKey: ["admin-analytics-projection-registrations", projectionRange.start, projectionRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("activity_registrations")
+        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode), activity_sessions!inner(start_time)")
+        .eq("status", "registered");
+      return data || [];
+    },
+  });
+
   const projectionData = useMemo(() => {
     if (!rooms || !projectionBookings) return [];
     const months = eachMonthOfInterval({
@@ -273,6 +284,8 @@ const AdminAnalytics = () => {
       let pendingHours = 0;
       let confirmedCount = 0;
       let pendingCount = 0;
+      let activityConfirmedRev = 0;
+      let activityConfirmedCount = 0;
 
       // Per-room details for this month
       type Detail = {
@@ -352,6 +365,20 @@ const AdminAnalytics = () => {
           d.pendingCount += 1;
         }
       }
+
+      // Activity registrations revenue (confirmed)
+      for (const reg of (projectionRegistrations || [])) {
+        const sessionStart = (reg as any).activity_sessions?.start_time;
+        if (!sessionStart) continue;
+        const ts = new Date(sessionStart);
+        if (ts < start || ts >= end) continue;
+        const price = (reg as any).activity_prices?.price || 0;
+        const vatMode = (reg as any).activity_prices?.vat_mode || "htva";
+        activityConfirmedRev += Number(price);
+        activityConfirmedCount += 1;
+      }
+      confirmedRev += activityConfirmedRev;
+
       return {
         month: format(start, "MMM yyyy", { locale: fr }),
         monthKey: format(start, "yyyy-MM"),
@@ -362,10 +389,12 @@ const AdminAnalytics = () => {
         pendingHours: Math.round(pendingHours * 10) / 10,
         confirmedCount,
         pendingCount,
+        activityConfirmedRevenue: Math.round(activityConfirmedRev),
+        activityConfirmedCount,
         details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
-  }, [rooms, projectionBookings, projectionRange, packages]);
+  }, [rooms, projectionBookings, projectionRange, packages, projectionRegistrations]);
 
 
   const projectionTotals = useMemo(() => {
@@ -1376,6 +1405,24 @@ const AdminAnalytics = () => {
                           </TableCell>
                         </TableRow>
                       ))}
+                      {expanded && (row as any).activityConfirmedRevenue > 0 && (
+                        <TableRow key={`${row.monthKey}-activities`} className="bg-muted/20 text-xs">
+                          <TableCell></TableCell>
+                          <TableCell className="pl-6 text-muted-foreground">
+                            ↳ Inscriptions activités
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">{(row as any).activityConfirmedCount} insc.</span>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right text-emerald-600">
+                            {(row as any).activityConfirmedRevenue.toLocaleString("fr-BE")} € HTVA/TTC
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right text-amber-600">—</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {(row as any).activityConfirmedRevenue.toLocaleString("fr-BE")} € HTVA/TTC
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </Fragment>
                   );
                 })}

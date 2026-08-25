@@ -200,6 +200,23 @@ const AdminActivityPrices = () => {
       return;
     }
 
+    const siblings = (pricesMap[selectedActivity.id] || []).filter(
+      (t) => !editingTier || t.id !== editingTier.id
+    );
+    const duplicate = siblings.find(
+      (t) =>
+        t.label.trim().toLowerCase() === tierForm.label.trim().toLowerCase() &&
+        t.billing_frequency === tierForm.billing_frequency
+    );
+    if (duplicate) {
+      toast({
+        variant: "destructive",
+        title: "Pilier en doublon",
+        description: `Un tarif "${tierForm.label}" avec la fréquence "${FREQUENCY_LABELS[tierForm.billing_frequency]}" existe déjà pour cette activité.`,
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     if (editingTier) {
@@ -402,6 +419,31 @@ const AdminActivityPrices = () => {
                             </div>
                           </div>
                         ))}
+                        {tiers.length > 0 && (() => {
+                          const htvaTotal = tiers
+                            .filter((t) => t.vat_mode === "htva")
+                            .reduce((s, t) => s + Number(t.price), 0);
+                          const ttcTotal = tiers
+                            .filter((t) => t.vat_mode === "ttc")
+                            .reduce((s, t) => s + Number(t.price), 0);
+                          const mixed = new Set(tiers.map((t) => t.vat_mode)).size > 1;
+                          return (
+                            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs">
+                              <span className="text-muted-foreground font-medium">Totaux paliers :</span>
+                              {htvaTotal > 0 && (
+                                <span className="font-semibold">{formatPrice(htvaTotal)} HTVA</span>
+                              )}
+                              {ttcTotal > 0 && (
+                                <span className="font-semibold">{formatPrice(ttcTotal)} TTC</span>
+                              )}
+                              {mixed && (
+                                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-200 bg-amber-50">
+                                  Mix HTVA/TTC
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground py-2">
