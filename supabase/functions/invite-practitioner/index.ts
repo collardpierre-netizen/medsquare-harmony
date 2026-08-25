@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         preheader: "Vous avez été invité(e) à rejoindre Medsquare",
         content: `
           <p>Bonjour <strong>${targetFirstName} ${targetLastName}</strong>,</p>
-          <p>Vous avez été invité(e) à rejoindre la plateforme <strong>Medsquare</strong> en tant que praticien(ne).</p>
+          <p>Vous avez été invité(e) à rejoindre la plateforme <strong>Medsquare</strong> en tant que ${targetAccountType === "patient" ? "patient(e)" : "praticien(ne)"}.</p>
           <p>Cliquez sur le bouton ci-dessous pour activer votre compte et compléter votre profil :</p>
         `,
         ctaLabel: "Activer mon compte",
