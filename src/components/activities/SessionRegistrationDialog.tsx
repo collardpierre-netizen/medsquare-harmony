@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PriceTier {
   id: string;
@@ -64,6 +71,8 @@ const SessionRegistrationDialog = ({
   const [checking, setChecking] = useState(true);
   const [showGuestForm, setShowGuestForm] = useState(false);
   const [guestForm, setGuestForm] = useState({ name: "", email: "", phone: "" });
+  const [activityPrices, setActivityPrices] = useState<PriceTier[]>(session?.activities?.prices || []);
+  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !session) {
