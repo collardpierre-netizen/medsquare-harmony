@@ -558,6 +558,71 @@ const AdminProfitability = () => {
           </Card>
         </div>
 
+        {/* Ventilation des dépenses */}
+        {expenseBreakdown.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Ventilation des dépenses</CardTitle>
+              <CardDescription>
+                Répartition par catégorie sur la période analysée, en € HTVA
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 lg:grid-cols-2 items-center">
+              <ChartContainer config={{}} className="h-[300px] w-full">
+                <PieChart>
+                  <Pie
+                    data={expenseBreakdown}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={95}
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                  >
+                    {expenseBreakdown.map((entry, i) => (
+                      <Cell key={entry.name} fill={pieColors[i % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(v, n) => `${n} : ${Number(v).toLocaleString("fr-BE")} € HTVA`}
+                      />
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                </PieChart>
+              </ChartContainer>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead className="text-right">Part</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {expenseBreakdown.map((row) => {
+                    const total = expenseBreakdown.reduce((s, r) => s + r.value, 0);
+                    return (
+                      <TableRow key={row.name}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell className="text-right text-destructive">{eur(row.value)}</TableCell>
+                        <TableCell className="text-right">
+                          {total > 0 ? ((row.value / total) * 100).toFixed(1) : "0"}%
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+
+
         {/* Détail mensuel */}
         <Card>
           <CardHeader>
