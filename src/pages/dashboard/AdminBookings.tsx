@@ -705,6 +705,20 @@ const AdminBookings = () => {
   const formatHours = (h: number) =>
     `${Number.isInteger(h) ? h : h.toFixed(1).replace(".", ",")} h`;
 
+  const bookingRevenue = (b: any) => {
+    const room = allRooms.find((r) => r.id === b.room_id);
+    if (!room) return 0;
+    const hours = bookingHours(b);
+    return (room.hourly_rate || 0) * hours;
+  };
+
+  const formatMoney = (amount: number) =>
+    new Intl.NumberFormat("fr-BE", {
+      style: "currency",
+      currency: "EUR",
+      maximumFractionDigits: 0,
+    }).format(amount);
+
 
   const BookingRow = ({ booking }: { booking: any }) => {
     const isSelected = selectedIds.has(booking.id);
@@ -762,6 +776,14 @@ const AdminBookings = () => {
               <p className="text-xs text-muted-foreground mt-1 italic">"{booking.notes}"</p>
             )}
           </div>
+        </div>
+        <div className="flex flex-col items-end gap-1 ml-4">
+          <span className="text-sm font-semibold text-emerald-600">
+            {formatMoney(bookingRevenue(booking))} HTVA
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
+          </span>
         </div>
         <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
           {booking.status === "pending" && (
@@ -1461,9 +1483,14 @@ const AdminBookings = () => {
                             <p className="font-semibold text-sm">{group.name}</p>
                             <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
                           </div>
-                          <Badge variant="outline" className="text-xs shrink-0">
-                            Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
+                              {formatMoney(group.bookings.reduce((s: number, b: any) => s + bookingRevenue(b), 0))} HTVA
+                            </Badge>
+                          </div>
 
                           <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
                         </button>
