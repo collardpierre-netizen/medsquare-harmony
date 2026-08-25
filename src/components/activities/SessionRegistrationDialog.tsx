@@ -366,10 +366,34 @@ const SessionRegistrationDialog = ({
 
           {/* Price */}
           {activity && (
-            <div className="rounded-lg bg-accent/50 border border-border p-3">
-              <p className="text-sm font-medium">
-                {activity.is_free ? "Gratuit" : `${activity.price ?? "—"} €`}
-              </p>
+            <div className="rounded-lg bg-accent/50 border border-border p-3 space-y-2">
+              {activity.is_free ? (
+                <p className="text-sm font-medium">Gratuit</p>
+              ) : activityPrices.length > 0 ? (
+                <>
+                  <Label className="text-xs">Tarif choisi</Label>
+                  <Select
+                    value={selectedPriceId || undefined}
+                    onValueChange={(v) => setSelectedPriceId(v)}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Choisir un tarif" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activityPrices.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.label} — {p.price} € {p.vat_mode === "ttc" ? "TTC" : "HTVA"}
+                          {" "}({p.billing_frequency === "unit" ? "à l'unité" : p.billing_frequency})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                <p className="text-sm font-medium">
+                  {activity.price ?? "—"} € HTVA
+                </p>
+              )}
             </div>
           )}
 
