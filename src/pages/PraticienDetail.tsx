@@ -117,9 +117,12 @@ const PraticienDetail = () => {
     const fetchData = async () => {
       if (!id) return;
 
+      // Public-safe columns only (phone / contact_email are not readable anonymously)
       const { data: profile } = await supabase
         .from("profiles")
-        .select("*")
+        .select(
+          "id, first_name, last_name, specialty, bio, avatar_url, schedule, is_active, social_links, accepts_new_patients, avg_appointment_delay_days, collaboration_ids, video_available, home_visit, pmr_accessible, parking, languages, payment_methods, conventioned, inami_number, tiers_payant, specialties, experiences, formations, associations, profile_score, external_booking_url"
+        )
         .eq("id", id)
         .eq("is_active", true)
         .maybeSingle();
@@ -129,6 +132,13 @@ const PraticienDetail = () => {
         setLoading(false);
         return;
       }
+
+      // Contact details are only readable by authenticated users (RLS/column grants)
+      const { data: contact } = await supabase
+        .from("profiles")
+        .select("phone, contact_email")
+        .eq("id", id)
+        .maybeSingle();
 
       let parsedSchedule: DaySchedule[] | null = null;
       if (profile.schedule) {
