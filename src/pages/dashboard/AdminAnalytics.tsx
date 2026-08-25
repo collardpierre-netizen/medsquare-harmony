@@ -231,7 +231,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("activity_registrations")
-        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode)")
+        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode), activity_sessions!inner(start_time)")
         .eq("status", "registered");
       return data || [];
     },
@@ -242,7 +242,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("activity_registrations")
-        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode)")
+        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode), activity_sessions!inner(start_time)")
         .eq("status", "registered");
       return data || [];
     },
