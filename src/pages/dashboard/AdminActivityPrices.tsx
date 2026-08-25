@@ -77,18 +77,28 @@ interface PriceTier {
   label: string;
   price: number;
   billing_frequency: BillingFrequency;
+  vat_mode: VatMode;
   sort_order: number;
   is_active: boolean;
 }
 
 type BillingFrequency = "unit" | "pack_5" | "pack_10" | "monthly" | "quarterly" | "biannual" | "annual" | "biennial";
 
+type VatMode = "htva" | "ttc";
+
+const VAT_LABELS: Record<VatMode, string> = {
+  htva: "HTVA",
+  ttc: "TTC",
+};
+
 const emptyTier = {
   label: "",
   price: "",
   billing_frequency: "unit" as BillingFrequency,
+  vat_mode: "htva" as VatMode,
   is_active: true,
 };
+
 
 const AdminActivityPrices = () => {
   const { profile, isAdmin } = useAuth();
