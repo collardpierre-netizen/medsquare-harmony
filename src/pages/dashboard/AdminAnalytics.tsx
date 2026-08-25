@@ -1405,6 +1405,24 @@ const AdminAnalytics = () => {
                           </TableCell>
                         </TableRow>
                       ))}
+                      {expanded && (row as any).activityConfirmedRevenue > 0 && (
+                        <TableRow key={`${row.monthKey}-activities`} className="bg-muted/20 text-xs">
+                          <TableCell></TableCell>
+                          <TableCell className="pl-6 text-muted-foreground">
+                            ↳ Inscriptions activités
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">{(row as any).activityConfirmedCount} insc.</span>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right text-emerald-600">
+                            {(row as any).activityConfirmedRevenue.toLocaleString("fr-BE")} € HTVA/TTC
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right text-amber-600">—</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {(row as any).activityConfirmedRevenue.toLocaleString("fr-BE")} € HTVA/TTC
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </Fragment>
                   );
                 })}
