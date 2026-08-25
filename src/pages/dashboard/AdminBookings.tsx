@@ -283,7 +283,7 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; revenue: number; flatMonths: Set<string> }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; scheduledPrivatization: { from: string; until: string | null } | null; revenue: number; flatMonths: Set<string> }> = {};
 
     // Compute flat-fee revenue per room for months intersecting the range
     const monthsInRange = eachMonthOfInterval({ start: startOfMonth(rangeStart), end: startOfMonth(rangeEnd) });
@@ -301,6 +301,11 @@ const AdminBookings = () => {
       });
       // "isPrivatised" flag = entièrement privatisé sur la période affichée
       const isPrivatised = totalHours > 0 && privatizedHours === totalHours;
+
+      // Upcoming privatization (not active yet) — informational amber badge
+      const scheduledPrivatization = isPrivatizationScheduled(r as any)
+        ? { from: r.privatized_from, until: r.privatized_until || null }
+        : null;
 
       // Flat-fee revenue: sum fee for each month in range where fee applies
       let revenue = 0;
@@ -325,7 +330,7 @@ const AdminBookings = () => {
         });
       }
 
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatMonths };
     });
 
     // Practitioner packages: forfait mensuel praticien+salle
