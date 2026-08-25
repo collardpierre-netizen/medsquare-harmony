@@ -283,7 +283,7 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; scheduledPrivatization: { from: string; until: string | null } | null; revenue: number; flatMonths: Set<string> }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; scheduledPrivatization: { from: string; until: string | null } | null; revenue: number; flatRevenue: number; hourlyRevenue: number; coveredHourlyValue: number; flatMonths: Set<string> }> = {};
 
     // Compute flat-fee revenue per room for months intersecting the range
     const monthsInRange = eachMonthOfInterval({ start: startOfMonth(rangeStart), end: startOfMonth(rangeEnd) });
@@ -292,8 +292,8 @@ const AdminBookings = () => {
       let totalHours = 0;
       let privatizedHours = 0;
       days.forEach((day) => {
-        const { start, end } = getOpeningHours(day);
-        const dayHours = end - start;
+        // Heures réellement disponibles selon les plages d'ouverture de la salle
+        const dayHours = getRoomOpenHoursCount((r as any).opening_hours, day);
         totalHours += dayHours;
         if (isRoomBlockedOnDay(r as any, day)) {
           privatizedHours += dayHours;
@@ -330,7 +330,7 @@ const AdminBookings = () => {
         });
       }
 
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatMonths };
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatRevenue: revenue, hourlyRevenue: 0, coveredHourlyValue: 0, flatMonths };
     });
 
     // Practitioner packages: forfait mensuel praticien+salle
@@ -343,6 +343,7 @@ const AdminBookings = () => {
         const mKey = format(m, "yyyy-MM");
         if (stats.flatMonths.has(mKey)) return;
         stats.revenue += fee;
+        stats.flatRevenue += fee;
         if (!packagedKeys[pkg.room_id]) packagedKeys[pkg.room_id] = new Set();
         packagedKeys[pkg.room_id].add(`${pkg.practitioner_id}|${mKey}`);
       });

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
+import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock, AlertTriangle, Loader2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
@@ -31,6 +31,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/dashboard/ImageUpload";
+import RoomOpeningHoursDialog from "@/components/dashboard/rooms/RoomOpeningHoursDialog";
+import { summarizeOpeningHours } from "@/lib/roomOpeningHours";
 
 interface PricingItem {
   label: string;
@@ -54,6 +56,7 @@ interface Room {
   privatized_until: string | null;
   assigned_practitioner_id: string | null;
   privatization_monthly_fee: number | null;
+  opening_hours?: unknown;
 }
 
 interface PractitionerOption {
@@ -71,6 +74,7 @@ const AdminRooms = () => {
   const [showDefaultsDialog, setShowDefaultsDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [hoursRoom, setHoursRoom] = useState<Room | null>(null);
   const [defaultPricing, setDefaultPricing] = useState<PricingItem[]>([]);
   const [defaultCreditsInfo, setDefaultCreditsInfo] = useState("");
   const [defaultsForm, setDefaultsForm] = useState<{ pricing: PricingItem[]; credits_info: string }>({ pricing: [], credits_info: "" });
@@ -433,6 +437,7 @@ const AdminRooms = () => {
                 key={room.id}
                 room={room}
                 onEdit={() => openEdit(room)}
+                onEditHours={() => setHoursRoom(room)}
                 onDelete={() => setDeleteId(room.id)}
                 practitioners={practitioners}
               />
@@ -939,6 +944,14 @@ const AdminRooms = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Plages d'ouverture */}
+      <RoomOpeningHoursDialog
+        open={!!hoursRoom}
+        onOpenChange={(o) => !o && setHoursRoom(null)}
+        room={hoursRoom}
+        onSaved={fetchRooms}
+      />
     </DashboardLayout>
   );
 };
@@ -948,11 +961,13 @@ const AdminRooms = () => {
 const RoomCard = ({
   room,
   onEdit,
+  onEditHours,
   onDelete,
   practitioners,
 }: {
   room: Room;
   onEdit: () => void;
+  onEditHours: () => void;
   onDelete: () => void;
   practitioners: PractitionerOption[];
 }) => {
@@ -996,6 +1011,15 @@ const RoomCard = ({
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={onEdit}>
             <Edit className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 shadow-sm"
+            onClick={onEditHours}
+            title="Plages d'ouverture"
+          >
+            <Clock className="h-3.5 w-3.5" />
           </Button>
           <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -1045,6 +1069,16 @@ const RoomCard = ({
             </div>
           </div>
         )}
+
+        {/* Plages d'ouverture */}
+        <button
+          type="button"
+          onClick={onEditHours}
+          className="w-full text-left flex items-start gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+        >
+          <Clock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span>{summarizeOpeningHours(room.opening_hours)}</span>
+        </button>
 
         {/* Bottom stats */}
         <div className="flex items-center justify-between pt-3 border-t border-border">
