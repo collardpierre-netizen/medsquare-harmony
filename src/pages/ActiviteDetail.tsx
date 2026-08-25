@@ -91,6 +91,7 @@ interface PriceTier {
   label: string;
   price: number;
   billing_frequency: string;
+  vat_mode: "htva" | "ttc";
   sort_order: number;
 }
 
@@ -326,14 +327,19 @@ const ActiviteDetail = () => {
               <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
                 {CATEGORY_LABELS[activity.category] || activity.category}
               </span>
-              {!activity.is_free && prices.length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
-                  Dès {Math.min(...prices.map((p) => p.price))} €
-                </span>
-              )}
+              {!activity.is_free && prices.length > 0 && (() => {
+                const minPrice = Math.min(...prices.map((p) => p.price));
+                const vatModes = new Set(prices.map((p) => p.vat_mode));
+                const vatLabel = vatModes.size === 1 ? (vatModes.has("ttc") ? "TTC" : "HTVA") : "HTVA/TTC";
+                return (
+                  <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
+                    Dès {minPrice} € {vatLabel}
+                  </span>
+                );
+              })()}
               {!activity.is_free && prices.length === 0 && activity.price && (
                 <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
-                  {activity.price} €
+                  {activity.price} € HTVA
                 </span>
               )}
               {activity.is_free && (
@@ -475,16 +481,26 @@ const ActiviteDetail = () => {
                           <p className="font-medium text-sm">{p.label}</p>
                           <p className="text-xs text-muted-foreground">{FREQUENCY_LABELS[p.billing_frequency] || p.billing_frequency}</p>
                         </div>
-                        <span className="font-display text-lg font-semibold text-primary">
-                          {p.price} €
-                        </span>
+                        <div className="text-right">
+                          <span className="font-display text-lg font-semibold text-primary">
+                            {p.price} €
+                          </span>
+                          <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {p.vat_mode === "ttc" ? "TTC" : "HTVA"}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : activity.price ? (
                   <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
                     <p className="font-medium text-sm">Séance unique</p>
-                    <span className="font-display text-lg font-semibold text-primary">{activity.price} €</span>
+                    <div className="text-right">
+                      <span className="font-display text-lg font-semibold text-primary">{activity.price} €</span>
+                      <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        HTVA
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-muted-foreground italic">Tarifs non renseignés.</p>
