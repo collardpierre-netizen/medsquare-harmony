@@ -288,6 +288,51 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          end_date: string | null
+          expense_date: string | null
+          id: string
+          is_recurring: boolean
+          label: string
+          notes: string | null
+          recurrence: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          end_date?: string | null
+          expense_date?: string | null
+          id?: string
+          is_recurring?: boolean
+          label: string
+          notes?: string | null
+          recurrence?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          end_date?: string | null
+          expense_date?: string | null
+          id?: string
+          is_recurring?: boolean
+          label?: string
+          notes?: string | null
+          recurrence?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       legal_document_acknowledgments: {
         Row: {
           acknowledged_at: string
