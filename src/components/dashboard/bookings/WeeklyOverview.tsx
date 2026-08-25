@@ -184,7 +184,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
       <svg width="0" height="0" style={{ position: "absolute" }}>
         <defs>
           <pattern id="week-hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.5)" strokeWidth="2" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(0 72% 51% / 0.45)" strokeWidth="2" />
+          </pattern>
+          <pattern id="week-hatch-recurring" patternUnits="userSpaceOnUse" width="5" height="5">
+            <line x1="0" y1="0" x2="5" y2="5" stroke="hsl(0 74% 42% / 0.55)" strokeWidth="1.6" />
+            <line x1="5" y1="0" x2="0" y2="5" stroke="hsl(0 74% 42% / 0.55)" strokeWidth="1.6" />
           </pattern>
           <pattern id="week-hatch-privatise" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(0 72% 51% / 0.5)" strokeWidth="2.5" />
