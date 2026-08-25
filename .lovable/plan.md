@@ -1,119 +1,43 @@
+# Plan : Tarification multi-paliers par activité
 
+## Objectif
+Permettre d'encoder plusieurs prix par activité (à l'unité, carnets dégressifs, abonnements mensuel / trimestriel / semestriel / annuel / bi-annuel) et d'afficher ces tarifs publiquement.
 
-# 🏥 Medsquare — Plan de Refonte Complète
+## Choix techniques
 
-## Vision
-Un site premium, humain et professionnel servant de **vitrine pour les patients** et d'**outil de gestion pour les praticiens** (6-15 praticiens, 4-8 salles). Première version en **français uniquement**, **sans paiement en ligne** pour l'instant. Les deux faces (vitrine + back-office) seront développées en parallèle dans une version allégée.
+### 1. Modèle de données
+- Nouvelle table `activity_prices` liée à `activities` :
+  - `activity_id` uuid NOT NULL
+  - `label` text (ex. "Séance unique", "Carnet 10 séances", "Abonnement annuel")
+  - `price` numeric NOT NULL
+  - `billing_frequency` enum : `unit`, `pack_5`, `pack_10`, `monthly`, `quarterly`, `biannual`, `annual`, `biennial`
+  - `sort_order` integer
+  - `is_active` boolean
+- Conserver `activities.is_free` et `activities.price` pour compatibilité immédiate (uniquement si aucun prix multi-paliers n'est défini).
 
----
+### 2. Écran dédié d'encodage
+- Nouvelle page `/dashboard/admin/activity-prices` accessible aux admins et aux praticiens pour leurs propres activités.
+- Tableau listant les activités avec un bouton "Gérer les tarifs".
+- Dialogue CRUD pour ajouter / modifier / supprimer / réordonner les paliers.
+- Option "Gratuit" qui désactive les tarifs.
 
-## 🌐 PARTIE 1 — Site Vitrine Public
+### 3. Affichage public
+- Page `/activites` : carte d'activité affiche le tarif de base ou "Dès X €" si plusieurs paliers existent.
+- Page `/activite/:id` : section "Tarifs" listant tous les paliers actifs avec badge de fréquence.
+- Dialogue d'inscription : si l'activité est payante, afficher un sélecteur de palier (optionnel selon le flux de réservation).
 
-### Page d'Accueil
-- **Hero section** plein écran avec image du centre, slogan inspirant et boutons d'action (Découvrir nos praticiens / Nous contacter)
-- Section "Pourquoi Medsquare" — 3-4 points forts illustrés (icônes + texte court)
-- Aperçu des praticiens — carrousel ou grille avec photos et spécialités
-- Aperçu des espaces — images des locaux avec description courte
-- Témoignages / avis patients (section placeholder pour l'instant)
-- Bande de contact rapide (téléphone, email, adresse)
+### 4. Dashboard activités
+- Remplacer le champ prix unique par un lien vers l'écran dédié.
+- Indicateur visuel sur la carte activité si plusieurs tarifs sont configurés.
 
-### Page "Le Centre"
-- Présentation de la philosophie et des valeurs de Medsquare
-- Galerie photos des espaces (ambiance chaleureuse et professionnelle)
-- Histoire / mission du centre
-- Localisation avec carte interactive intégrée
+## Fichiers concernés
+- Migration : création de `activity_prices` avec GRANT + RLS + policies.
+- `src/pages/dashboard/AdminActivityPrices.tsx` (nouveau).
+- `src/pages/dashboard/Activities.tsx` (lien vers tarifs).
+- `src/pages/ActiviteDetail.tsx` (section tarifs).
+- `src/components/activities/ActivityCard.tsx` (tarif de base).
+- `src/integrations/supabase/types.ts` (généré automatiquement).
 
-### Page "Nos Praticiens"
-- Grille de praticiens avec photo, nom, spécialité
-- Clic sur un praticien → page de profil détaillé : photo grande, biographie, spécialités, parcours, horaires de consultation, lien de contact
-
-### Page "Nos Espaces"
-- Présentation visuelle des salles disponibles (photos, capacité, équipements)
-- Tarifs indicatifs affichés
-- Bouton "Contactez-nous pour réserver" (pas de réservation en ligne dans cette phase)
-
-### Page Contact & FAQ
-- Formulaire de contact simple (nom, email, message, sujet)
-- Coordonnées complètes (téléphone, email, adresse)
-- Carte Google Maps intégrée
-- Section FAQ avec questions/réponses en accordéon
-
----
-
-## 🔐 PARTIE 2 — Espace Praticiens (Back-office)
-
-### Authentification
-- Page de connexion sécurisée (email + mot de passe)
-- Système de rôles : praticien / administrateur
-- Récupération de mot de passe par email
-
-### Tableau de bord praticien
-- Vue d'ensemble personnalisée : prochaines réservations, notifications, accès rapides
-- Message de bienvenue avec le nom du praticien
-
-### Mon Profil
-- Édition du profil public : photo, biographie, spécialités, horaires
-- Les modifications sont visibles sur le site vitrine après sauvegarde
-- Aperçu de "comment mon profil apparaît sur le site"
-
-### Agenda & Réservations des Salles
-- Calendrier visuel interactif montrant les disponibilités des salles
-- Vue par jour / semaine / mois
-- Code couleur par salle et par praticien
-- Demande de réservation d'une salle (créneau + salle souhaitée)
-- Historique de ses propres réservations
-- Statut des réservations (confirmée, en attente, annulée)
-
-### Documents
-- Consultation et téléchargement de documents (contrats, factures)
-- Les documents sont mis à disposition par l'administrateur
-- Format PDF
-
-### Espace Administrateur (rôle admin uniquement)
-- Gestion des praticiens : ajouter, modifier, désactiver un praticien
-- Gestion des salles : ajouter, modifier les salles et leurs disponibilités
-- Validation / refus des demandes de réservation
-- Upload de documents pour les praticiens
-- Vue globale de toutes les réservations
-
----
-
-## 🎨 DESIGN & EXPÉRIENCE
-
-- **Palette douce et professionnelle** : tons neutres (blanc cassé, beige, gris clair) avec une couleur d'accent élégante (bleu profond ou vert sauge)
-- **Typographie premium** : titres élégants, texte lisible et aéré
-- **Photos authentiques** : mise en valeur des portraits et des espaces (placeholders professionnels en attendant le contenu final)
-- **Animations subtiles** : transitions douces au scroll, hover effects élégants
-- **100% responsive** : expérience optimale sur mobile, tablette et desktop
-- **Navigation claire** : menu fixe en haut, navigation intuitive
-
----
-
-## 🗂 STRUCTURE DES DONNÉES (Backend)
-
-- **Praticiens** : nom, photo, bio, spécialités, horaires, email, statut actif/inactif
-- **Salles** : nom, description, photos, capacité, équipements, tarif indicatif
-- **Réservations** : praticien, salle, date/heure début et fin, statut
-- **Documents** : fichier PDF, praticien associé, type de document, date
-- **Utilisateurs** : email, mot de passe, rôle (praticien/admin)
-
----
-
-## 📋 PHASES DE LIVRAISON
-
-### Phase 1 (MVP) — Ce qui sera construit maintenant
-- ✅ Toutes les pages vitrine (Accueil, Centre, Praticiens, Espaces, Contact)
-- ✅ Authentification praticiens/admin
-- ✅ Gestion de profil praticien
-- ✅ Calendrier des salles + système de réservation
-- ✅ Tableau de bord praticien et admin
-- ✅ Design responsive premium
-
-### Phase 2 (Évolutions futures)
-- 💳 Paiement en ligne (Stripe) pour les réservations
-- 🌍 Multilingue FR/NL/EN
-- 📧 Notifications email automatiques (confirmations, rappels)
-- 📊 Génération et export de factures PDF
-- 📝 Blog / Actualités
-- 📈 Statistiques et rapports pour l'admin
-
+## Non inclus
+- Paiement en ligne (hors MVP).
+- Gestion des remises personnalisées par participant.
