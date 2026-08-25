@@ -961,11 +961,13 @@ const AdminRooms = () => {
 const RoomCard = ({
   room,
   onEdit,
+  onEditHours,
   onDelete,
   practitioners,
 }: {
   room: Room;
   onEdit: () => void;
+  onEditHours: () => void;
   onDelete: () => void;
   practitioners: PractitionerOption[];
 }) => {
