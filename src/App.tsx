@@ -39,6 +39,7 @@ import AdminNotifications from "./pages/dashboard/AdminNotifications";
 import AdminPractitionerNotice from "./pages/dashboard/AdminPractitionerNotice";
 import AdminRegistrations from "./pages/dashboard/AdminRegistrations";
 import AdminContracts from "./pages/dashboard/AdminContracts";
+import AdminActivityPrices from "./pages/dashboard/AdminActivityPrices";
 import NotFound from "./pages/NotFound";
 import Reviews from "./pages/dashboard/Reviews";
 import QnA from "./pages/dashboard/QnA";
@@ -90,6 +91,7 @@ const App = () => (
             <Route path="/dashboard/reviews" element={<ProtectedRoute allowedRoles={["practitioner"]}><Reviews /></ProtectedRoute>} />
             <Route path="/dashboard/qna" element={<ProtectedRoute allowedRoles={["practitioner"]}><QnA /></ProtectedRoute>} />
             <Route path="/dashboard/rates" element={<ProtectedRoute allowedRoles={["practitioner"]}><Rates /></ProtectedRoute>} />
+            <Route path="/dashboard/activity-prices" element={<ProtectedRoute allowedRoles={["practitioner", "admin"]}><AdminActivityPrices /></ProtectedRoute>} />
 
             {/* Protected admin pages */}
             <Route path="/dashboard/admin/practitioners" element={<ProtectedRoute requireAdmin><AdminPractitioners /></ProtectedRoute>} />

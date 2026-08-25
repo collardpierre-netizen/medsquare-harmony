@@ -91,6 +91,50 @@ export type Database = {
           },
         ]
       }
+      activity_prices: {
+        Row: {
+          activity_id: string
+          billing_frequency: Database["public"]["Enums"]["activity_billing_frequency"]
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          billing_frequency?: Database["public"]["Enums"]["activity_billing_frequency"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          price: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          billing_frequency?: Database["public"]["Enums"]["activity_billing_frequency"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_prices_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_registrations: {
         Row: {
           cancellation_token: string
@@ -1027,6 +1071,15 @@ export type Database = {
       }
     }
     Enums: {
+      activity_billing_frequency:
+        | "unit"
+        | "pack_5"
+        | "pack_10"
+        | "monthly"
+        | "quarterly"
+        | "biannual"
+        | "annual"
+        | "biennial"
       app_role: "admin" | "practitioner" | "patient"
     }
     CompositeTypes: {
@@ -1155,6 +1208,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_billing_frequency: [
+        "unit",
+        "pack_5",
+        "pack_10",
+        "monthly",
+        "quarterly",
+        "biannual",
+        "annual",
+        "biennial",
+      ],
       app_role: ["admin", "practitioner", "patient"],
     },
   },
