@@ -31,6 +31,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/dashboard/ImageUpload";
+import RoomOpeningHoursDialog from "@/components/dashboard/rooms/RoomOpeningHoursDialog";
+import { summarizeOpeningHours } from "@/lib/roomOpeningHours";
 
 interface PricingItem {
   label: string;
