@@ -292,6 +292,32 @@ const AdminProfitability = () => {
     [monthlyRows],
   );
 
+  /** Ventilation des dépenses par catégorie sur toute la période analysée. */
+  const expenseBreakdown = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of monthlyRows) {
+      for (const [cat, amount] of row.expenseByCategory) {
+        map.set(cat, (map.get(cat) || 0) + amount);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value: Math.round(value) }))
+      .filter((r) => r.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [monthlyRows]);
+
+  const pieColors = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(var(--primary))",
+    "hsl(var(--sage-dark))",
+    "hsl(var(--warning))",
+  ];
+
+
   // ─── CRUD dépenses ───
   const openCreate = () => {
     setForm(emptyForm());
