@@ -343,6 +343,7 @@ const AdminBookings = () => {
         const mKey = format(m, "yyyy-MM");
         if (stats.flatMonths.has(mKey)) return;
         stats.revenue += fee;
+        stats.flatRevenue += fee;
         if (!packagedKeys[pkg.room_id]) packagedKeys[pkg.room_id] = new Set();
         packagedKeys[pkg.room_id].add(`${pkg.practitioner_id}|${mKey}`);
       });
