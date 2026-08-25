@@ -355,11 +355,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               : activity
                               ? "bg-orange-500/25 text-orange-800 border border-orange-500/40"
                               : isPrivatise
-                              ? "bg-red-500/20 text-red-800 border-2 border-dashed border-red-500/60 cursor-pointer hover:bg-red-500/30"
+                              ? "bg-red-600/50 text-white border-2 border-dashed border-red-800 cursor-pointer hover:bg-red-600/65"
                               : booked && isRecurring
-                              ? "bg-red-700/25 text-red-900 border border-red-700/60 cursor-pointer hover:bg-red-700/35"
+                              ? "bg-red-800/55 text-white border border-red-900 cursor-pointer hover:bg-red-800/70"
                               : booked
-                              ? "bg-red-500/15 text-red-700 border border-red-400/50 cursor-pointer hover:bg-red-500/25"
+                              ? "bg-red-500/45 text-red-950 border border-red-600 cursor-pointer hover:bg-red-500/60"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
                           onClick={() => {
