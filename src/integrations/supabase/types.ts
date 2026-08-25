@@ -102,6 +102,7 @@ export type Database = {
           price: number
           sort_order: number
           updated_at: string
+          vat_mode: string
         }
         Insert: {
           activity_id: string
@@ -113,6 +114,7 @@ export type Database = {
           price: number
           sort_order?: number
           updated_at?: string
+          vat_mode?: string
         }
         Update: {
           activity_id?: string
@@ -124,6 +126,7 @@ export type Database = {
           price?: number
           sort_order?: number
           updated_at?: string
+          vat_mode?: string
         }
         Relationships: [
           {
