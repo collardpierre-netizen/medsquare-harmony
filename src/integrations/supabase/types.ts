@@ -941,6 +941,7 @@ export type Database = {
           min_monthly_hours: number | null
           min_monthly_price: number | null
           name: string
+          opening_hours: Json | null
           photos: string[] | null
           pricing: Json | null
           privatization_monthly_fee: number | null
@@ -963,6 +964,7 @@ export type Database = {
           min_monthly_hours?: number | null
           min_monthly_price?: number | null
           name: string
+          opening_hours?: Json | null
           photos?: string[] | null
           pricing?: Json | null
           privatization_monthly_fee?: number | null
@@ -985,6 +987,7 @@ export type Database = {
           min_monthly_hours?: number | null
           min_monthly_price?: number | null
           name?: string
+          opening_hours?: Json | null
           photos?: string[] | null
           pricing?: Json | null
           privatization_monthly_fee?: number | null
