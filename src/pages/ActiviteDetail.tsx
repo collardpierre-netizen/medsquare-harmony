@@ -200,12 +200,14 @@ const ActiviteDetail = () => {
     setSelectedSession({
       ...session,
       activities: {
+        id: activity?.id,
         title: activity?.title,
         category: activity?.category,
         description: activity?.description,
         is_free: activity?.is_free,
         price: activity?.price,
         profiles: activity?.profiles,
+        prices,
       },
     });
     setShowRegDialog(true);
