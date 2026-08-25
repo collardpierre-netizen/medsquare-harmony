@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Lock } from "lucide-react";
+import { Lock, Repeat } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -159,6 +159,22 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
     return weekBookings.find((b) => {
       const start = new Date(b.start_time);
       return isSameDay(toBrusselsDay(start), dayBrussels) && getBrusselsHour(start) === hour;
+    });
+  };
+
+  /** Réservation couvrant ce créneau horaire, même si elle a démarré à une heure antérieure. */
+  const getBookingCoveringHour = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
+    const offset = getBrusselsOffsetHours(day);
+    const slotStartUTC = new Date(dayBrussels);
+    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
+    const slotEndUTC = new Date(dayBrussels);
+    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
+    return weekBookings.find((b) => {
+      const start = new Date(b.start_time);
+      const end = new Date(b.end_time);
+      if (!isSameDay(toBrusselsDay(start), dayBrussels) && !isSameDay(toBrusselsDay(end), dayBrussels)) return false;
+      return start.getTime() < slotEndUTC.getTime() && end.getTime() > slotStartUTC.getTime();
     });
   };
 
