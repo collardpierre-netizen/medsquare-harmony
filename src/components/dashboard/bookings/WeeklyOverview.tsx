@@ -402,7 +402,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                       const name = booking.profiles ? `${booking.profiles.first_name} ${booking.profiles.last_name}` : "Inconnu";
                       const timeStr = `${format(new Date(booking.start_time), "HH:mm")}–${format(new Date(booking.end_time), "HH:mm")}`;
                       const privLabel = booking.notes?.includes("[Privatisé]") ? "🔒 Privatisé · " : "";
-                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}`);
+                      const recLabel = booking.recurrence_group_id ? " · ↻ récurrent" : " · ponctuel";
+                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}${privLabel ? "" : recLabel}`);
                     }
                     if (actSession) {
                       const p = (actSession as any).activities?.profiles;
