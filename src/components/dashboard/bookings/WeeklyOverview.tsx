@@ -323,7 +323,10 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                     const isToday = isSameDay(day, new Date());
                     const isOccupied = booked || activity;
 
-                    const isPrivatise = booking?.notes?.includes("[Privatisé]");
+                    // Réservation couvrant ce créneau (même si elle a commencé plus tôt)
+                    const coveringBooking = inRange ? booking ?? getBookingCoveringHour(day, hour) : undefined;
+                    const isPrivatise = coveringBooking?.notes?.includes("[Privatisé]");
+                    const isRecurring = !!coveringBooking?.recurrence_group_id;
 
                     const cellContent = (
                           <div
@@ -336,9 +339,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               : activity
                               ? "bg-orange-500/25 text-orange-800 border border-orange-500/40"
                               : isPrivatise
-                              ? "bg-red-500/20 text-red-800 border border-red-500/40 cursor-pointer hover:bg-red-500/30"
+                              ? "bg-red-500/20 text-red-800 border-2 border-dashed border-red-500/60 cursor-pointer hover:bg-red-500/30"
+                              : booked && isRecurring
+                              ? "bg-red-700/25 text-red-900 border border-red-700/60 cursor-pointer hover:bg-red-700/35"
                               : booked
-                              ? "bg-primary/25 text-primary border border-primary/40 cursor-pointer hover:bg-primary/35"
+                              ? "bg-red-500/15 text-red-700 border border-red-400/50 cursor-pointer hover:bg-red-500/25"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
                           onClick={() => {
@@ -355,7 +360,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {/* Diagonal hatching overlay for occupied slots */}
                           {inRange && !isPast && isOccupied && (
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : "url(#week-hatch-booked)"} />
+                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : isRecurring ? "url(#week-hatch-recurring)" : "url(#week-hatch-booked)"} />
                             </svg>
                           )}
                           {actSession && (
@@ -366,6 +371,9 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {booking && !activity && (
                             <span className="truncate px-1 relative z-10 flex items-center gap-0.5">
                               {booking.notes?.includes("[Privatisé]") && <Lock className="h-3 w-3 shrink-0" />}
+                              {booking.recurrence_group_id && !booking.notes?.includes("[Privatisé]") && (
+                                <Repeat className="h-3 w-3 shrink-0" />
+                              )}
                               {booking.profiles?.first_name?.[0]}.{booking.profiles?.last_name?.[0]}.
                             </span>
                           )}
