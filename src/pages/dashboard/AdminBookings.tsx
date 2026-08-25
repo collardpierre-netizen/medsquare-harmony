@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock, Download, FileText, AlertTriangle } from "lucide-react";
+import { CalendarCheck, CheckCircle, XCircle, Plus, Loader2, Repeat, Users, BarChart3, List, Filter, Pencil, CalendarDays, ChevronLeft, ChevronRight, Trash2, CheckSquare, Square, Lock, Download, FileText, AlertTriangle, CalendarClock } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isRoomBlockedOnDay, isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
+import { isRoomBlockedOnDay, isRoomCurrentlyPrivatized, isPrivatizationScheduled, formatPrivatizationDate } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
@@ -283,7 +283,7 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; revenue: number; flatMonths: Set<string> }> = {};
+    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; scheduledPrivatization: { from: string; until: string | null } | null; revenue: number; flatMonths: Set<string> }> = {};
 
     // Compute flat-fee revenue per room for months intersecting the range
     const monthsInRange = eachMonthOfInterval({ start: startOfMonth(rangeStart), end: startOfMonth(rangeEnd) });
@@ -301,6 +301,11 @@ const AdminBookings = () => {
       });
       // "isPrivatised" flag = entièrement privatisé sur la période affichée
       const isPrivatised = totalHours > 0 && privatizedHours === totalHours;
+
+      // Upcoming privatization (not active yet) — informational amber badge
+      const scheduledPrivatization = isPrivatizationScheduled(r as any)
+        ? { from: r.privatized_from, until: r.privatized_until || null }
+        : null;
 
       // Flat-fee revenue: sum fee for each month in range where fee applies
       let revenue = 0;
@@ -325,7 +330,7 @@ const AdminBookings = () => {
         });
       }
 
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, revenue, flatMonths };
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatMonths };
     });
 
     // Practitioner packages: forfait mensuel praticien+salle
@@ -382,6 +387,11 @@ const AdminBookings = () => {
           occupancyPct: stats.totalHours > 0
             ? Math.min(100, Math.round((occupiedHours / stats.totalHours) * 100))
             : 0,
+          scheduledLabel: stats.scheduledPrivatization
+            ? stats.scheduledPrivatization.until
+              ? `Privatisation programmée du ${formatPrivatizationDate(stats.scheduledPrivatization.from)} au ${formatPrivatizationDate(stats.scheduledPrivatization.until)}`
+              : `Privatisation programmée dès le ${formatPrivatizationDate(stats.scheduledPrivatization.from)}`
+            : null,
         };
       })
       // Tri par nom naturel (Cabinet N°1, N°2, N°3...)
@@ -1290,6 +1300,12 @@ const AdminBookings = () => {
                           {room.isPrivatised && (
                             <Badge variant="outline" className="text-[10px] gap-1">
                               <Lock className="h-3 w-3" /> Privatisé
+                            </Badge>
+                          )}
+                          {room.scheduledLabel && (
+                            <Badge variant="outline" className="text-[10px] gap-1 border-warning/50 bg-warning/10 text-warning">
+                              <CalendarClock className="h-3 w-3" />
+                              {room.scheduledLabel}
                             </Badge>
                           )}
                         </span>
