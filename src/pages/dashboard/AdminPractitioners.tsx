@@ -493,6 +493,18 @@ const AdminPractitioners = () => {
                 </p>
                 <div className="space-y-4">
                   <div className="space-y-2">
+                    <Label>Type de profil *</Label>
+                    <Select value={inviteAccountType} onValueChange={(v) => setInviteAccountType(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="practitioner">Professionnel (praticien)</SelectItem>
+                        <SelectItem value="patient">Patient</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="invite-email">Email *</Label>
                     <Input
                       id="invite-email"
