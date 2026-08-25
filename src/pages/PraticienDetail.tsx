@@ -150,6 +150,8 @@ const PraticienDetail = () => {
 
       const p: PractitionerProfile = {
         ...profile,
+        phone: (contact as any)?.phone ?? null,
+        contact_email: (contact as any)?.contact_email ?? null,
         schedule: parsedSchedule,
         social_links: (profile.social_links as Record<string, string> | null) || null,
         accepts_new_patients: (profile as any).accepts_new_patients ?? true,
