@@ -29,6 +29,7 @@ import AdminBookings from "./pages/dashboard/AdminBookings";
 import AdminPrivatizations from "./pages/dashboard/AdminPrivatizations";
 import MyRegistrations from "./pages/dashboard/MyRegistrations";
 import AdminAnalytics from "./pages/dashboard/AdminAnalytics";
+import AdminProfitability from "./pages/dashboard/AdminProfitability";
 import AdminSiteSettings from "./pages/dashboard/AdminSiteSettings";
 import DailyExport from "./pages/dashboard/DailyExport";
 import PractitionerGuide from "./pages/dashboard/PractitionerGuide";
@@ -96,6 +97,7 @@ const App = () => (
             <Route path="/dashboard/admin/bookings" element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
             <Route path="/dashboard/admin/privatizations" element={<ProtectedRoute requireAdmin><AdminPrivatizations /></ProtectedRoute>} />
             <Route path="/dashboard/admin/analytics" element={<ProtectedRoute requireAdmin><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/profitability" element={<ProtectedRoute requireAdmin><AdminProfitability /></ProtectedRoute>} />
             <Route path="/dashboard/admin/site-settings" element={<ProtectedRoute requireAdmin><AdminSiteSettings /></ProtectedRoute>} />
             <Route path="/dashboard/admin/legal-documents" element={<ProtectedRoute requireAdmin><AdminLegalDocuments /></ProtectedRoute>} />
             <Route path="/dashboard/admin/notifications" element={<ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>} />
