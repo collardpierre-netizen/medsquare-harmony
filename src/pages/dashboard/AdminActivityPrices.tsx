@@ -182,6 +182,7 @@ const AdminActivityPrices = () => {
       label: tier.label,
       price: String(tier.price),
       billing_frequency: tier.billing_frequency,
+      vat_mode: tier.vat_mode,
       is_active: tier.is_active,
     });
     setTierDialogOpen(true);
@@ -208,6 +209,7 @@ const AdminActivityPrices = () => {
           label: tierForm.label.trim(),
           price: priceNum,
           billing_frequency: tierForm.billing_frequency,
+          vat_mode: tierForm.vat_mode,
           is_active: tierForm.is_active,
         })
         .eq("id", editingTier.id);
@@ -226,6 +228,7 @@ const AdminActivityPrices = () => {
         label: tierForm.label.trim(),
         price: priceNum,
         billing_frequency: tierForm.billing_frequency,
+        vat_mode: tierForm.vat_mode,
         sort_order: existing.length,
         is_active: tierForm.is_active,
       });
@@ -355,6 +358,9 @@ const AdminActivityPrices = () => {
                                     {FREQUENCY_LABELS[tier.billing_frequency] || tier.billing_frequency}
                                   </Badge>
                                   <span className="text-sm font-semibold text-primary">{formatPrice(tier.price)}</span>
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    {VAT_LABELS[tier.vat_mode] || tier.vat_mode}
+                                  </Badge>
                                 </div>
                               </div>
                             </div>
@@ -434,7 +440,7 @@ const AdminActivityPrices = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tier-price">Prix (€ HTVA)</Label>
+              <Label htmlFor="tier-price">Prix (€)</Label>
               <Input
                 id="tier-price"
                 type="number"
@@ -444,6 +450,21 @@ const AdminActivityPrices = () => {
                 value={tierForm.price}
                 onChange={(e) => setTierForm({ ...tierForm, price: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tier-vat">Régime de TVA</Label>
+              <Select
+                value={tierForm.vat_mode}
+                onValueChange={(v) => setTierForm({ ...tierForm, vat_mode: v as VatMode })}
+              >
+                <SelectTrigger id="tier-vat">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="htva">HTVA (hors TVA)</SelectItem>
+                  <SelectItem value="ttc">TTC (TVA comprise)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="tier-frequency">Fréquence de facturation</Label>
