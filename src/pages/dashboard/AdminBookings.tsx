@@ -1302,6 +1302,12 @@ const AdminBookings = () => {
                               <Lock className="h-3 w-3" /> Privatisé
                             </Badge>
                           )}
+                          {room.scheduledLabel && (
+                            <Badge variant="outline" className="text-[10px] gap-1 border-warning/50 bg-warning/10 text-warning">
+                              <CalendarClock className="h-3 w-3" />
+                              {room.scheduledLabel}
+                            </Badge>
+                          )}
                         </span>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           {room.isPrivatised ? (
