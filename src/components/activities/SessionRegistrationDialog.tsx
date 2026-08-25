@@ -178,6 +178,7 @@ const SessionRegistrationDialog = ({
       session_id: session.id,
       user_id: user.id,
       status,
+      ...(selectedPriceId ? { price_id: selectedPriceId } : {}),
     } as any).select("id").single();
 
     if (error) {
@@ -228,6 +229,7 @@ const SessionRegistrationDialog = ({
       guest_email: guestForm.email.trim(),
       guest_phone: guestForm.phone.trim() || null,
       status,
+      ...(selectedPriceId ? { price_id: selectedPriceId } : {}),
     } as any).select("id").single();
 
     if (error) {
