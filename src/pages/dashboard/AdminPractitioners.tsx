@@ -60,6 +60,9 @@ const AdminPractitioners = () => {
   const [deleting, setDeleting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [inviteSchedule, setInviteSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
+  const [inviteAccountType, setInviteAccountType] = useState<"practitioner" | "patient">("practitioner");
+  const [roleChange, setRoleChange] = useState<{ profile: any; newRole: "practitioner" | "patient" } | null>(null);
+  const [changingRole, setChangingRole] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "",
   });
