@@ -268,18 +268,6 @@ const AdminAnalytics = () => {
       return data || [];
     },
   });
-    queryKey: ["admin-analytics-projection", projectionRange.start, projectionRange.end],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bookings")
-        .select("id, room_id, practitioner_id, start_time, end_time, status")
-        .gte("start_time", projectionRange.start)
-        .lt("start_time", projectionRange.end)
-        .in("status", ["confirmed", "pending"]);
-      return data || [];
-    },
-    enabled: !!rooms,
-  });
 
   const projectionData = useMemo(() => {
     if (!rooms || !projectionBookings) return [];
