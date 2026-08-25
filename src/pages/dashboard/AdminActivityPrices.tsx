@@ -200,6 +200,23 @@ const AdminActivityPrices = () => {
       return;
     }
 
+    const siblings = (pricesMap[selectedActivity.id] || []).filter(
+      (t) => !editingTier || t.id !== editingTier.id
+    );
+    const duplicate = siblings.find(
+      (t) =>
+        t.label.trim().toLowerCase() === tierForm.label.trim().toLowerCase() &&
+        t.billing_frequency === tierForm.billing_frequency
+    );
+    if (duplicate) {
+      toast({
+        variant: "destructive",
+        title: "Pilier en doublon",
+        description: `Un tarif "${tierForm.label}" avec la fréquence "${FREQUENCY_LABELS[tierForm.billing_frequency]}" existe déjà pour cette activité.`,
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     if (editingTier) {
