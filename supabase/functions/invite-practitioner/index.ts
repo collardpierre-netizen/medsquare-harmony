@@ -32,7 +32,9 @@ Deno.serve(async (req) => {
     });
     if (!isAdmin) throw new Error("Admin access required");
 
-    const { email, first_name, last_name, specialty, bio, phone, contact_email, schedule, resend_user_id } = await req.json();
+    const { email, first_name, last_name, specialty, bio, phone, contact_email, schedule, resend_user_id, account_type } = await req.json();
+
+    const targetAccountType = account_type === "patient" ? "patient" : "practitioner";
 
     let targetEmail = email;
     let targetFirstName = first_name || "";
