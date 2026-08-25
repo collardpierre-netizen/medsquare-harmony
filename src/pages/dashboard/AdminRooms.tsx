@@ -437,6 +437,7 @@ const AdminRooms = () => {
                 key={room.id}
                 room={room}
                 onEdit={() => openEdit(room)}
+                onEditHours={() => setHoursRoom(room)}
                 onDelete={() => setDeleteId(room.id)}
                 practitioners={practitioners}
               />
