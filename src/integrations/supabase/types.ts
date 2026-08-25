@@ -146,6 +146,7 @@ export type Database = {
           guest_name: string | null
           guest_phone: string | null
           id: string
+          price_id: string | null
           session_id: string
           source: string
           status: string
@@ -158,6 +159,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          price_id?: string | null
           session_id: string
           source?: string
           status?: string
@@ -170,12 +172,20 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          price_id?: string | null
           session_id?: string
           source?: string
           status?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "activity_registrations_price_id_fkey"
+            columns: ["price_id"]
+            isOneToOne: false
+            referencedRelation: "activity_prices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "activity_registrations_session_id_fkey"
             columns: ["session_id"]
