@@ -1023,6 +1023,23 @@ const AdminPractitioners = () => {
                           Renvoyer l'accès
                         </Button>
                       )}
+                      {!p.roles.includes("admin") && (
+                        <Select
+                          value={p.roles.includes("practitioner") ? "practitioner" : "patient"}
+                          onValueChange={(v) => {
+                            const current = p.roles.includes("practitioner") ? "practitioner" : "patient";
+                            if (v !== current) setRoleChange({ profile: p, newRole: v as any });
+                          }}
+                        >
+                          <SelectTrigger className="w-[150px] h-9 text-xs" title="Type de profil">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="practitioner">Professionnel</SelectItem>
+                            <SelectItem value="patient">Patient</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
