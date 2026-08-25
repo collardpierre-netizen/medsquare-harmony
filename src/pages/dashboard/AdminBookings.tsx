@@ -330,7 +330,7 @@ const AdminBookings = () => {
         });
       }
 
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatMonths };
+      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatRevenue: revenue, hourlyRevenue: 0, coveredHourlyValue: 0, flatMonths };
     });
 
     // Practitioner packages: forfait mensuel praticien+salle
