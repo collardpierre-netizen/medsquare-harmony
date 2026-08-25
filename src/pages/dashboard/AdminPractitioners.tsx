@@ -1116,6 +1116,27 @@ const AdminPractitioners = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Account profile change confirmation */}
+        <AlertDialog open={!!roleChange} onOpenChange={(v) => { if (!v) setRoleChange(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Changer le type de profil ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>{roleChange?.profile?.first_name} {roleChange?.profile?.last_name}</strong> passera du profil{" "}
+                {roleChange?.newRole === "practitioner" ? "patient au profil professionnel" : "professionnel au profil patient"}.
+                Cela change l'espace auquel la personne a accès après reconnexion.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={changingRole}>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmRoleChange(); }} disabled={changingRole}>
+                {changingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
