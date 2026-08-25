@@ -963,6 +963,90 @@ const AdminAnalytics = () => {
     return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
   }, [periods, rooms, bookings, sessions, registrations, selectedRoomId, packages]);
 
+  // ─── Répartition du CA (période sélectionnée) : par cabinet et par prestataire ───
+  const { revenueByRoom, revenueByPractitioner } = useMemo(() => {
+    if (!rooms || !bookings || periods.length === 0) {
+      return { revenueByRoom: [] as { name: string; value: number }[], revenueByPractitioner: [] as { name: string; value: number }[] };
+    }
+    const filteredRooms = selectedRoomId === "all" ? rooms : rooms.filter((r) => r.id === selectedRoomId);
+    const filteredBookings = selectedRoomId === "all" ? bookings : bookings.filter((b) => b.room_id === selectedRoomId);
+    const periodStart = periods[0].start;
+    const periodEnd = periods[periods.length - 1].end;
+    const monthsInPeriod = eachMonthOfInterval({ start: periodStart, end: addDays(periodEnd, -1) });
+
+    const practitionerName = (id: string | null | undefined) => {
+      if (!id) return "Non attribué";
+      const p = (practitionerProfiles ?? []).find((x) => x.id === id);
+      return p ? `${p.first_name} ${p.last_name}` : "Praticien inconnu";
+    };
+
+    const roomTotals = new Map<string, number>();
+    const practitionerTotals = new Map<string, number>();
+    const addTo = (map: Map<string, number>, key: string, amount: number) => {
+      if (amount <= 0) return;
+      map.set(key, (map.get(key) || 0) + amount);
+    };
+
+    const flatKeys = new Set<string>(); // `${roomId}|${YYYY-MM}`
+    const packagedKeys = new Set<string>(); // `${practitionerId}|${roomId}|${YYYY-MM}`
+
+    for (const m of monthsInPeriod) {
+      const mKey = format(m, "yyyy-MM");
+      for (const room of filteredRooms) {
+        const fee = getRoomMonthlyFee(room, startOfMonth(m));
+        if (fee != null) {
+          flatKeys.add(`${room.id}|${mKey}`);
+          addTo(roomTotals, room.name, fee);
+          addTo(practitionerTotals, practitionerName(room.assigned_practitioner_id), fee);
+        }
+      }
+      for (const pkg of packages ?? []) {
+        if (flatKeys.has(`${pkg.room_id}|${mKey}`)) continue;
+        const room = filteredRooms.find((r) => r.id === pkg.room_id);
+        if (!room) continue;
+        const fee = Number(pkg.monthly_fee || 0);
+        packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
+        addTo(roomTotals, room.name, fee);
+        addTo(practitionerTotals, practitionerName(pkg.practitioner_id), fee);
+      }
+    }
+
+    for (const b of filteredBookings) {
+      const bStart = new Date(b.start_time);
+      if (bStart < periodStart || bStart >= periodEnd) continue;
+      const mKey = format(bStart, "yyyy-MM");
+      if (flatKeys.has(`${b.room_id}|${mKey}`)) continue;
+      if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}|${mKey}`)) continue;
+      const room = filteredRooms.find((r) => r.id === b.room_id);
+      if (!room) continue;
+      const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
+      const amount = Number(room.hourly_rate || 0) * hours;
+      addTo(roomTotals, room.name, amount);
+      addTo(practitionerTotals, practitionerName(b.practitioner_id), amount);
+    }
+
+    const toSorted = (map: Map<string, number>) =>
+      Array.from(map.entries())
+        .map(([name, value]) => ({ name, value: Math.round(value) }))
+        .filter((r) => r.value > 0)
+        .sort((a, b) => b.value - a.value);
+
+    return { revenueByRoom: toSorted(roomTotals), revenueByPractitioner: toSorted(practitionerTotals) };
+  }, [rooms, bookings, packages, periods, selectedRoomId, practitionerProfiles]);
+
+  const pieColors = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(var(--primary))",
+    "hsl(var(--sage-dark))",
+    "hsl(var(--warning))",
+  ];
+
+
+
   // Current period summary (last period)
   const current = chartData[chartData.length - 1];
   const previous = chartData.length >= 2 ? chartData[chartData.length - 2] : null;
