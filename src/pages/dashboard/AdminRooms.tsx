@@ -74,6 +74,7 @@ const AdminRooms = () => {
   const [showDefaultsDialog, setShowDefaultsDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [hoursRoom, setHoursRoom] = useState<Room | null>(null);
   const [defaultPricing, setDefaultPricing] = useState<PricingItem[]>([]);
   const [defaultCreditsInfo, setDefaultCreditsInfo] = useState("");
   const [defaultsForm, setDefaultsForm] = useState<{ pricing: PricingItem[]; credits_info: string }>({ pricing: [], credits_info: "" });
