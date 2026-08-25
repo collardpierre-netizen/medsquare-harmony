@@ -1012,6 +1012,15 @@ const RoomCard = ({
           <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={onEdit}>
             <Edit className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 shadow-sm"
+            onClick={onEditHours}
+            title="Plages d'ouverture"
+          >
+            <Clock className="h-3.5 w-3.5" />
+          </Button>
           <Button size="icon" variant="secondary" className="h-8 w-8 shadow-sm" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </Button>
