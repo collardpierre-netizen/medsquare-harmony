@@ -128,7 +128,7 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, start_date, end_date, profiles(id, first_name, last_name, specialty, avatar_url, contact_email, phone)"
+        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, start_date, end_date, profiles(id, first_name, last_name, specialty, avatar_url)"
         )
         .eq("id", id)
         .eq("is_active", true)
@@ -140,7 +140,22 @@ const ActiviteDetail = () => {
         return;
       }
 
-      setActivity(act as unknown as Activity);
+      const activityData = act as unknown as Activity;
+
+      // Sensitive practitioner contact details are only fetched for authenticated users
+      if (user && activityData.profiles?.id) {
+        const { data: contact } = await supabase
+          .from("profiles")
+          .select("contact_email, phone")
+          .eq("id", activityData.profiles.id)
+          .maybeSingle();
+        if (contact) {
+          activityData.profiles.contact_email = contact.contact_email;
+          activityData.profiles.phone = contact.phone;
+        }
+      }
+
+      setActivity(activityData);
 
       const [{ data: sess }, { data: pricesData }] = await Promise.all([
         supabase
