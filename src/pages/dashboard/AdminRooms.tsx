@@ -1070,6 +1070,16 @@ const RoomCard = ({
           </div>
         )}
 
+        {/* Plages d'ouverture */}
+        <button
+          type="button"
+          onClick={onEditHours}
+          className="w-full text-left flex items-start gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+        >
+          <Clock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span>{summarizeOpeningHours(room.opening_hours)}</span>
+        </button>
+
         {/* Bottom stats */}
         <div className="flex items-center justify-between pt-3 border-t border-border">
           <div className="flex items-center gap-1 text-sm">
