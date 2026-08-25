@@ -124,13 +124,26 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
     return diff;
   };
 
-  const isHourBooked = (day: Date, hour: number) => {
+  /** Borne UTC exacte du créneau [hour, hour+1[ en heure de Bruxelles */
+  const getSlotRangeUTC = (day: Date, hour: number) => {
     const dayBrussels = toBrusselsDay(day);
     const offset = getBrusselsOffsetHours(day);
-    const slotStartUTC = new Date(dayBrussels);
-    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
-    const slotEndUTC = new Date(dayBrussels);
-    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
+    const base = Date.UTC(
+      dayBrussels.getFullYear(),
+      dayBrussels.getMonth(),
+      dayBrussels.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
+    const slotStartUTC = new Date(base + (hour - offset) * 3600000);
+    const slotEndUTC = new Date(base + (hour - offset + 1) * 3600000);
+    return { dayBrussels, slotStartUTC, slotEndUTC };
+  };
+
+  const isHourBooked = (day: Date, hour: number) => {
+    const { dayBrussels, slotStartUTC, slotEndUTC } = getSlotRangeUTC(day, hour);
     return weekBookings.some((b) => {
       const start = new Date(b.start_time);
       const end = new Date(b.end_time);
@@ -140,12 +153,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
   };
 
   const isHourActivity = (day: Date, hour: number) => {
-    const dayBrussels = toBrusselsDay(day);
-    const offset = getBrusselsOffsetHours(day);
-    const slotStartUTC = new Date(dayBrussels);
-    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
-    const slotEndUTC = new Date(dayBrussels);
-    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
+    const { dayBrussels, slotStartUTC, slotEndUTC } = getSlotRangeUTC(day, hour);
     return weekActivities.some((a) => {
       const start = new Date(a.start_time);
       const end = new Date(a.end_time);
@@ -164,12 +172,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
 
   /** Réservation couvrant ce créneau horaire, même si elle a démarré à une heure antérieure. */
   const getBookingCoveringHour = (day: Date, hour: number) => {
-    const dayBrussels = toBrusselsDay(day);
-    const offset = getBrusselsOffsetHours(day);
-    const slotStartUTC = new Date(dayBrussels);
-    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
-    const slotEndUTC = new Date(dayBrussels);
-    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
+    const { dayBrussels, slotStartUTC, slotEndUTC } = getSlotRangeUTC(day, hour);
     return weekBookings.find((b) => {
       const start = new Date(b.start_time);
       const end = new Date(b.end_time);
@@ -177,6 +180,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
       return start.getTime() < slotEndUTC.getTime() && end.getTime() > slotStartUTC.getTime();
     });
   };
+
 
   const getActivityAtHour = (day: Date, hour: number) => {
     const dayBrussels = toBrusselsDay(day);
