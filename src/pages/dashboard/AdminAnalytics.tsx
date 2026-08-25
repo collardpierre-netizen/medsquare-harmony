@@ -231,7 +231,18 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("activity_registrations")
-        .select("id, session_id, created_at, status")
+        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode)")
+        .eq("status", "registered");
+      return data || [];
+    },
+  });
+
+  const { data: projectionRegistrations } = useQuery({
+    queryKey: ["admin-analytics-projection-registrations", projectionRange.start, projectionRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("activity_registrations")
+        .select("id, session_id, created_at, status, price_id, activity_prices(id, price, vat_mode)")
         .eq("status", "registered");
       return data || [];
     },
