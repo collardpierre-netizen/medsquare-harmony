@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
           data: {
             first_name: targetFirstName,
             last_name: targetLastName,
+            account_type: targetAccountType,
           },
         },
       } : {}),
