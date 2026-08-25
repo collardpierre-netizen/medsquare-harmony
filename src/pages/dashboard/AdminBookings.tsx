@@ -387,6 +387,11 @@ const AdminBookings = () => {
           occupancyPct: stats.totalHours > 0
             ? Math.min(100, Math.round((occupiedHours / stats.totalHours) * 100))
             : 0,
+          scheduledLabel: stats.scheduledPrivatization
+            ? stats.scheduledPrivatization.until
+              ? `Privatisation programmée du ${formatPrivatizationDate(stats.scheduledPrivatization.from)} au ${formatPrivatizationDate(stats.scheduledPrivatization.until)}`
+              : `Privatisation programmée dès le ${formatPrivatizationDate(stats.scheduledPrivatization.from)}`
+            : null,
         };
       })
       // Tri par nom naturel (Cabinet N°1, N°2, N°3...)
