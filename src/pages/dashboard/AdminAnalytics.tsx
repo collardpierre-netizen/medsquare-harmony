@@ -182,10 +182,19 @@ const AdminAnalytics = () => {
   const { data: rooms } = useQuery({
     queryKey: ["admin-analytics-rooms"],
     queryFn: async () => {
-      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until, privatization_monthly_fee");
+      const { data } = await supabase.from("rooms").select("id, name, hourly_rate, is_available, privatized_from, privatized_until, privatization_monthly_fee, assigned_practitioner_id");
       return data || [];
     },
   });
+
+  const { data: practitionerProfiles } = useQuery({
+    queryKey: ["admin-analytics-practitioner-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, first_name, last_name");
+      return data || [];
+    },
+  });
+
 
   const { data: packages } = useQuery({
     queryKey: ["admin-analytics-packages"],
