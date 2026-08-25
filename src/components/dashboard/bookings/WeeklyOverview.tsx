@@ -231,15 +231,15 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                 Libre
               </div>
               <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 rounded overflow-hidden border border-red-400/50" viewBox="0 0 12 12">
-                  <rect width="12" height="12" fill="rgb(239 68 68 / 0.15)" />
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-500" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(239 68 68 / 0.45)" />
                   <rect width="12" height="12" fill="url(#week-hatch-booked)" />
                 </svg>
                 Réservé ponctuel
               </div>
               <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 rounded overflow-hidden border border-red-700/60" viewBox="0 0 12 12">
-                  <rect width="12" height="12" fill="rgb(185 28 28 / 0.25)" />
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-800" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(153 27 27 / 0.6)" />
                   <rect width="12" height="12" fill="url(#week-hatch-recurring)" />
                 </svg>
                 Réservé récurrent
@@ -252,8 +252,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                 Activité
               </div>
               <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 rounded overflow-hidden border border-red-500/30" viewBox="0 0 12 12">
-                  <rect width="12" height="12" fill="rgb(239 68 68 / 0.15)" />
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-600" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(220 38 38 / 0.5)" />
                   <rect width="12" height="12" fill="url(#week-hatch-privatise)" />
                 </svg>
                 🔒 Privatisé
