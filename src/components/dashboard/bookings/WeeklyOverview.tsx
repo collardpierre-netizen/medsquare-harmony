@@ -215,11 +215,18 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                 Libre
               </div>
               <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 rounded overflow-hidden border border-primary/30" viewBox="0 0 12 12">
-                  <rect width="12" height="12" fill="hsl(var(--primary) / 0.15)" />
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-400/50" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(239 68 68 / 0.15)" />
                   <rect width="12" height="12" fill="url(#week-hatch-booked)" />
                 </svg>
-                Réservé
+                Réservé ponctuel
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-700/60" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(185 28 28 / 0.25)" />
+                  <rect width="12" height="12" fill="url(#week-hatch-recurring)" />
+                </svg>
+                Réservé récurrent
               </div>
               <div className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 rounded overflow-hidden border border-orange-500/30" viewBox="0 0 12 12">
