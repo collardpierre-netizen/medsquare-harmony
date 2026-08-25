@@ -237,6 +237,27 @@ const AdminAnalytics = () => {
     },
   });
 
+  // ─── Forward projection: next 3 months after current month ───
+  const projectionRange = useMemo(() => {
+    const start = startOfMonth(addMonths(today, 1));
+    const end = addDays(endOfMonth(addMonths(today, 3)), 1); // exclusive
+    return { start: start.toISOString(), end: end.toISOString(), startDate: start, endDate: end };
+  }, [today.getMonth(), today.getFullYear()]);
+
+  const { data: projectionBookings } = useQuery({
+    queryKey: ["admin-analytics-projection", projectionRange.start, projectionRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("id, room_id, practitioner_id, start_time, end_time, status")
+        .gte("start_time", projectionRange.start)
+        .lt("start_time", projectionRange.end)
+        .in("status", ["confirmed", "pending"]);
+      return data || [];
+    },
+    enabled: !!rooms,
+  });
+
   const { data: projectionRegistrations } = useQuery({
     queryKey: ["admin-analytics-projection-registrations", projectionRange.start, projectionRange.end],
     queryFn: async () => {
@@ -247,15 +268,6 @@ const AdminAnalytics = () => {
       return data || [];
     },
   });
-
-  // ─── Forward projection: next 3 months after current month ───
-  const projectionRange = useMemo(() => {
-    const start = startOfMonth(addMonths(today, 1));
-    const end = addDays(endOfMonth(addMonths(today, 3)), 1); // exclusive
-    return { start: start.toISOString(), end: end.toISOString(), startDate: start, endDate: end };
-  }, [today.getMonth(), today.getFullYear()]);
-
-  const { data: projectionBookings } = useQuery({
     queryKey: ["admin-analytics-projection", projectionRange.start, projectionRange.end],
     queryFn: async () => {
       const { data } = await supabase
