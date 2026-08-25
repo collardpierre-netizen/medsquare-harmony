@@ -284,6 +284,8 @@ const AdminAnalytics = () => {
       let pendingHours = 0;
       let confirmedCount = 0;
       let pendingCount = 0;
+      let activityConfirmedRev = 0;
+      let activityConfirmedCount = 0;
 
       // Per-room details for this month
       type Detail = {
@@ -363,6 +365,20 @@ const AdminAnalytics = () => {
           d.pendingCount += 1;
         }
       }
+
+      // Activity registrations revenue (confirmed)
+      for (const reg of (projectionRegistrations || [])) {
+        const sessionStart = (reg as any).activity_sessions?.start_time;
+        if (!sessionStart) continue;
+        const ts = new Date(sessionStart);
+        if (ts < start || ts >= end) continue;
+        const price = (reg as any).activity_prices?.price || 0;
+        const vatMode = (reg as any).activity_prices?.vat_mode || "htva";
+        activityConfirmedRev += Number(price);
+        activityConfirmedCount += 1;
+      }
+      confirmedRev += activityConfirmedRev;
+
       return {
         month: format(start, "MMM yyyy", { locale: fr }),
         monthKey: format(start, "yyyy-MM"),
@@ -373,10 +389,12 @@ const AdminAnalytics = () => {
         pendingHours: Math.round(pendingHours * 10) / 10,
         confirmedCount,
         pendingCount,
+        activityConfirmedRevenue: Math.round(activityConfirmedRev),
+        activityConfirmedCount,
         details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
-  }, [rooms, projectionBookings, projectionRange, packages]);
+  }, [rooms, projectionBookings, projectionRange, packages, projectionRegistrations]);
 
 
   const projectionTotals = useMemo(() => {
