@@ -106,6 +106,23 @@ const SessionRegistrationDialog = ({
         setIsRegistered(false);
       }
 
+      // Load price tiers if not already passed
+      if (session.activities?.id && (!session.activities.prices || session.activities.prices.length === 0)) {
+        const { data: pricesData } = await supabase
+          .from("activity_prices")
+          .select("id, label, price, billing_frequency, vat_mode, sort_order")
+          .eq("activity_id", session.activities.id)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+        const prices = (pricesData || []) as PriceTier[];
+        setActivityPrices(prices);
+        setSelectedPriceId(prices[0]?.id || null);
+      } else {
+        const prices = session.activities?.prices || [];
+        setActivityPrices(prices);
+        setSelectedPriceId(prices[0]?.id || null);
+      }
+
       setChecking(false);
     };
 
