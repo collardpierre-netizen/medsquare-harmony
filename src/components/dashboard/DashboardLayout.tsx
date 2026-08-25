@@ -24,6 +24,7 @@ import {
   Lock,
   FileSignature,
   Megaphone,
+  Tags,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { label: "Mon profil", href: "/dashboard/profile", icon: User },
   { label: "Réservations", href: "/dashboard/bookings", icon: CalendarDays },
   { label: "Mes activités", href: "/dashboard/activities", icon: Activity },
+  { label: "Tarifs activités", href: "/dashboard/activity-prices", icon: Tags },
   
   { label: "Mes inscriptions", href: "/dashboard/registrations", icon: ClipboardList },
   { label: "Documents", href: "/dashboard/documents", icon: FileText },

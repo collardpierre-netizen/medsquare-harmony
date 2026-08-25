@@ -37,6 +37,7 @@ const ActivitesPage = () => {
   const { toast } = useToast();
   const [activities, setActivities] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [pricesMap, setPricesMap] = useState<Record<string, any[]>>({});
   const [myRegistrations, setMyRegistrations] = useState<string[]>([]);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,8 @@ const ActivitesPage = () => {
         supabase.from("activities").select("*, profiles(id, first_name, last_name, specialty, avatar_url)").eq("is_active", true).order("title"),
       ]);
 
-      setActivities(acts || []);
+      const actsData = acts || [];
+      setActivities(actsData);
 
       // Build dynamic categories
       const managedCats: { value: string; label: string }[] = catSetting?.value
@@ -62,7 +64,7 @@ const ActivitesPage = () => {
         : DEFAULT_CATEGORIES.filter((c) => c.value !== "all");
 
       // Get categories actually used by active activities
-      const usedCats = new Set((acts || []).map((a: any) => a.category));
+      const usedCats = new Set(actsData.map((a: any) => a.category));
 
       // Filter to only show categories that have at least one activity, plus "Toutes"
       const dynamicCats = [
@@ -72,14 +74,28 @@ const ActivitesPage = () => {
 
       setCategories(dynamicCats.length > 1 ? dynamicCats : [{ value: "all", label: "Toutes" }]);
 
-      const { data: sess } = await supabase
-        .from("activity_sessions")
-        .select("*, rooms(name), activity_registrations(id, user_id, status)")
-        .gte("start_time", new Date().toISOString())
-        .in("status", ["scheduled", "full"])
-        .order("start_time");
+      const [{ data: sess }, { data: pricesData }] = await Promise.all([
+        supabase
+          .from("activity_sessions")
+          .select("*, rooms(name), activity_registrations(id, user_id, status)")
+          .gte("start_time", new Date().toISOString())
+          .in("status", ["scheduled", "full"])
+          .order("start_time"),
+        supabase
+          .from("activity_prices")
+          .select("*")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+      ]);
 
       setSessions(sess || []);
+
+      const grouped: Record<string, any[]> = {};
+      (pricesData || []).forEach((p: any) => {
+        if (!grouped[p.activity_id]) grouped[p.activity_id] = [];
+        grouped[p.activity_id].push(p);
+      });
+      setPricesMap(grouped);
 
       if (user) {
         const { data: regs } = await supabase
@@ -243,6 +259,7 @@ const ActivitesPage = () => {
                     <ActivityCard
                       activity={activity}
                       nextSession={nextSession}
+                      prices={pricesMap[activity.id] || []}
                     />
                   </motion.div>
                 );

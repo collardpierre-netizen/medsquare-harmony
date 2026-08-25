@@ -29,6 +29,7 @@ interface ActivityCardProps {
     start_time: string;
     rooms?: { name: string } | null;
   } | null;
+  prices?: { id: string; label: string; price: number; billing_frequency: string; sort_order: number }[];
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -53,10 +54,20 @@ const STOCK_PHOTOS: Record<string, string> = {
   autre: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop",
 };
 
-const ActivityCard = ({ activity, nextSession }: ActivityCardProps) => {
+const ActivityCard = ({ activity, nextSession, prices = [] }: ActivityCardProps) => {
   const photos = activity.photos?.length ? activity.photos : [];
   const photo = photos[0] || activity.photo_url || STOCK_PHOTOS[activity.category] || STOCK_PHOTOS.autre;
   const practitioner = activity.profiles;
+
+  const priceLabel = () => {
+    if (activity.is_free !== false) return "Gratuit";
+    if (prices.length > 0) {
+      const min = Math.min(...prices.map((p) => p.price));
+      return `Dès ${min} €`;
+    }
+    if (activity.price) return `${activity.price} €`;
+    return "Payant";
+  };
 
   return (
     <Link to={`/activites/${activity.id}`} className="group block">
@@ -114,7 +125,7 @@ const ActivityCard = ({ activity, nextSession }: ActivityCardProps) => {
             </span>
           )}
           <span className="font-medium">
-            {activity.is_free !== false ? "Gratuit" : activity.price ? `${activity.price} €` : "Payant"}
+            {priceLabel()}
           </span>
         </div>
 

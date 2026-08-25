@@ -86,6 +86,25 @@ interface Session {
   activity_registrations: { id: string; user_id: string; status?: string }[];
 }
 
+interface PriceTier {
+  id: string;
+  label: string;
+  price: number;
+  billing_frequency: string;
+  sort_order: number;
+}
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  unit: "À l'unité",
+  pack_5: "Carnet 5",
+  pack_10: "Carnet 10",
+  monthly: "Mensuel",
+  quarterly: "Trimestriel",
+  biannual: "Semestriel",
+  annual: "Annuel",
+  biennial: "Bi-annuel",
+};
+
 const ActiviteDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -93,6 +112,7 @@ const ActiviteDetail = () => {
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [prices, setPrices] = useState<PriceTier[]>([]);
   const [myRegistrations, setMyRegistrations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -122,17 +142,26 @@ const ActiviteDetail = () => {
 
       setActivity(act as unknown as Activity);
 
-      const { data: sess } = await supabase
-        .from("activity_sessions")
-        .select(
-          "id, start_time, end_time, max_participants, status, rooms(name), activity_registrations(id, user_id, status)"
-        )
-        .eq("activity_id", id)
-        .gte("start_time", new Date().toISOString())
-        .in("status", ["scheduled", "full"])
-        .order("start_time");
+      const [{ data: sess }, { data: pricesData }] = await Promise.all([
+        supabase
+          .from("activity_sessions")
+          .select(
+            "id, start_time, end_time, max_participants, status, rooms(name), activity_registrations(id, user_id, status)"
+          )
+          .eq("activity_id", id)
+          .gte("start_time", new Date().toISOString())
+          .in("status", ["scheduled", "full"])
+          .order("start_time"),
+        supabase
+          .from("activity_prices")
+          .select("*")
+          .eq("activity_id", id)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+      ]);
 
       setSessions((sess || []) as unknown as Session[]);
+      setPrices((pricesData || []) as PriceTier[]);
 
       if (user) {
         const { data: regs } = await supabase
@@ -282,7 +311,12 @@ const ActiviteDetail = () => {
               <span className="inline-flex items-center rounded-full bg-background/90 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
                 {CATEGORY_LABELS[activity.category] || activity.category}
               </span>
-              {!activity.is_free && activity.price && (
+              {!activity.is_free && prices.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
+                  Dès {Math.min(...prices.map((p) => p.price))} €
+                </span>
+              )}
+              {!activity.is_free && prices.length === 0 && activity.price && (
                 <span className="inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
                   {activity.price} €
                 </span>
@@ -405,6 +439,43 @@ const ActiviteDetail = () => {
                 </p>
               )}
             </div>
+
+            <Separator className="mb-8" />
+
+            {/* Pricing */}
+            {!activity.is_free && (
+              <div className="mb-8">
+                <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-primary" />
+                  Tarifs
+                </h2>
+                {prices.length > 0 ? (
+                  <div className="grid gap-3">
+                    {prices.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{p.label}</p>
+                          <p className="text-xs text-muted-foreground">{FREQUENCY_LABELS[p.billing_frequency] || p.billing_frequency}</p>
+                        </div>
+                        <span className="font-display text-lg font-semibold text-primary">
+                          {p.price} €
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : activity.price ? (
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+                    <p className="font-medium text-sm">Séance unique</p>
+                    <span className="font-display text-lg font-semibold text-primary">{activity.price} €</span>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">Tarifs non renseignés.</p>
+                )}
+              </div>
+            )}
 
             <Separator className="mb-8" />
 

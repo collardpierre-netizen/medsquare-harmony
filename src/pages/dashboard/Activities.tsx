@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy, CalendarIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Calendar, Clock, ImageIcon, Copy, CalendarIcon, Tags, ArrowUpRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { format, addMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -669,6 +670,12 @@ const Activities = () => {
                           <Calendar className="h-3.5 w-3.5 mr-1.5" />
                           Planifier
                         </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to="/dashboard/activity-prices">
+                            <Tags className="h-3.5 w-3.5 mr-1.5" />
+                            Tarifs
+                          </Link>
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(activity)}>
                           <Edit className="h-3.5 w-3.5" />
                         </Button>
@@ -785,7 +792,7 @@ const Activities = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm">Activité gratuite</Label>
-                  <p className="text-xs text-muted-foreground">Désactivez pour définir un prix</p>
+                  <p className="text-xs text-muted-foreground">Désactivez pour proposer des tarifs</p>
                 </div>
                 <Switch
                   checked={form.is_free}
@@ -793,17 +800,25 @@ const Activities = () => {
                 />
               </div>
               {!form.is_free && (
-                <div>
-                  <Label>Prix (€)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={form.price ?? ""}
-                    onChange={(e) => setForm({ ...form, price: e.target.value ? parseFloat(e.target.value) : null })}
-                    placeholder="Ex: 15"
-                    className="mt-1.5 w-32"
-                  />
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Définissez les paliers tarifaires (unité, packs, abonnements) depuis la page dédiée.
+                  </p>
+                  {editingId && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-fit gap-1.5"
+                      asChild
+                    >
+                      <Link to="/dashboard/activity-prices">
+                        <Tags className="h-3.5 w-3.5" />
+                        Gérer les tarifs
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
