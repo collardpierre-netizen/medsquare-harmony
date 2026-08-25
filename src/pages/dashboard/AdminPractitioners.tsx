@@ -60,6 +60,9 @@ const AdminPractitioners = () => {
   const [deleting, setDeleting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [inviteSchedule, setInviteSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
+  const [inviteAccountType, setInviteAccountType] = useState<"practitioner" | "patient">("practitioner");
+  const [roleChange, setRoleChange] = useState<{ profile: any; newRole: "practitioner" | "patient" } | null>(null);
+  const [changingRole, setChangingRole] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "",
   });
@@ -188,6 +191,7 @@ const AdminPractitioners = () => {
   const resetInviteForm = () => {
     setInviteForm({ email: "", first_name: "", last_name: "", specialty: "", bio: "", phone: "", contact_email: "" });
     setInviteSchedule(DEFAULT_SCHEDULE);
+    setInviteAccountType("practitioner");
     setShowAdvanced(false);
   };
 
@@ -203,6 +207,7 @@ const AdminPractitioners = () => {
           email: inviteForm.email,
           first_name: inviteForm.first_name,
           last_name: inviteForm.last_name,
+          account_type: inviteAccountType,
           specialty: inviteForm.specialty,
           bio: inviteForm.bio,
           phone: inviteForm.phone,
@@ -220,6 +225,36 @@ const AdminPractitioners = () => {
       toast({ title: "Erreur", description: err.message || "Impossible d'envoyer l'invitation", variant: "destructive" });
     }
     setInviting(false);
+  };
+
+  // ---- Change account profile (patient <-> practitioner) ----
+  const confirmRoleChange = async () => {
+    if (!roleChange) return;
+    const { profile, newRole } = roleChange;
+    setChangingRole(true);
+    try {
+      const { error: delError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", profile.user_id)
+        .in("role", ["patient", "practitioner"]);
+      if (delError) throw delError;
+
+      const { error: insError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: profile.user_id, role: newRole });
+      if (insError) throw insError;
+
+      toast({
+        title: "Profil mis à jour",
+        description: `${profile.first_name} ${profile.last_name} est désormais ${newRole === "practitioner" ? "professionnel" : "patient"}. La personne doit se reconnecter pour voir son nouvel espace.`,
+      });
+      setRoleChange(null);
+      fetchPractitioners();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de changer le profil", variant: "destructive" });
+    }
+    setChangingRole(false);
   };
 
   const handleResendInvite = async (practitioner: any) => {
@@ -457,6 +492,18 @@ const AdminPractitioners = () => {
                   Le praticien recevra un email pour activer son compte. Vous pouvez déjà pré-remplir son profil.
                 </p>
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Type de profil *</Label>
+                    <Select value={inviteAccountType} onValueChange={(v) => setInviteAccountType(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="practitioner">Professionnel (praticien)</SelectItem>
+                        <SelectItem value="patient">Patient</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="invite-email">Email *</Label>
                     <Input
@@ -976,6 +1023,23 @@ const AdminPractitioners = () => {
                           Renvoyer l'accès
                         </Button>
                       )}
+                      {!p.roles.includes("admin") && (
+                        <Select
+                          value={p.roles.includes("practitioner") ? "practitioner" : "patient"}
+                          onValueChange={(v) => {
+                            const current = p.roles.includes("practitioner") ? "practitioner" : "patient";
+                            if (v !== current) setRoleChange({ profile: p, newRole: v as any });
+                          }}
+                        >
+                          <SelectTrigger className="w-[150px] h-9 text-xs" title="Type de profil">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="practitioner">Professionnel</SelectItem>
+                            <SelectItem value="patient">Patient</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -1048,6 +1112,27 @@ const AdminPractitioners = () => {
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                 Supprimer définitivement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Account profile change confirmation */}
+        <AlertDialog open={!!roleChange} onOpenChange={(v) => { if (!v) setRoleChange(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Changer le type de profil ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>{roleChange?.profile?.first_name} {roleChange?.profile?.last_name}</strong> passera du profil{" "}
+                {roleChange?.newRole === "practitioner" ? "patient au profil professionnel" : "professionnel au profil patient"}.
+                Cela change l'espace auquel la personne a accès après reconnexion.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={changingRole}>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmRoleChange(); }} disabled={changingRole}>
+                {changingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Confirmer
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
