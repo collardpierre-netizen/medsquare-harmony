@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock, AlertTriangle, Loader2 } from "lucide-react";
+import { DoorOpen, Plus, Edit, Trash2, Users, Euro, Maximize, MapPin, Image as ImageIcon, X, Settings, Lock, CalendarClock, AlertTriangle, Loader2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isRoomCurrentlyPrivatized, isPrivatizationScheduled, getPrivatizationLabel } from "@/lib/roomPrivatization";
 import RoomStatusBadge from "@/components/rooms/RoomStatusBadge";
