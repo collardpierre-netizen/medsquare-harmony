@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isRoomBlockedOnDay, isRoomCurrentlyPrivatized } from "@/lib/roomPrivatization";
+import { isRoomBlockedOnDay, isRoomCurrentlyPrivatized, isPrivatizationScheduled, formatPrivatizationDate } from "@/lib/roomPrivatization";
 import {
   Dialog,
   DialogContent,
