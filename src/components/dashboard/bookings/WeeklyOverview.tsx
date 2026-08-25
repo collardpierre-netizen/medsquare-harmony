@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "./utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Lock } from "lucide-react";
+import { Lock, Repeat } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -162,6 +162,22 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
     });
   };
 
+  /** Réservation couvrant ce créneau horaire, même si elle a démarré à une heure antérieure. */
+  const getBookingCoveringHour = (day: Date, hour: number) => {
+    const dayBrussels = toBrusselsDay(day);
+    const offset = getBrusselsOffsetHours(day);
+    const slotStartUTC = new Date(dayBrussels);
+    slotStartUTC.setUTCHours(hour - offset, 0, 0, 0);
+    const slotEndUTC = new Date(dayBrussels);
+    slotEndUTC.setUTCHours(hour - offset + 1, 0, 0, 0);
+    return weekBookings.find((b) => {
+      const start = new Date(b.start_time);
+      const end = new Date(b.end_time);
+      if (!isSameDay(toBrusselsDay(start), dayBrussels) && !isSameDay(toBrusselsDay(end), dayBrussels)) return false;
+      return start.getTime() < slotEndUTC.getTime() && end.getTime() > slotStartUTC.getTime();
+    });
+  };
+
   const getActivityAtHour = (day: Date, hour: number) => {
     const dayBrussels = toBrusselsDay(day);
     return weekActivities.find((a) => {
@@ -184,7 +200,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
       <svg width="0" height="0" style={{ position: "absolute" }}>
         <defs>
           <pattern id="week-hatch-booked" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(var(--primary) / 0.5)" strokeWidth="2" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(0 72% 51% / 0.45)" strokeWidth="2" />
+          </pattern>
+          <pattern id="week-hatch-recurring" patternUnits="userSpaceOnUse" width="5" height="5">
+            <line x1="0" y1="0" x2="5" y2="5" stroke="hsl(0 74% 42% / 0.55)" strokeWidth="1.6" />
+            <line x1="5" y1="0" x2="0" y2="5" stroke="hsl(0 74% 42% / 0.55)" strokeWidth="1.6" />
           </pattern>
           <pattern id="week-hatch-privatise" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(0 72% 51% / 0.5)" strokeWidth="2.5" />
@@ -211,11 +231,18 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                 Libre
               </div>
               <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 rounded overflow-hidden border border-primary/30" viewBox="0 0 12 12">
-                  <rect width="12" height="12" fill="hsl(var(--primary) / 0.15)" />
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-400/50" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(239 68 68 / 0.15)" />
                   <rect width="12" height="12" fill="url(#week-hatch-booked)" />
                 </svg>
-                Réservé
+                Réservé ponctuel
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3 h-3 rounded overflow-hidden border border-red-700/60" viewBox="0 0 12 12">
+                  <rect width="12" height="12" fill="rgb(185 28 28 / 0.25)" />
+                  <rect width="12" height="12" fill="url(#week-hatch-recurring)" />
+                </svg>
+                Réservé récurrent
               </div>
               <div className="flex items-center gap-1.5">
                 <svg className="w-3 h-3 rounded overflow-hidden border border-orange-500/30" viewBox="0 0 12 12">
@@ -312,7 +339,10 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                     const isToday = isSameDay(day, new Date());
                     const isOccupied = booked || activity;
 
-                    const isPrivatise = booking?.notes?.includes("[Privatisé]");
+                    // Réservation couvrant ce créneau (même si elle a commencé plus tôt)
+                    const coveringBooking = inRange ? booking ?? getBookingCoveringHour(day, hour) : undefined;
+                    const isPrivatise = coveringBooking?.notes?.includes("[Privatisé]");
+                    const isRecurring = !!coveringBooking?.recurrence_group_id;
 
                     const cellContent = (
                           <div
@@ -325,9 +355,11 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               : activity
                               ? "bg-orange-500/25 text-orange-800 border border-orange-500/40"
                               : isPrivatise
-                              ? "bg-red-500/20 text-red-800 border border-red-500/40 cursor-pointer hover:bg-red-500/30"
+                              ? "bg-red-500/20 text-red-800 border-2 border-dashed border-red-500/60 cursor-pointer hover:bg-red-500/30"
+                              : booked && isRecurring
+                              ? "bg-red-700/25 text-red-900 border border-red-700/60 cursor-pointer hover:bg-red-700/35"
                               : booked
-                              ? "bg-primary/25 text-primary border border-primary/40 cursor-pointer hover:bg-primary/35"
+                              ? "bg-red-500/15 text-red-700 border border-red-400/50 cursor-pointer hover:bg-red-500/25"
                               : "bg-accent/50 border border-border/50 hover:border-primary/40 hover:bg-accent cursor-pointer"
                           )}
                           onClick={() => {
@@ -344,7 +376,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {/* Diagonal hatching overlay for occupied slots */}
                           {inRange && !isPast && isOccupied && (
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : "url(#week-hatch-booked)"} />
+                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : isRecurring ? "url(#week-hatch-recurring)" : "url(#week-hatch-booked)"} />
                             </svg>
                           )}
                           {actSession && (
@@ -355,6 +387,9 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {booking && !activity && (
                             <span className="truncate px-1 relative z-10 flex items-center gap-0.5">
                               {booking.notes?.includes("[Privatisé]") && <Lock className="h-3 w-3 shrink-0" />}
+                              {booking.recurrence_group_id && !booking.notes?.includes("[Privatisé]") && (
+                                <Repeat className="h-3 w-3 shrink-0" />
+                              )}
                               {booking.profiles?.first_name?.[0]}.{booking.profiles?.last_name?.[0]}.
                             </span>
                           )}
@@ -367,7 +402,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                       const name = booking.profiles ? `${booking.profiles.first_name} ${booking.profiles.last_name}` : "Inconnu";
                       const timeStr = `${format(new Date(booking.start_time), "HH:mm")}–${format(new Date(booking.end_time), "HH:mm")}`;
                       const privLabel = booking.notes?.includes("[Privatisé]") ? "🔒 Privatisé · " : "";
-                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}`);
+                      const recLabel = booking.recurrence_group_id ? " · ↻ récurrent" : " · ponctuel";
+                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}${privLabel ? "" : recLabel}`);
                     }
                     if (actSession) {
                       const p = (actSession as any).activities?.profiles;
