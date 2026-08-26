@@ -367,13 +367,21 @@ const AdminBookings = () => {
         stats.bookedHours += hours;
         stats.bookingCount += 1;
 
-        // Add hourly revenue only if this month is NOT billed by a flat fee for this room
+        // Séparation forfait / horaire : la valeur horaire couverte par un forfait
+        // est tracée à part (coveredHourlyValue) au lieu d'être masquée.
         const mKey = format(start, "yyyy-MM");
-        if (!stats.flatMonths.has(mKey) && !packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`)) {
-          const room = allRooms.find((r) => r.id === b.room_id);
-          const rate = Number(room?.hourly_rate || 0);
-          const durationHours = durationMs / (1000 * 60 * 60);
-          stats.revenue += rate * durationHours;
+        const room = allRooms.find((r) => r.id === b.room_id);
+        const rate = Number(room?.hourly_rate || 0);
+        const durationHours = durationMs / (1000 * 60 * 60);
+        const value = rate * durationHours;
+        const coveredByFlat =
+          stats.flatMonths.has(mKey) ||
+          !!packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`);
+        if (coveredByFlat) {
+          stats.coveredHourlyValue += value;
+        } else {
+          stats.revenue += value;
+          stats.hourlyRevenue += value;
         }
       }
     });
