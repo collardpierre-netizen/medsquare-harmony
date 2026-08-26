@@ -367,13 +367,21 @@ const AdminBookings = () => {
         stats.bookedHours += hours;
         stats.bookingCount += 1;
 
-        // Add hourly revenue only if this month is NOT billed by a flat fee for this room
+        // Séparation forfait / horaire : la valeur horaire couverte par un forfait
+        // est tracée à part (coveredHourlyValue) au lieu d'être masquée.
         const mKey = format(start, "yyyy-MM");
-        if (!stats.flatMonths.has(mKey) && !packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`)) {
-          const room = allRooms.find((r) => r.id === b.room_id);
-          const rate = Number(room?.hourly_rate || 0);
-          const durationHours = durationMs / (1000 * 60 * 60);
-          stats.revenue += rate * durationHours;
+        const room = allRooms.find((r) => r.id === b.room_id);
+        const rate = Number(room?.hourly_rate || 0);
+        const durationHours = durationMs / (1000 * 60 * 60);
+        const value = rate * durationHours;
+        const coveredByFlat =
+          stats.flatMonths.has(mKey) ||
+          !!packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`);
+        if (coveredByFlat) {
+          stats.coveredHourlyValue += value;
+        } else {
+          stats.revenue += value;
+          stats.hourlyRevenue += value;
         }
       }
     });
@@ -404,8 +412,11 @@ const AdminBookings = () => {
       : 0;
 
     const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
+    const totalFlatRevenue = roomList.reduce((sum, r) => sum + r.flatRevenue, 0);
+    const totalHourlyRevenue = roomList.reduce((sum, r) => sum + r.hourlyRevenue, 0);
+    const totalCoveredHourly = roomList.reduce((sum, r) => sum + r.coveredHourlyValue, 0);
 
-    return { label, rooms: roomList, globalAvg, totalRevenue };
+    return { label, rooms: roomList, globalAvg, totalRevenue, totalFlatRevenue, totalHourlyRevenue, totalCoveredHourly };
   }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
@@ -1362,6 +1373,27 @@ const AdminBookings = () => {
                         value={room.occupancyPct}
                         className="h-2"
                       />
+                      {/* Séparation claire forfait / horaire */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        <span>
+                          Forfait :{" "}
+                          <span className="font-medium text-foreground">
+                            {eur0(room.flatRevenue)} HTVA
+                          </span>
+                        </span>
+                        <span>
+                          Réservations horaires :{" "}
+                          <span className="font-medium text-foreground">
+                            {eur0(room.hourlyRevenue)} HTVA
+                          </span>
+                        </span>
+                        {room.coveredHourlyValue > 0 && (
+                          <span className="italic">
+                            dont {eur0(room.coveredHourlyValue)} déjà couverts par le forfait (non
+                            facturés en sus)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
 
@@ -1388,6 +1420,29 @@ const AdminBookings = () => {
                       </div>
                     </div>
                     <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                      <span>
+                        Forfaits :{" "}
+                        <span className="font-medium text-foreground">
+                          {eur0(occupancyData.totalFlatRevenue)} HTVA
+                        </span>
+                      </span>
+                      <span>
+                        Réservations horaires :{" "}
+                        <span className="font-medium text-foreground">
+                          {eur0(occupancyData.totalHourlyRevenue)} HTVA
+                        </span>
+                      </span>
+                      {occupancyData.totalCoveredHourly > 0 && (
+                        <span className="italic">
+                          + {eur0(occupancyData.totalCoveredHourly)} d'heures déjà couvertes par les
+                          forfaits
+                        </span>
+                      )}
+                      <span className="ml-auto">
+                        Taux calculés sur les plages d'ouverture définies par salle
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
