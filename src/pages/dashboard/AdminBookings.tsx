@@ -44,11 +44,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
 import MonthlyBillingExport from "@/components/dashboard/bookings/MonthlyBillingExport";
 import { Progress } from "@/components/ui/progress";
+
+/** Format court en euros (HTVA) */
+const eur0 = (v: number) =>
+  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   [0, 30].map((m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
@@ -169,7 +173,7 @@ const AdminBookings = () => {
     const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
-      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee").order("name"),
+      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee, opening_hours").order("name"),
       supabase.from("practitioner_room_packages").select("practitioner_id, room_id, monthly_fee").eq("is_active", true),
     ]);
     setPractitioners(profs || []);
@@ -717,12 +721,46 @@ const AdminBookings = () => {
   const formatHours = (h: number) =>
     `${Number.isInteger(h) ? h : h.toFixed(1).replace(".", ",")} h`;
 
+  /** Une réservation est-elle couverte par un forfait locataire (praticien + salle, mois de la résa) ? */
+  const isBookingCoveredByPackage = (b: any) =>
+    packages.some((p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id);
+
   const bookingRevenue = (b: any) => {
     const room = allRooms.find((r) => r.id === b.room_id);
     if (!room) return 0;
+    // Couvert par un forfait mensuel → pas de facturation horaire en sus
+    if (isBookingCoveredByPackage(b)) return 0;
     const hours = bookingHours(b);
     return (room.hourly_rate || 0) * hours;
   };
+
+  /**
+   * Total facturable d'un praticien : forfaits mensuels (par salle et par mois concerné)
+   * + réservations horaires non couvertes par un forfait.
+   */
+  const practitionerBilling = (list: any[]) => {
+    let hourly = 0;
+    let flat = 0;
+    const flatKeys = new Set<string>();
+    list.forEach((b) => {
+      if (b.status === "cancelled") return;
+      if (isBookingCoveredByPackage(b)) {
+        const mKey = format(new Date(b.start_time), "yyyy-MM");
+        const key = `${b.room_id}|${mKey}`;
+        if (!flatKeys.has(key)) {
+          flatKeys.add(key);
+          const pkg = packages.find(
+            (p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id
+          );
+          flat += Number(pkg?.monthly_fee || 0);
+        }
+      } else {
+        hourly += bookingRevenue(b);
+      }
+    });
+    return { hourly, flat, total: hourly + flat, hasFlat: flatKeys.size > 0 };
+  };
+
 
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat("fr-BE", {
@@ -790,12 +828,25 @@ const AdminBookings = () => {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 ml-4">
-          <span className="text-sm font-semibold text-emerald-600">
-            {formatMoney(bookingRevenue(booking))} HTVA
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
-          </span>
+          {isBookingCoveredByPackage(booking) ? (
+            <>
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                Inclus au forfait
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                {booking.rooms?.hourly_rate ? `valeur ${formatMoney((booking.rooms.hourly_rate || 0) * bookingHours(booking))}` : ""}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-sm font-semibold text-emerald-600">
+                {formatMoney(bookingRevenue(booking))} HTVA
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
           {booking.status === "pending" && (
@@ -1026,7 +1077,8 @@ const AdminBookings = () => {
                     className="w-full border-primary/30 text-primary hover:bg-primary/5"
                     onClick={() => {
                       const d = newBooking.date ? parseISO(newBooking.date) : new Date();
-                      const { start, end } = getOpeningHours(d);
+                      const selectedRoom = allRooms.find((r) => r.id === newBooking.room_id);
+                      const { start, end } = getRoomDayHours((selectedRoom as any)?.opening_hours, d);
                       setNewBooking((b) => ({
                         ...b,
                         start_time: `${String(start).padStart(2, "0")}:00`,
@@ -1539,14 +1591,24 @@ const AdminBookings = () => {
                             <p className="font-semibold text-sm">{group.name}</p>
                             <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
-                              {formatMoney(group.bookings.reduce((s: number, b: any) => s + bookingRevenue(b), 0))} HTVA
-                            </Badge>
-                          </div>
+                          {(() => {
+                            const billing = practitionerBilling(group.bookings);
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs shrink-0">
+                                  Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
+                                </Badge>
+                                {billing.hasFlat && (
+                                  <Badge variant="outline" className="text-xs shrink-0 border-primary/30 text-primary">
+                                    Forfait {formatMoney(billing.flat)}
+                                  </Badge>
+                                )}
+                                <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
+                                  {formatMoney(billing.total)} HTVA
+                                </Badge>
+                              </div>
+                            );
+                          })()}
 
                           <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
                         </button>
