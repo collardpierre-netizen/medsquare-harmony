@@ -1420,6 +1420,29 @@ const AdminBookings = () => {
                       </div>
                     </div>
                     <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                      <span>
+                        Forfaits :{" "}
+                        <span className="font-medium text-foreground">
+                          {eur0(occupancyData.totalFlatRevenue)} HTVA
+                        </span>
+                      </span>
+                      <span>
+                        Réservations horaires :{" "}
+                        <span className="font-medium text-foreground">
+                          {eur0(occupancyData.totalHourlyRevenue)} HTVA
+                        </span>
+                      </span>
+                      {occupancyData.totalCoveredHourly > 0 && (
+                        <span className="italic">
+                          + {eur0(occupancyData.totalCoveredHourly)} d'heures déjà couvertes par les
+                          forfaits
+                        </span>
+                      )}
+                      <span className="ml-auto">
+                        Taux calculés sur les plages d'ouverture définies par salle
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
