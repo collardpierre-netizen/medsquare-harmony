@@ -1321,27 +1321,37 @@ const AdminBookings = () => {
                         value={room.occupancyPct}
                         className="h-2"
                       />
-                      {/* Séparation claire forfait / horaire */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>
-                          Forfait :{" "}
-                          <span className="font-medium text-foreground">
-                            {eur0(room.flatRevenue)} HTVA
-                          </span>
-                        </span>
-                        <span>
-                          Réservations horaires :{" "}
-                          <span className="font-medium text-foreground">
-                            {eur0(room.hourlyRevenue)} HTVA
-                          </span>
-                        </span>
-                        {room.coveredHourlyValue > 0 && (
-                          <span className="italic">
-                            dont {eur0(room.coveredHourlyValue)} déjà couverts par le forfait (non
-                            facturés en sus)
-                          </span>
-                        )}
+                      {/* Séparation visuelle : forfait / horaire facturé / disponible */}
+                      <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                        <div className="rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5">
+                          <p className="text-primary font-medium">Inclus au forfait</p>
+                          <p className="font-semibold text-foreground">{eur0(room.flatRevenue)} HTVA</p>
+                          {room.coveredHourlyValue > 0 && (
+                            <p className="text-muted-foreground italic">
+                              dont {eur0(room.coveredHourlyValue)} d'heures couvertes (non facturées en sus)
+                            </p>
+                          )}
+                        </div>
+                        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
+                          <p className="text-emerald-700 font-medium">Horaire facturé</p>
+                          <p className="font-semibold text-foreground">{eur0(room.hourlyRevenue)} HTVA</p>
+                          <p className="text-muted-foreground">
+                            {room.bookedHours.toFixed(1)}h réservées (battement inclus)
+                          </p>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/40 px-2 py-1.5">
+                          <p className="font-medium">Heures disponibles</p>
+                          <p className="font-semibold text-foreground">
+                            {room.availableHours.toFixed(1)}h / {room.totalHours}h
+                          </p>
+                          <p className="text-muted-foreground">
+                            {room.privatizedHours > 0
+                              ? `${room.privatizedHours.toFixed(1)}h bloquées (privatisation)`
+                              : "selon les plages d'ouverture"}
+                          </p>
+                        </div>
                       </div>
+
                     </div>
                   ))}
 
