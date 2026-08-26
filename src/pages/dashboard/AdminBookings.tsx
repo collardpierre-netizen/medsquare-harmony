@@ -45,15 +45,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
-import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
-
-/** Format court en euros (HTVA) */
-const eur0 = (v: number) =>
-  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
 import MonthlyBillingExport from "@/components/dashboard/bookings/MonthlyBillingExport";
 import { Progress } from "@/components/ui/progress";
+
+/** Format court en euros (HTVA) */
+const eur0 = (v: number) =>
+  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   [0, 30].map((m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
