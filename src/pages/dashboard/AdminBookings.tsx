@@ -1031,7 +1031,8 @@ const AdminBookings = () => {
                     className="w-full border-primary/30 text-primary hover:bg-primary/5"
                     onClick={() => {
                       const d = newBooking.date ? parseISO(newBooking.date) : new Date();
-                      const { start, end } = getOpeningHours(d);
+                      const selectedRoom = allRooms.find((r) => r.id === newBooking.room_id);
+                      const { start, end } = getRoomDayHours((selectedRoom as any)?.opening_hours, d);
                       setNewBooking((b) => ({
                         ...b,
                         start_time: `${String(start).padStart(2, "0")}:00`,
