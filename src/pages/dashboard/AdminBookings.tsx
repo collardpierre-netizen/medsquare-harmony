@@ -1507,19 +1507,25 @@ const AdminBookings = () => {
                           {(() => {
                             const billing = practitionerBilling(group.bookings);
                             return (
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant="outline" className="text-xs shrink-0">
                                   Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
                                 </Badge>
                                 {billing.hasFlat && (
-                                  <Badge variant="outline" className="text-xs shrink-0 border-primary/30 text-primary">
-                                    Forfait {formatMoney(billing.flat)}
+                                  <Badge variant="outline" className="text-xs shrink-0 border-primary/30 text-primary bg-primary/5">
+                                    Inclus au forfait {formatMoney(billing.flat)} HTVA
+                                    {billing.coveredHours > 0 && ` · ${formatHours(billing.coveredHours)}`}
                                   </Badge>
                                 )}
-                                <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
-                                  {formatMoney(billing.total)} HTVA
+                                <Badge variant="outline" className="text-xs shrink-0 text-emerald-700 border-emerald-500/30 bg-emerald-500/5">
+                                  Horaire facturé {formatMoney(billing.hourly)} HTVA
+                                  {billing.billedHours > 0 && ` · ${formatHours(billing.billedHours)}`}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs shrink-0 font-semibold text-emerald-600 border-emerald-200">
+                                  Total {formatMoney(billing.total)} HTVA
                                 </Badge>
                               </div>
+
                             );
                           })()}
 
