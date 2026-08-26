@@ -721,12 +721,46 @@ const AdminBookings = () => {
   const formatHours = (h: number) =>
     `${Number.isInteger(h) ? h : h.toFixed(1).replace(".", ",")} h`;
 
+  /** Une réservation est-elle couverte par un forfait locataire (praticien + salle, mois de la résa) ? */
+  const isBookingCoveredByPackage = (b: any) =>
+    packages.some((p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id);
+
   const bookingRevenue = (b: any) => {
     const room = allRooms.find((r) => r.id === b.room_id);
     if (!room) return 0;
+    // Couvert par un forfait mensuel → pas de facturation horaire en sus
+    if (isBookingCoveredByPackage(b)) return 0;
     const hours = bookingHours(b);
     return (room.hourly_rate || 0) * hours;
   };
+
+  /**
+   * Total facturable d'un praticien : forfaits mensuels (par salle et par mois concerné)
+   * + réservations horaires non couvertes par un forfait.
+   */
+  const practitionerBilling = (list: any[]) => {
+    let hourly = 0;
+    let flat = 0;
+    const flatKeys = new Set<string>();
+    list.forEach((b) => {
+      if (b.status === "cancelled") return;
+      if (isBookingCoveredByPackage(b)) {
+        const mKey = format(new Date(b.start_time), "yyyy-MM");
+        const key = `${b.room_id}|${mKey}`;
+        if (!flatKeys.has(key)) {
+          flatKeys.add(key);
+          const pkg = packages.find(
+            (p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id
+          );
+          flat += Number(pkg?.monthly_fee || 0);
+        }
+      } else {
+        hourly += bookingRevenue(b);
+      }
+    });
+    return { hourly, flat, total: hourly + flat, hasFlat: flatKeys.size > 0 };
+  };
+
 
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat("fr-BE", {
