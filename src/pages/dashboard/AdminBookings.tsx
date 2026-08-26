@@ -828,12 +828,25 @@ const AdminBookings = () => {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 ml-4">
-          <span className="text-sm font-semibold text-emerald-600">
-            {formatMoney(bookingRevenue(booking))} HTVA
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
-          </span>
+          {isBookingCoveredByPackage(booking) ? (
+            <>
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                Inclus au forfait
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                {booking.rooms?.hourly_rate ? `valeur ${formatMoney((booking.rooms.hourly_rate || 0) * bookingHours(booking))}` : ""}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-sm font-semibold text-emerald-600">
+                {formatMoney(bookingRevenue(booking))} HTVA
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
           {booking.status === "pending" && (
