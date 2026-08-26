@@ -44,7 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
 import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
 
 /** Format court en euros (HTVA) */
