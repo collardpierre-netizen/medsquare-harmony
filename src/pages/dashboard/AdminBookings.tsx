@@ -1373,6 +1373,27 @@ const AdminBookings = () => {
                         value={room.occupancyPct}
                         className="h-2"
                       />
+                      {/* Séparation claire forfait / horaire */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                        <span>
+                          Forfait :{" "}
+                          <span className="font-medium text-foreground">
+                            {eur0(room.flatRevenue)} HTVA
+                          </span>
+                        </span>
+                        <span>
+                          Réservations horaires :{" "}
+                          <span className="font-medium text-foreground">
+                            {eur0(room.hourlyRevenue)} HTVA
+                          </span>
+                        </span>
+                        {room.coveredHourlyValue > 0 && (
+                          <span className="italic">
+                            dont {eur0(room.coveredHourlyValue)} déjà couverts par le forfait (non
+                            facturés en sus)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
 
