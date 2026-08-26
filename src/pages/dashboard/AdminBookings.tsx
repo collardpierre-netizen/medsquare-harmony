@@ -1591,14 +1591,24 @@ const AdminBookings = () => {
                             <p className="font-semibold text-sm">{group.name}</p>
                             <p className="text-xs text-muted-foreground">{group.bookings.length} réservation{group.bookings.length > 1 ? "s" : ""}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
-                              {formatMoney(group.bookings.reduce((s: number, b: any) => s + bookingRevenue(b), 0))} HTVA
-                            </Badge>
-                          </div>
+                          {(() => {
+                            const billing = practitionerBilling(group.bookings);
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs shrink-0">
+                                  Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
+                                </Badge>
+                                {billing.hasFlat && (
+                                  <Badge variant="outline" className="text-xs shrink-0 border-primary/30 text-primary">
+                                    Forfait {formatMoney(billing.flat)}
+                                  </Badge>
+                                )}
+                                <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
+                                  {formatMoney(billing.total)} HTVA
+                                </Badge>
+                              </div>
+                            );
+                          })()}
 
                           <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", !collapsedPractitioners.has(pid) && "rotate-90")} />
                         </button>
