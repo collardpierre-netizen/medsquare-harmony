@@ -412,8 +412,11 @@ const AdminBookings = () => {
       : 0;
 
     const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
+    const totalFlatRevenue = roomList.reduce((sum, r) => sum + r.flatRevenue, 0);
+    const totalHourlyRevenue = roomList.reduce((sum, r) => sum + r.hourlyRevenue, 0);
+    const totalCoveredHourly = roomList.reduce((sum, r) => sum + r.coveredHourlyValue, 0);
 
-    return { label, rooms: roomList, globalAvg, totalRevenue };
+    return { label, rooms: roomList, globalAvg, totalRevenue, totalFlatRevenue, totalHourlyRevenue, totalCoveredHourly };
   }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
