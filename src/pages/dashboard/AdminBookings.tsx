@@ -45,6 +45,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
+import { computeRoomStats, computePractitionerBilling } from "@/lib/roomBilling";
+
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
 import MonthlyBillingExport from "@/components/dashboard/bookings/MonthlyBillingExport";
@@ -287,128 +289,35 @@ const AdminBookings = () => {
       cursor = addDays(cursor, 1);
     }
 
-    const roomStats: Record<string, { name: string; totalHours: number; bookedHours: number; privatizedHours: number; bookingCount: number; isPrivatised: boolean; scheduledPrivatization: { from: string; until: string | null } | null; revenue: number; flatRevenue: number; hourlyRevenue: number; coveredHourlyValue: number; flatMonths: Set<string> }> = {};
-
-    // Compute flat-fee revenue per room for months intersecting the range
+    // Mois couverts par la période
     const monthsInRange = eachMonthOfInterval({ start: startOfMonth(rangeStart), end: startOfMonth(rangeEnd) });
 
-    allRooms.forEach((r) => {
-      let totalHours = 0;
-      let privatizedHours = 0;
-      days.forEach((day) => {
-        // Heures réellement disponibles selon les plages d'ouverture de la salle
-        const dayHours = getRoomOpenHoursCount((r as any).opening_hours, day);
-        totalHours += dayHours;
-        if (isRoomBlockedOnDay(r as any, day)) {
-          privatizedHours += dayHours;
-        }
-      });
-      // "isPrivatised" flag = entièrement privatisé sur la période affichée
-      const isPrivatised = totalHours > 0 && privatizedHours === totalHours;
+    // Calcul pur (testé) : heures ouvrables, occupation, CA forfait/horaire HTVA
+    const baseStats = computeRoomStats({
+      rooms: allRooms as any,
+      bookings: bookings as any,
+      packages: packages as any,
+      days,
+      months: monthsInRange,
+    });
 
-      // Upcoming privatization (not active yet) — informational amber badge
-      const scheduledPrivatization = isPrivatizationScheduled(r as any)
-        ? { from: r.privatized_from, until: r.privatized_until || null }
+    const roomList = baseStats.map((s) => {
+      const room = allRooms.find((r) => r.id === s.id) as any;
+      const isPrivatised = s.totalHours > 0 && s.privatizedHours === s.totalHours;
+      const scheduled = room && isPrivatizationScheduled(room)
+        ? { from: room.privatized_from as string, until: (room.privatized_until as string) || null }
         : null;
-
-      // Flat-fee revenue: sum fee for each month in range where fee applies
-      let revenue = 0;
-      const flatMonths = new Set<string>();
-      const fee = Number((r as any).privatization_monthly_fee || 0);
-      if (fee > 0) {
-        monthsInRange.forEach((m) => {
-          const mS = format(m, "yyyy-MM-dd");
-          const mE = format(endOfMonth(m), "yyyy-MM-dd");
-          let applies = false;
-          if (!r.is_available) {
-            applies = true;
-          } else if (r.privatized_from) {
-            const startsBeforeEnd = r.privatized_from <= mE;
-            const endsAfterStart = !r.privatized_until || r.privatized_until >= mS;
-            applies = startsBeforeEnd && endsAfterStart;
-          }
-          if (applies) {
-            revenue += fee;
-            flatMonths.add(format(m, "yyyy-MM"));
-          }
-        });
-      }
-
-      roomStats[r.id] = { name: r.name, totalHours, bookedHours: 0, privatizedHours, bookingCount: 0, isPrivatised, scheduledPrivatization, revenue, flatRevenue: revenue, hourlyRevenue: 0, coveredHourlyValue: 0, flatMonths };
+      return {
+        ...s,
+        isPrivatised,
+        scheduledPrivatization: scheduled,
+        scheduledLabel: scheduled
+          ? scheduled.until
+            ? `Privatisation programmée du ${formatPrivatizationDate(scheduled.from)} au ${formatPrivatizationDate(scheduled.until)}`
+            : `Privatisation programmée dès le ${formatPrivatizationDate(scheduled.from)}`
+          : null,
+      };
     });
-
-    // Practitioner packages: forfait mensuel praticien+salle
-    const packagedKeys: Record<string, Set<string>> = {}; // roomId -> Set(`${practId}|${YYYY-MM}`)
-    packages.forEach((pkg) => {
-      const stats = roomStats[pkg.room_id];
-      if (!stats) return;
-      const fee = Number(pkg.monthly_fee);
-      monthsInRange.forEach((m) => {
-        const mKey = format(m, "yyyy-MM");
-        if (stats.flatMonths.has(mKey)) return;
-        stats.revenue += fee;
-        stats.flatRevenue += fee;
-        if (!packagedKeys[pkg.room_id]) packagedKeys[pkg.room_id] = new Set();
-        packagedKeys[pkg.room_id].add(`${pkg.practitioner_id}|${mKey}`);
-      });
-    });
-
-    bookings.forEach((b) => {
-      if (b.status === "cancelled") return;
-      const start = new Date(b.start_time);
-      const end = new Date(b.end_time);
-      const bDay = startOfDay(start);
-      const inRange = days.some((d) => isSameDay(d, bDay));
-      if (!inRange) return;
-
-      const stats = roomStats[b.room_id];
-      if (stats) {
-        // Durée de la réservation + 2 x 15 min de battement
-        const durationMs = end.getTime() - start.getTime();
-        const bufferMs = 2 * BUFFER_MINUTES * 60 * 1000;
-        const totalMs = durationMs + bufferMs;
-        const hours = totalMs / (1000 * 60 * 60);
-        stats.bookedHours += hours;
-        stats.bookingCount += 1;
-
-        // Séparation forfait / horaire : la valeur horaire couverte par un forfait
-        // est tracée à part (coveredHourlyValue) au lieu d'être masquée.
-        const mKey = format(start, "yyyy-MM");
-        const room = allRooms.find((r) => r.id === b.room_id);
-        const rate = Number(room?.hourly_rate || 0);
-        const durationHours = durationMs / (1000 * 60 * 60);
-        const value = rate * durationHours;
-        const coveredByFlat =
-          stats.flatMonths.has(mKey) ||
-          !!packagedKeys[b.room_id]?.has(`${b.practitioner_id}|${mKey}`);
-        if (coveredByFlat) {
-          stats.coveredHourlyValue += value;
-        } else {
-          stats.revenue += value;
-          stats.hourlyRevenue += value;
-        }
-      }
-    });
-
-    const roomList = Object.entries(roomStats)
-      .map(([id, stats]) => {
-        // Heures effectivement bookées + heures privatisées (toutes comptées comme occupées)
-        const occupiedHours = Math.min(stats.totalHours, stats.bookedHours + stats.privatizedHours);
-        return {
-          id,
-          ...stats,
-          occupancyPct: stats.totalHours > 0
-            ? Math.min(100, Math.round((occupiedHours / stats.totalHours) * 100))
-            : 0,
-          scheduledLabel: stats.scheduledPrivatization
-            ? stats.scheduledPrivatization.until
-              ? `Privatisation programmée du ${formatPrivatizationDate(stats.scheduledPrivatization.from)} au ${formatPrivatizationDate(stats.scheduledPrivatization.until)}`
-              : `Privatisation programmée dès le ${formatPrivatizationDate(stats.scheduledPrivatization.from)}`
-            : null,
-        };
-      })
-      // Tri par nom naturel (Cabinet N°1, N°2, N°3...)
-      .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
 
     // Moyenne globale
     const globalAvg = roomList.length > 0
@@ -419,9 +328,11 @@ const AdminBookings = () => {
     const totalFlatRevenue = roomList.reduce((sum, r) => sum + r.flatRevenue, 0);
     const totalHourlyRevenue = roomList.reduce((sum, r) => sum + r.hourlyRevenue, 0);
     const totalCoveredHourly = roomList.reduce((sum, r) => sum + r.coveredHourlyValue, 0);
+    const totalAvailableHours = roomList.reduce((sum, r) => sum + r.availableHours, 0);
 
-    return { label, rooms: roomList, globalAvg, totalRevenue, totalFlatRevenue, totalHourlyRevenue, totalCoveredHourly };
+    return { label, rooms: roomList, globalAvg, totalRevenue, totalFlatRevenue, totalHourlyRevenue, totalCoveredHourly, totalAvailableHours };
   }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
+
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
   const conflicts = useMemo(() => {
@@ -735,31 +646,16 @@ const AdminBookings = () => {
   };
 
   /**
-   * Total facturable d'un praticien : forfaits mensuels (par salle et par mois concerné)
-   * + réservations horaires non couvertes par un forfait.
+   * Total facturable HTVA d'un praticien : forfaits mensuels (le forfait prend le lead
+   * sur le tarif horaire) + réservations horaires non couvertes par un forfait.
    */
-  const practitionerBilling = (list: any[]) => {
-    let hourly = 0;
-    let flat = 0;
-    const flatKeys = new Set<string>();
-    list.forEach((b) => {
-      if (b.status === "cancelled") return;
-      if (isBookingCoveredByPackage(b)) {
-        const mKey = format(new Date(b.start_time), "yyyy-MM");
-        const key = `${b.room_id}|${mKey}`;
-        if (!flatKeys.has(key)) {
-          flatKeys.add(key);
-          const pkg = packages.find(
-            (p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id
-          );
-          flat += Number(pkg?.monthly_fee || 0);
-        }
-      } else {
-        hourly += bookingRevenue(b);
-      }
+  const practitionerBilling = (list: any[]) =>
+    computePractitionerBilling({
+      bookings: list as any,
+      rooms: allRooms as any,
+      packages: packages as any,
     });
-    return { hourly, flat, total: hourly + flat, hasFlat: flatKeys.size > 0 };
-  };
+
 
 
   const formatMoney = (amount: number) =>
@@ -834,7 +730,7 @@ const AdminBookings = () => {
                 Inclus au forfait
               </Badge>
               <span className="text-[10px] text-muted-foreground">
-                {booking.rooms?.hourly_rate ? `valeur ${formatMoney((booking.rooms.hourly_rate || 0) * bookingHours(booking))}` : ""}
+                {booking.rooms?.hourly_rate ? `valeur horaire ${formatMoney((booking.rooms.hourly_rate || 0) * bookingHours(booking))} HTVA — non facturée` : ""}
               </span>
             </>
           ) : (
@@ -1425,27 +1321,37 @@ const AdminBookings = () => {
                         value={room.occupancyPct}
                         className="h-2"
                       />
-                      {/* Séparation claire forfait / horaire */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>
-                          Forfait :{" "}
-                          <span className="font-medium text-foreground">
-                            {eur0(room.flatRevenue)} HTVA
-                          </span>
-                        </span>
-                        <span>
-                          Réservations horaires :{" "}
-                          <span className="font-medium text-foreground">
-                            {eur0(room.hourlyRevenue)} HTVA
-                          </span>
-                        </span>
-                        {room.coveredHourlyValue > 0 && (
-                          <span className="italic">
-                            dont {eur0(room.coveredHourlyValue)} déjà couverts par le forfait (non
-                            facturés en sus)
-                          </span>
-                        )}
+                      {/* Séparation visuelle : forfait / horaire facturé / disponible */}
+                      <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                        <div className="rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5">
+                          <p className="text-primary font-medium">Inclus au forfait</p>
+                          <p className="font-semibold text-foreground">{eur0(room.flatRevenue)} HTVA</p>
+                          {room.coveredHourlyValue > 0 && (
+                            <p className="text-muted-foreground italic">
+                              dont {eur0(room.coveredHourlyValue)} d'heures couvertes (non facturées en sus)
+                            </p>
+                          )}
+                        </div>
+                        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1.5">
+                          <p className="text-emerald-700 font-medium">Horaire facturé</p>
+                          <p className="font-semibold text-foreground">{eur0(room.hourlyRevenue)} HTVA</p>
+                          <p className="text-muted-foreground">
+                            {room.bookedHours.toFixed(1)}h réservées (battement inclus)
+                          </p>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/40 px-2 py-1.5">
+                          <p className="font-medium">Heures disponibles</p>
+                          <p className="font-semibold text-foreground">
+                            {room.availableHours.toFixed(1)}h / {room.totalHours}h
+                          </p>
+                          <p className="text-muted-foreground">
+                            {room.privatizedHours > 0
+                              ? `${room.privatizedHours.toFixed(1)}h bloquées (privatisation)`
+                              : "selon les plages d'ouverture"}
+                          </p>
+                        </div>
                       </div>
+
                     </div>
                   ))}
 
@@ -1474,17 +1380,24 @@ const AdminBookings = () => {
                     <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                       <span>
-                        Forfaits :{" "}
+                        Inclus au forfait :{" "}
                         <span className="font-medium text-foreground">
                           {eur0(occupancyData.totalFlatRevenue)} HTVA
                         </span>
                       </span>
                       <span>
-                        Réservations horaires :{" "}
+                        Horaire facturé :{" "}
                         <span className="font-medium text-foreground">
                           {eur0(occupancyData.totalHourlyRevenue)} HTVA
                         </span>
                       </span>
+                      <span>
+                        Heures disponibles :{" "}
+                        <span className="font-medium text-foreground">
+                          {occupancyData.totalAvailableHours.toFixed(1)}h
+                        </span>
+                      </span>
+
                       {occupancyData.totalCoveredHourly > 0 && (
                         <span className="italic">
                           + {eur0(occupancyData.totalCoveredHourly)} d'heures déjà couvertes par les
@@ -1594,19 +1507,25 @@ const AdminBookings = () => {
                           {(() => {
                             const billing = practitionerBilling(group.bookings);
                             return (
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant="outline" className="text-xs shrink-0">
                                   Total {formatHours(group.bookings.reduce((s: number, b: any) => s + bookingHours(b), 0))}
                                 </Badge>
                                 {billing.hasFlat && (
-                                  <Badge variant="outline" className="text-xs shrink-0 border-primary/30 text-primary">
-                                    Forfait {formatMoney(billing.flat)}
+                                  <Badge variant="outline" className="text-xs shrink-0 border-primary/30 text-primary bg-primary/5">
+                                    Inclus au forfait {formatMoney(billing.flat)} HTVA
+                                    {billing.coveredHours > 0 && ` · ${formatHours(billing.coveredHours)}`}
                                   </Badge>
                                 )}
-                                <Badge variant="outline" className="text-xs shrink-0 text-emerald-600 border-emerald-200">
-                                  {formatMoney(billing.total)} HTVA
+                                <Badge variant="outline" className="text-xs shrink-0 text-emerald-700 border-emerald-500/30 bg-emerald-500/5">
+                                  Horaire facturé {formatMoney(billing.hourly)} HTVA
+                                  {billing.billedHours > 0 && ` · ${formatHours(billing.billedHours)}`}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs shrink-0 font-semibold text-emerald-600 border-emerald-200">
+                                  Total {formatMoney(billing.total)} HTVA
                                 </Badge>
                               </div>
+
                             );
                           })()}
 
