@@ -644,31 +644,16 @@ const AdminBookings = () => {
   };
 
   /**
-   * Total facturable d'un praticien : forfaits mensuels (par salle et par mois concerné)
-   * + réservations horaires non couvertes par un forfait.
+   * Total facturable HTVA d'un praticien : forfaits mensuels (le forfait prend le lead
+   * sur le tarif horaire) + réservations horaires non couvertes par un forfait.
    */
-  const practitionerBilling = (list: any[]) => {
-    let hourly = 0;
-    let flat = 0;
-    const flatKeys = new Set<string>();
-    list.forEach((b) => {
-      if (b.status === "cancelled") return;
-      if (isBookingCoveredByPackage(b)) {
-        const mKey = format(new Date(b.start_time), "yyyy-MM");
-        const key = `${b.room_id}|${mKey}`;
-        if (!flatKeys.has(key)) {
-          flatKeys.add(key);
-          const pkg = packages.find(
-            (p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id
-          );
-          flat += Number(pkg?.monthly_fee || 0);
-        }
-      } else {
-        hourly += bookingRevenue(b);
-      }
+  const practitionerBilling = (list: any[]) =>
+    computePractitionerBilling({
+      bookings: list as any,
+      rooms: allRooms as any,
+      packages: packages as any,
     });
-    return { hourly, flat, total: hourly + flat, hasFlat: flatKeys.size > 0 };
-  };
+
 
 
   const formatMoney = (amount: number) =>
