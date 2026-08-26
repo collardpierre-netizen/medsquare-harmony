@@ -730,7 +730,7 @@ const AdminBookings = () => {
                 Inclus au forfait
               </Badge>
               <span className="text-[10px] text-muted-foreground">
-                {booking.rooms?.hourly_rate ? `valeur ${formatMoney((booking.rooms.hourly_rate || 0) * bookingHours(booking))}` : ""}
+                {booking.rooms?.hourly_rate ? `valeur horaire ${formatMoney((booking.rooms.hourly_rate || 0) * bookingHours(booking))} HTVA — non facturée` : ""}
               </span>
             </>
           ) : (
