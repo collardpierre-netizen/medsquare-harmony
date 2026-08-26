@@ -45,6 +45,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getOpeningHours } from "@/components/dashboard/bookings/utils";
+import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
+
+/** Format court en euros (HTVA) */
+const eur0 = (v: number) =>
+  new Intl.NumberFormat("fr-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
 import MonthlyBillingExport from "@/components/dashboard/bookings/MonthlyBillingExport";
