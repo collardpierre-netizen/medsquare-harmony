@@ -36,6 +36,10 @@ export interface BillingBooking {
   start_time: string;
   end_time: string;
   status?: string;
+  /** Remise ponctuelle encodée sur la réservation (prend le lead sur la remise contractuelle). */
+  discount_type?: DiscountType | null;
+  discount_value?: number | null;
+  discount_reason?: string | null;
 }
 
 export interface BillingPackage {
@@ -43,6 +47,102 @@ export interface BillingPackage {
   room_id: string;
   monthly_fee: number;
 }
+
+/** Types de remise : % du montant, montant fixe HTVA, ou tarif horaire négocié. */
+export type DiscountType = "percent" | "amount" | "hourly_rate";
+
+/** Remise contractuelle par praticien (éventuellement limitée à une salle et à une période). */
+export interface BillingDiscount {
+  practitioner_id: string;
+  room_id?: string | null;
+  discount_type: DiscountType;
+  discount_value: number;
+  label?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  is_active?: boolean | null;
+}
+
+/**
+ * Remise contractuelle applicable à une réservation :
+ * une remise spécifique à la salle prend le lead sur une remise globale.
+ */
+export const findDiscount = (
+  discounts: BillingDiscount[],
+  practitionerId: string,
+  roomId: string,
+  dayIso: string,
+): BillingDiscount | null => {
+  const matches = discounts.filter(
+    (d) =>
+      d.practitioner_id === practitionerId &&
+      d.is_active !== false &&
+      (!d.room_id || d.room_id === roomId) &&
+      d.start_date <= dayIso &&
+      (!d.end_date || d.end_date >= dayIso),
+  );
+  if (matches.length === 0) return null;
+  return matches.find((d) => d.room_id === roomId) ?? matches[0];
+};
+
+export interface DiscountedAmount {
+  /** Montant HTVA avant remise (tarif horaire x heures). */
+  gross: number;
+  /** Montant HTVA facturé après remise. */
+  net: number;
+  /** Montant de la remise (gross - net, jamais négatif). */
+  discount: number;
+  /** Type de remise appliquée, ou null. */
+  appliedType: DiscountType | null;
+  /** Libellé/motif de la remise appliquée. */
+  label: string | null;
+}
+
+/**
+ * Montant facturé d'une réservation, remise incluse.
+ * Priorité : remise ponctuelle sur la réservation > remise contractuelle du praticien.
+ */
+export const bookingBilledAmount = (
+  booking: BillingBooking,
+  hourlyRate: number,
+  discounts: BillingDiscount[] = [],
+): DiscountedAmount => {
+  const hours = bookingDurationHours(booking);
+  const gross = Number(hourlyRate || 0) * hours;
+
+  let type: DiscountType | null = null;
+  let value = 0;
+  let label: string | null = null;
+
+  if (booking.discount_type && Number(booking.discount_value || 0) > 0) {
+    type = booking.discount_type;
+    value = Number(booking.discount_value);
+    label = booking.discount_reason ?? "Remise sur la réservation";
+  } else {
+    const d = findDiscount(
+      discounts,
+      booking.practitioner_id,
+      booking.room_id,
+      isoDate(new Date(booking.start_time)),
+    );
+    if (d && Number(d.discount_value || 0) > 0) {
+      type = d.discount_type;
+      value = Number(d.discount_value);
+      label = d.label ?? "Remise contractuelle";
+    }
+  }
+
+  if (!type) return { gross, net: gross, discount: 0, appliedType: null, label: null };
+
+  let net = gross;
+  if (type === "percent") net = gross * (1 - Math.min(100, value) / 100);
+  else if (type === "amount") net = gross - value;
+  else if (type === "hourly_rate") net = value * hours;
+
+  net = Math.max(0, net);
+  return { gross, net, discount: Math.max(0, gross - net), appliedType: type, label };
+};
+
 
 /** Clé mois "YYYY-MM" en heure de Bruxelles. */
 export const monthKey = (date: Date): string =>
