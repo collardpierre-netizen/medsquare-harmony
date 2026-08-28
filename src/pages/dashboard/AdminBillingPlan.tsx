@@ -757,6 +757,30 @@ const AdminBillingPlan = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!lockConfirm} onOpenChange={(o) => !o && setLockConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lockConfirm === "unlock"
+                ? "Déverrouiller ce mois ?"
+                : "Valider et verrouiller ce mois ?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lockConfirm === "unlock"
+                ? `Le plan de ${format(monthStart, "MMMM yyyy", { locale: fr })} redeviendra modifiable. À utiliser uniquement pour corriger une erreur avant facturation.`
+                : `Le plan de ${format(monthStart, "MMMM yyyy", { locale: fr })} sera figé : les notes de facturation ne pourront plus être ajoutées, modifiées ni supprimées tant que le mois reste verrouillé.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => toggleLock.mutate(lockConfirm === "lock")}>
+              {lockConfirm === "unlock" ? "Déverrouiller" : "Valider le mois"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </DashboardLayout>
   );
 };
