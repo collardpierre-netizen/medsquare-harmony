@@ -461,7 +461,8 @@ export const computePractitionerBilling = ({
     const hours = bookingDurationHours(b);
     const amount = bookingBilledAmount(b, rate, discounts);
     const isPending = b.status === "pending";
-    const pkg = findPackage(packages, b.practitioner_id, b.room_id);
+    const bMonth = monthKey(new Date(b.start_time));
+    const pkg = findPackage(packages, b.practitioner_id, b.room_id, bMonth);
     if (pkg) {
       const key = `${b.room_id}|${monthKey(new Date(b.start_time))}`;
       if (!flatKeys.has(key)) {
