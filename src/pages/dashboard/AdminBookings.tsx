@@ -420,6 +420,7 @@ const AdminBookings = () => {
       activity_id: "",
     });
     setIsRecurring(false);
+    setRecurrenceFrequency("weekly");
     setRecurrenceEndDate(undefined);
     setRecurrenceDays([]);
     setPractitionerActivities([]);
@@ -428,11 +429,23 @@ const AdminBookings = () => {
   const computeBookingDates = (startDateStr: string): Date[] => {
     const start = parseISO(startDateStr);
     if (!isRecurring || !recurrenceEndDate) return [start];
-    
-    const selectedDays = recurrenceDays.length > 0 ? recurrenceDays : [getDay(start)];
+
     const dates: Date[] = [];
+
+    // Monthly: same day of month, every month
+    if (recurrenceFrequency === "monthly") {
+      let current = start;
+      while (!isAfter(current, recurrenceEndDate)) {
+        dates.push(current);
+        current = addMonths(current, 1);
+      }
+      return dates;
+    }
+
+    const step = recurrenceFrequency === "biweekly" ? 2 : 1;
+    const selectedDays = recurrenceDays.length > 0 ? recurrenceDays : [getDay(start)];
     let current = start;
-    
+
     while (!isAfter(current, recurrenceEndDate)) {
       // For each day in the week starting from current
       for (const dayNum of selectedDays) {
@@ -447,11 +460,12 @@ const AdminBookings = () => {
           }
         }
       }
-      current = addWeeks(current, 1);
+      current = addWeeks(current, step);
     }
-    
+
     return dates.sort((a, b) => a.getTime() - b.getTime());
   };
+
 
   const handleCreateBooking = async () => {
     const { practitioner_id, room_id, date, start_time, end_time, notes, status, activity_id } = newBooking;
