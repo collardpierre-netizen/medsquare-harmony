@@ -257,12 +257,14 @@ export const computeRoomStats = ({
   rooms,
   bookings,
   packages = [],
+  discounts = [],
   days,
   months,
 }: {
   rooms: BillingRoom[];
   bookings: BillingBooking[];
   packages?: BillingPackage[];
+  discounts?: BillingDiscount[];
   days: Date[];
   months: Date[];
 }): RoomStats[] => {
@@ -283,12 +285,19 @@ export const computeRoomStats = ({
       name: room.name,
       totalHours,
       bookedHours: 0,
+      confirmedHours: 0,
+      pendingHours: 0,
       privatizedHours,
       availableHours: 0,
       bookingCount: 0,
+      pendingCount: 0,
       occupancyPct: 0,
+      confirmedOccupancyPct: 0,
+      pendingOccupancyPct: 0,
       flatRevenue: flat.revenue,
       hourlyRevenue: 0,
+      pendingHourlyRevenue: 0,
+      discountTotal: 0,
       coveredHourlyValue: 0,
       revenue: 0,
       flatMonths: flat.months,
@@ -314,30 +323,49 @@ export const computeRoomStats = ({
     const s = stats.get(b.room_id);
     if (!s) return;
     const room = rooms.find((r) => r.id === b.room_id)!;
-    s.bookedHours += bookingOccupiedHours(b);
+    const occupied = bookingOccupiedHours(b);
+    const isPending = b.status === "pending";
+    s.bookedHours += occupied;
     s.bookingCount += 1;
+    if (isPending) {
+      s.pendingHours += occupied;
+      s.pendingCount += 1;
+    } else {
+      s.confirmedHours += occupied;
+    }
 
     const mKey = monthKey(new Date(b.start_time));
-    const value = Number(room.hourly_rate || 0) * bookingDurationHours(b);
+    const amount = bookingBilledAmount(b, Number(room.hourly_rate || 0), discounts);
     const coveredByFlat =
       s.flatMonths.has(mKey) || s.packagedKeys.has(`${b.practitioner_id}|${mKey}`);
-    if (coveredByFlat) s.coveredHourlyValue += value;
-    else s.hourlyRevenue += value;
+    if (coveredByFlat) {
+      s.coveredHourlyValue += amount.gross;
+    } else if (isPending) {
+      s.pendingHourlyRevenue += amount.net;
+    } else {
+      s.hourlyRevenue += amount.net;
+      s.discountTotal += amount.discount;
+    }
   });
 
   return Array.from(stats.values())
     .map(({ flatMonths, packagedKeys, ...s }) => {
       const occupied = Math.min(s.totalHours, s.bookedHours + s.privatizedHours);
+      const confirmedOccupied = Math.min(s.totalHours, s.confirmedHours + s.privatizedHours);
+      const pct = (h: number) =>
+        s.totalHours > 0 ? Math.min(100, Math.round((h / s.totalHours) * 100)) : 0;
       return {
         ...s,
         availableHours: Math.max(0, s.totalHours - occupied),
-        occupancyPct:
-          s.totalHours > 0 ? Math.min(100, Math.round((occupied / s.totalHours) * 100)) : 0,
+        occupancyPct: pct(occupied),
+        confirmedOccupancyPct: pct(confirmedOccupied),
+        pendingOccupancyPct: Math.max(0, pct(occupied) - pct(confirmedOccupied)),
         revenue: s.flatRevenue + s.hourlyRevenue,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
 };
+
 
 /** Forfait locataire actif d'un praticien pour une salle, ou null. */
 export const findPackage = (
