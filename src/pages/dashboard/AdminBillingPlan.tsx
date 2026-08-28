@@ -592,6 +592,8 @@ const AdminBillingPlan = () => {
                         <Button
                           size="icon"
                           variant="ghost"
+                          disabled={isLocked}
+
                           onClick={() =>
                             setEditing({
                               id: n.id,
