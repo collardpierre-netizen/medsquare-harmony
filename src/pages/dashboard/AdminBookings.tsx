@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { format, addWeeks, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { format, addWeeks, addMonths, addDays, isAfter, isBefore, parseISO, startOfWeek, isSameDay, startOfDay, getDay, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -115,9 +115,11 @@ const AdminBookings = () => {
 
   // Recurrence
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"weekly" | "biweekly" | "monthly">("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [endDateOpen, setEndDateOpen] = useState(false);
+
 
   const DAYS_OF_WEEK = [
     { key: 1, label: "Lun" },
@@ -418,6 +420,7 @@ const AdminBookings = () => {
       activity_id: "",
     });
     setIsRecurring(false);
+    setRecurrenceFrequency("weekly");
     setRecurrenceEndDate(undefined);
     setRecurrenceDays([]);
     setPractitionerActivities([]);
@@ -426,11 +429,23 @@ const AdminBookings = () => {
   const computeBookingDates = (startDateStr: string): Date[] => {
     const start = parseISO(startDateStr);
     if (!isRecurring || !recurrenceEndDate) return [start];
-    
-    const selectedDays = recurrenceDays.length > 0 ? recurrenceDays : [getDay(start)];
+
     const dates: Date[] = [];
+
+    // Monthly: same day of month, every month
+    if (recurrenceFrequency === "monthly") {
+      let current = start;
+      while (!isAfter(current, recurrenceEndDate)) {
+        dates.push(current);
+        current = addMonths(current, 1);
+      }
+      return dates;
+    }
+
+    const step = recurrenceFrequency === "biweekly" ? 2 : 1;
+    const selectedDays = recurrenceDays.length > 0 ? recurrenceDays : [getDay(start)];
     let current = start;
-    
+
     while (!isAfter(current, recurrenceEndDate)) {
       // For each day in the week starting from current
       for (const dayNum of selectedDays) {
@@ -445,11 +460,12 @@ const AdminBookings = () => {
           }
         }
       }
-      current = addWeeks(current, 1);
+      current = addWeeks(current, step);
     }
-    
+
     return dates.sort((a, b) => a.getTime() - b.getTime());
   };
+
 
   const handleCreateBooking = async () => {
     const { practitioner_id, room_id, date, start_time, end_time, notes, status, activity_id } = newBooking;
@@ -929,15 +945,46 @@ const AdminBookings = () => {
                     <div className="flex items-center gap-2">
                       <Repeat className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <Label className="text-sm">Récurrence hebdomadaire</Label>
-                        <p className="text-xs text-muted-foreground">Répéter chaque semaine jusqu'à une date</p>
+                        <Label className="text-sm">Récurrence</Label>
+                        <p className="text-xs text-muted-foreground">Chaque semaine, 1 semaine sur 2 ou 1x/mois</p>
                       </div>
                     </div>
                     <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
                   </div>
                   {isRecurring && (
                     <div className="space-y-3 pt-1">
+                      {/* Frequency */}
+                      <div>
+                        <Label className="text-xs mb-1.5 block">Fréquence :</Label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            { key: "weekly" as const, label: "Chaque semaine" },
+                            { key: "biweekly" as const, label: "1 semaine sur 2" },
+                            { key: "monthly" as const, label: "1x par mois" },
+                          ].map((f) => (
+                            <button
+                              key={f.key}
+                              type="button"
+                              onClick={() => setRecurrenceFrequency(f.key)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                                recurrenceFrequency === f.key
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-muted-foreground border-border hover:bg-accent"
+                              )}
+                            >
+                              {f.label}
+                            </button>
+                          ))}
+                        </div>
+                        {recurrenceFrequency === "monthly" && (
+                          <p className="text-[11px] text-muted-foreground mt-1.5">
+                            Répété chaque mois à la même date que la date de début.
+                          </p>
+                        )}
+                      </div>
                       {/* Day pills */}
+                      {recurrenceFrequency !== "monthly" && (
                       <div>
                         <Label className="text-xs mb-1.5 block">Jours de la semaine :</Label>
                         <div className="flex gap-1.5 flex-wrap">
@@ -971,6 +1018,8 @@ const AdminBookings = () => {
                           </button>
                         </div>
                       </div>
+                      )}
+
                       <Label className="text-xs">Date de fin de récurrence *</Label>
                       <div className="flex gap-2">
                         <Input
@@ -1040,7 +1089,9 @@ const AdminBookings = () => {
                       }));
                       // Auto-enable recurrence with all 7 days
                       setIsRecurring(true);
+                      setRecurrenceFrequency("weekly");
                       setRecurrenceDays([0, 1, 2, 3, 4, 5, 6]);
+
                       toast({ title: "🔒 Local privatisé", description: `Horaires ${start}h–${end}h, 7j/7. Choisissez la date de fin de récurrence.` });
                     }}
                   >
