@@ -612,9 +612,11 @@ const AdminBillingPlan = () => {
                         <Button
                           size="icon"
                           variant="ghost"
+                          disabled={isLocked}
                           className="text-destructive hover:text-destructive"
                           onClick={() => setDeleteId(n.id)}
                         >
+
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
