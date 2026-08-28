@@ -1460,8 +1460,23 @@ const AdminBookings = () => {
                         </Badge>
                       </div>
                     </div>
-                    <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
+                    <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden flex mt-1.5">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${occupancyData.globalConfirmedAvg}%` }}
+                      />
+                      <div
+                        className="h-full bg-amber-400/70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_3px,hsl(var(--background))_3px,hsl(var(--background))_5px)]"
+                        style={{ width: `${Math.max(0, occupancyData.globalAvg - occupancyData.globalConfirmedAvg)}%` }}
+                      />
+                    </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                      <span>
+                        Confirmé :{" "}
+                        <span className="font-medium text-foreground">
+                          {occupancyData.globalConfirmedAvg}%
+                        </span>
+                      </span>
                       <span>
                         Inclus au forfait :{" "}
                         <span className="font-medium text-foreground">
@@ -1474,6 +1489,12 @@ const AdminBookings = () => {
                           {eur0(occupancyData.totalHourlyRevenue)} HTVA
                         </span>
                       </span>
+                      <span className="text-amber-700">
+                        Potentiel (en attente) :{" "}
+                        <span className="font-medium">
+                          {eur0(occupancyData.totalPendingRevenue)} HTVA · {occupancyData.totalPendingHours.toFixed(1)}h
+                        </span>
+                      </span>
                       <span>
                         Heures disponibles :{" "}
                         <span className="font-medium text-foreground">
@@ -1481,12 +1502,18 @@ const AdminBookings = () => {
                         </span>
                       </span>
 
+                      {occupancyData.totalDiscount > 0 && (
+                        <span className="italic">
+                          − {eur0(occupancyData.totalDiscount)} de remises accordées
+                        </span>
+                      )}
                       {occupancyData.totalCoveredHourly > 0 && (
                         <span className="italic">
                           + {eur0(occupancyData.totalCoveredHourly)} d'heures déjà couvertes par les
                           forfaits
                         </span>
                       )}
+
                       <span className="ml-auto">
                         Taux calculés sur les plages d'ouverture définies par salle
                       </span>
