@@ -115,9 +115,11 @@ const AdminBookings = () => {
 
   // Recurrence
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"weekly" | "biweekly" | "monthly">("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [endDateOpen, setEndDateOpen] = useState(false);
+
 
   const DAYS_OF_WEEK = [
     { key: 1, label: "Lun" },
