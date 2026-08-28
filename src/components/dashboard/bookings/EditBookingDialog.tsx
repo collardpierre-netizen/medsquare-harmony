@@ -382,11 +382,67 @@ const EditBookingDialog = ({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="confirmed">Confirmée</SelectItem>
-                <SelectItem value="pending">En attente</SelectItem>
+                <SelectItem value="pending">Pré-réservation (en attente)</SelectItem>
                 <SelectItem value="cancelled">Annulée</SelectItem>
               </SelectContent>
             </Select>
+            {status === "pending" && (
+              <p className="text-xs text-muted-foreground">
+                Le créneau est bloqué sur le planning mais n'est pas comptabilisé dans le
+                chiffre d'affaires confirmé.
+              </p>
+            )}
           </div>
+
+          {/* Remise de facturation */}
+          <div className="rounded-xl border border-border p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Percent className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label className="text-sm">Remise de facturation (HTVA)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Prend le lead sur la remise contractuelle du praticien.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Type</Label>
+                <Select value={discountType} onValueChange={setDiscountType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune remise</SelectItem>
+                    <SelectItem value="percent">Pourcentage (%)</SelectItem>
+                    <SelectItem value="amount">Montant fixe (€ HTVA)</SelectItem>
+                    <SelectItem value="hourly_rate">Tarif horaire négocié (€/h)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Valeur</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  disabled={discountType === "none"}
+                  placeholder={discountType === "percent" ? "10" : "25"}
+                />
+              </div>
+            </div>
+            {discountType !== "none" && (
+              <div className="space-y-2">
+                <Label className="text-xs">Motif</Label>
+                <Input
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  placeholder="Ex. geste commercial, remise de lancement…"
+                />
+              </div>
+            )}
+          </div>
+
 
           {/* Notes */}
           <div className="space-y-2">
