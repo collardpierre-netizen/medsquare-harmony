@@ -1089,7 +1089,9 @@ const AdminBookings = () => {
                       }));
                       // Auto-enable recurrence with all 7 days
                       setIsRecurring(true);
+                      setRecurrenceFrequency("weekly");
                       setRecurrenceDays([0, 1, 2, 3, 4, 5, 6]);
+
                       toast({ title: "🔒 Local privatisé", description: `Horaires ${start}h–${end}h, 7j/7. Choisissez la date de fin de récurrence.` });
                     }}
                   >
