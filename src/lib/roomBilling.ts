@@ -46,7 +46,27 @@ export interface BillingPackage {
   practitioner_id: string;
   room_id: string;
   monthly_fee: number;
+  /** Début de validité du forfait (ISO date). Absent = toujours valable. */
+  start_date?: string | null;
+  /** Échéance du forfait (ISO date). Absent/null = forfait permanent. */
+  end_date?: string | null;
+  is_active?: boolean | null;
 }
+
+/**
+ * Un forfait s'applique à un mois donné s'il chevauche ce mois
+ * (échéance nulle = permanent). Après l'échéance, retour au tarif plein.
+ */
+export const isPackageActiveInMonth = (pkg: BillingPackage, mKey: string): boolean => {
+  if (pkg.is_active === false) return false;
+  const monthStart = `${mKey}-01`;
+  const [y, m] = mKey.split("-").map(Number);
+  const monthEnd = isoDate(new Date(y, m, 0));
+  if (pkg.start_date && pkg.start_date > monthEnd) return false;
+  if (pkg.end_date && pkg.end_date < monthStart) return false;
+  return true;
+};
+
 
 /** Types de remise : % du montant, montant fixe HTVA, ou tarif horaire négocié. */
 export type DiscountType = "percent" | "amount" | "hourly_rate";
