@@ -56,7 +56,12 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         .from("practitioner_room_packages")
         .select("practitioner_id, room_id, monthly_fee, package_label, start_date, end_date, profiles!practitioner_room_packages_practitioner_id_fkey(first_name, last_name), rooms(name)")
         .eq("is_active", true);
-      const packages = (pkgData ?? []).filter((p: any) => !flatFeeRoomIds.has(p.room_id));
+      const packages = (pkgData ?? []).filter(
+        (p: any) =>
+          !flatFeeRoomIds.has(p.room_id) &&
+          (!p.start_date || p.start_date <= monthEndISO) &&
+          (!p.end_date || p.end_date >= monthStartISO),
+      );
       const packagedKey = (pid: string, rid: string) => `${pid}|${rid}`;
       const packagedSet = new Set(packages.map((p: any) => packagedKey(p.practitioner_id, p.room_id)));
 
