@@ -39,6 +39,7 @@ import AdminNotifications from "./pages/dashboard/AdminNotifications";
 import AdminPractitionerNotice from "./pages/dashboard/AdminPractitionerNotice";
 import AdminRegistrations from "./pages/dashboard/AdminRegistrations";
 import AdminContracts from "./pages/dashboard/AdminContracts";
+import AdminBillingPlan from "./pages/dashboard/AdminBillingPlan";
 import AdminActivityPrices from "./pages/dashboard/AdminActivityPrices";
 import NotFound from "./pages/NotFound";
 import Reviews from "./pages/dashboard/Reviews";
@@ -106,6 +107,7 @@ const App = () => (
             <Route path="/dashboard/admin/practitioner-notice" element={<ProtectedRoute requireAdmin><AdminPractitionerNotice /></ProtectedRoute>} />
             <Route path="/dashboard/admin/registrations" element={<ProtectedRoute requireAdmin><AdminRegistrations /></ProtectedRoute>} />
             <Route path="/dashboard/admin/contracts" element={<ProtectedRoute requireAdmin><AdminContracts /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/billing-plan" element={<ProtectedRoute requireAdmin><AdminBillingPlan /></ProtectedRoute>} />
 
 
             {/* Catch-all */}
