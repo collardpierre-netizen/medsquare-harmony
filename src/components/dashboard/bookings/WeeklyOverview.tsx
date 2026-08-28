@@ -423,7 +423,9 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                       const timeStr = `${format(new Date(booking.start_time), "HH:mm")}–${format(new Date(booking.end_time), "HH:mm")}`;
                       const privLabel = booking.notes?.includes("[Privatisé]") ? "🔒 Privatisé · " : "";
                       const recLabel = booking.recurrence_group_id ? " · ↻ récurrent" : " · ponctuel";
-                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}${privLabel ? "" : recLabel}`);
+                      const pendLabel = booking.status === "pending" ? " · ⏳ pré-réservation (non validée)" : "";
+                      tooltipLines.push(`📅 ${privLabel}${name} · ${timeStr}${privLabel ? "" : recLabel}${pendLabel}`);
+
                     }
                     if (actSession) {
                       const p = (actSession as any).activities?.profiles;
