@@ -415,6 +415,29 @@ const AdminContracts = () => {
                 </div>
               )}
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Début d'application</Label>
+                  <Input
+                    type="date"
+                    value={editing.start_date}
+                    onChange={(e) => setEditing({ ...editing, start_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Échéance (vide = permanent)</Label>
+                  <Input
+                    type="date"
+                    value={editing.end_date}
+                    onChange={(e) => setEditing({ ...editing, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">
+                Après l'échéance, la facturation de ce praticien sur cette salle repasse
+                automatiquement au tarif horaire plein.
+              </p>
+
               <div className="space-y-1.5">
                 <Label>Notes (optionnel)</Label>
                 <Textarea
