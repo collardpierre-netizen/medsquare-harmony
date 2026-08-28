@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.prevent_locked_billing_plan_notes() FROM PUBLIC, anon, authenticated;
