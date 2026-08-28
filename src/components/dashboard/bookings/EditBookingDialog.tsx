@@ -165,6 +165,13 @@ const EditBookingDialog = ({
 
     setSaving(true);
 
+    const hasDiscount = discountType !== "none" && Number(discountValue) > 0;
+    const discountPayload = {
+      discount_type: hasDiscount ? discountType : null,
+      discount_value: hasDiscount ? Number(discountValue) : null,
+      discount_reason: hasDiscount ? discountReason || null : null,
+    };
+
     // Update the existing booking
     const { error } = await supabase
       .from("bookings")
@@ -175,8 +182,10 @@ const EditBookingDialog = ({
         end_time: newEnd.toISOString(),
         status,
         notes: notes || null,
+        ...discountPayload,
       })
       .eq("id", booking.id);
+
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
