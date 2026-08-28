@@ -665,25 +665,33 @@ const AdminBookings = () => {
   const isBookingCoveredByPackage = (b: any) =>
     packages.some((p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id);
 
+  /** Montant HTVA d'une réservation, remise (ponctuelle ou contractuelle) déduite. */
+  const bookingAmount = (b: any) => {
+    const room = allRooms.find((r) => r.id === b.room_id);
+    return bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), discounts as any);
+  };
+
   const bookingRevenue = (b: any) => {
     const room = allRooms.find((r) => r.id === b.room_id);
     if (!room) return 0;
     // Couvert par un forfait mensuel → pas de facturation horaire en sus
     if (isBookingCoveredByPackage(b)) return 0;
-    const hours = bookingHours(b);
-    return (room.hourly_rate || 0) * hours;
+    return bookingAmount(b).net;
   };
 
   /**
    * Total facturable HTVA d'un praticien : forfaits mensuels (le forfait prend le lead
-   * sur le tarif horaire) + réservations horaires non couvertes par un forfait.
+   * sur le tarif horaire) + réservations horaires non couvertes par un forfait,
+   * remises déduites. Les pré-réservations sont isolées.
    */
   const practitionerBilling = (list: any[]) =>
     computePractitionerBilling({
       bookings: list as any,
       rooms: allRooms as any,
       packages: packages as any,
+      discounts: discounts as any,
     });
+
 
 
 
