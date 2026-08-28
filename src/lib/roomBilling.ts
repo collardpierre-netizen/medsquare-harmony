@@ -216,23 +216,38 @@ export interface RoomStats {
   name: string;
   /** Heures ouvrables (plages d'ouverture) sur la période. */
   totalHours: number;
-  /** Heures réservées (battement inclus). */
+  /** Heures réservées (battement inclus) — confirmées + pré-réservations. */
   bookedHours: number;
+  /** Heures réservées confirmées (battement inclus). */
+  confirmedHours: number;
+  /** Heures pré-réservées (statut « en attente », battement inclus). */
+  pendingHours: number;
   /** Heures bloquées par privatisation. */
   privatizedHours: number;
   /** Heures encore disponibles à la vente. */
   availableHours: number;
   bookingCount: number;
+  /** Nombre de pré-réservations (en attente de validation). */
+  pendingCount: number;
   occupancyPct: number;
+  /** Occupation confirmée (réservations confirmées + privatisation). */
+  confirmedOccupancyPct: number;
+  /** Occupation liée aux pré-réservations uniquement. */
+  pendingOccupancyPct: number;
   /** CA forfaitaire HTVA (privatisation + forfaits locataires). */
   flatRevenue: number;
-  /** CA horaire HTVA réellement facturé (hors forfait). */
+  /** CA horaire HTVA réellement facturé (hors forfait, remises déduites). */
   hourlyRevenue: number;
+  /** CA horaire HTVA potentiel des pré-réservations (non validé). */
+  pendingHourlyRevenue: number;
+  /** Remises accordées sur la période (HTVA). */
+  discountTotal: number;
   /** Valeur horaire déjà couverte par un forfait (informatif, non facturé). */
   coveredHourlyValue: number;
   /** flatRevenue + hourlyRevenue */
   revenue: number;
 }
+
 
 /**
  * Statistiques d'occupation et de revenus par salle.
