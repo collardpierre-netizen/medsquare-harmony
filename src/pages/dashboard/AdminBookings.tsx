@@ -1374,12 +1374,25 @@ const AdminBookings = () => {
                           </Badge>
                         </div>
                       </div>
-                      <Progress
-                        value={room.occupancyPct}
-                        className="h-2"
-                      />
+                      {/* Barre empilée : confirmé + pré-réservations */}
+                      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden flex">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${room.confirmedOccupancyPct}%` }}
+                        />
+                        <div
+                          className="h-full bg-amber-400/70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_3px,hsl(var(--background))_3px,hsl(var(--background))_5px)]"
+                          style={{ width: `${Math.max(0, room.occupancyPct - room.confirmedOccupancyPct)}%` }}
+                        />
+                      </div>
+                      {room.pendingHours > 0 && (
+                        <p className="text-[11px] text-amber-700">
+                          dont {room.pendingHours.toFixed(1)}h en pré-réservation (
+                          {room.occupancyPct - room.confirmedOccupancyPct}% d'occupation potentielle)
+                        </p>
+                      )}
                       {/* Séparation visuelle : forfait / horaire facturé / disponible */}
-                      <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                      <div className="grid gap-2 sm:grid-cols-4 text-[11px]">
                         <div className="rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5">
                           <p className="text-primary font-medium">Inclus au forfait</p>
                           <p className="font-semibold text-foreground">{eur0(room.flatRevenue)} HTVA</p>
@@ -1395,6 +1408,18 @@ const AdminBookings = () => {
                           <p className="text-muted-foreground">
                             {room.bookedHours.toFixed(1)}h réservées (battement inclus)
                           </p>
+                          {room.discountTotal > 0 && (
+                            <p className="text-muted-foreground italic">
+                              après {eur0(room.discountTotal)} de remises
+                            </p>
+                          )}
+                        </div>
+                        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5">
+                          <p className="text-amber-700 font-medium">Potentiel (en attente)</p>
+                          <p className="font-semibold text-foreground">{eur0(room.pendingHourlyRevenue)} HTVA</p>
+                          <p className="text-muted-foreground">
+                            {room.pendingHours.toFixed(1)}h pré-réservées
+                          </p>
                         </div>
                         <div className="rounded-md border border-border bg-muted/40 px-2 py-1.5">
                           <p className="font-medium">Heures disponibles</p>
@@ -1408,6 +1433,7 @@ const AdminBookings = () => {
                           </p>
                         </div>
                       </div>
+
 
                     </div>
                   ))}
