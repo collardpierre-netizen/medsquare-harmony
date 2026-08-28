@@ -390,13 +390,22 @@ export const computeRoomStats = ({
 };
 
 
-/** Forfait locataire actif d'un praticien pour une salle, ou null. */
+/**
+ * Forfait locataire d'un praticien pour une salle, valide au mois demandé.
+ * `mKey` (format YYYY-MM) omis = validité ignorée (compatibilité).
+ */
 export const findPackage = (
   packages: BillingPackage[],
   practitionerId: string,
   roomId: string,
+  mKey?: string,
 ): BillingPackage | null =>
-  packages.find((p) => p.practitioner_id === practitionerId && p.room_id === roomId) ?? null;
+  packages.find(
+    (p) =>
+      p.practitioner_id === practitionerId &&
+      p.room_id === roomId &&
+      (!mKey || isPackageActiveInMonth(p, mKey)),
+  ) ?? null;
 
 export interface PractitionerBilling {
   /** Forfaits mensuels HTVA (une fois par salle et par mois). */
