@@ -247,6 +247,9 @@ export type Database = {
         Row: {
           activity_id: string | null
           created_at: string
+          discount_reason: string | null
+          discount_type: string | null
+          discount_value: number | null
           end_time: string
           id: string
           notes: string | null
@@ -260,6 +263,9 @@ export type Database = {
         Insert: {
           activity_id?: string | null
           created_at?: string
+          discount_reason?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           end_time: string
           id?: string
           notes?: string | null
@@ -273,6 +279,9 @@ export type Database = {
         Update: {
           activity_id?: string | null
           created_at?: string
+          discount_reason?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           end_time?: string
           id?: string
           notes?: string | null
@@ -566,6 +575,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      practitioner_discounts: {
+        Row: {
+          created_at: string
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          notes: string | null
+          practitioner_id: string
+          room_id: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          notes?: string | null
+          practitioner_id: string
+          room_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          notes?: string | null
+          practitioner_id?: string
+          room_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practitioner_discounts_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practitioner_discounts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       practitioner_notifications: {
         Row: {
