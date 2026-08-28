@@ -266,6 +266,9 @@ const AdminContracts = () => {
             )}
           </CardContent>
         </Card>
+
+        <PractitionerDiscounts />
+
       </div>
 
       {/* Edit dialog */}
