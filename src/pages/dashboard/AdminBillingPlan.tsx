@@ -95,6 +95,8 @@ const AdminBillingPlan = () => {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [editing, setEditing] = useState<NoteForm | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [lockConfirm, setLockConfirm] = useState<"lock" | "unlock" | null>(null);
+
 
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
