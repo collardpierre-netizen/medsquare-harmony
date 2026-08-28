@@ -127,6 +127,14 @@ const EditBookingDialog = ({
       setPractitionerId(booking.practitioner_id);
       setStatus(booking.status);
       setNotes(booking.notes || "");
+      setDiscountType(booking.discount_type || "none");
+      setDiscountValue(
+        booking.discount_value !== null && booking.discount_value !== undefined
+          ? String(booking.discount_value)
+          : ""
+      );
+      setDiscountReason(booking.discount_reason || "");
+
 
       // Check if this booking belongs to a recurrence group
       if (booking.recurrence_group_id) {
