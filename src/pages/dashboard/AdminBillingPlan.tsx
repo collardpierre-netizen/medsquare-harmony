@@ -427,8 +427,36 @@ const AdminBillingPlan = () => {
             <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(monthStart, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
+            {isLocked ? (
+              <Button
+                variant="outline"
+                onClick={() => setLockConfirm("unlock")}
+                disabled={toggleLock.isPending}
+              >
+                <LockOpen className="h-4 w-4 mr-2" /> Déverrouiller
+              </Button>
+            ) : (
+              <Button onClick={() => setLockConfirm("lock")} disabled={toggleLock.isPending}>
+                <Lock className="h-4 w-4 mr-2" /> Valider le mois
+              </Button>
+            )}
           </div>
         </div>
+
+        {isLocked && (
+          <Card className="border-emerald-300 bg-emerald-50/60">
+            <CardContent className="flex items-start gap-3 py-4 text-sm text-emerald-900">
+              <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                Plan validé et verrouillé le{" "}
+                {format(new Date(lock!.locked_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}. Les
+                notes de facturation de ce mois ne sont plus modifiables. Déverrouillez le mois pour
+                apporter des corrections.
+              </span>
+            </CardContent>
+          </Card>
+        )}
+
 
         {alerts.length > 0 && (
           <Card className="border-amber-300 bg-amber-50/60">
