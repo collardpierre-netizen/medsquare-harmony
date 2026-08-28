@@ -45,6 +45,8 @@ interface Package {
   package_label: string;
   monthly_fee: number;
   is_active: boolean;
+  start_date: string;
+  end_date: string | null;
   notes: string | null;
   profiles?: { first_name: string; last_name: string } | null;
   rooms?: { name: string } | null;
@@ -57,9 +59,13 @@ interface EditState {
   package_label: string;
   monthly_fee: string;
   is_active: boolean;
+  start_date: string;
+  end_date: string;
   notes: string;
   source: "grid" | "custom";
 }
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const emptyForm: EditState = {
   practitioner_id: "",
@@ -67,9 +73,15 @@ const emptyForm: EditState = {
   package_label: "",
   monthly_fee: "",
   is_active: true,
+  start_date: todayIso(),
+  end_date: "",
   notes: "",
   source: "grid",
 };
+
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-BE") : null;
+
 
 const AdminContracts = () => {
   const qc = useQueryClient();
