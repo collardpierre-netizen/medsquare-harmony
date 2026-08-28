@@ -180,6 +180,46 @@ const AdminBillingPlan = () => {
     },
   });
 
+  /** Verrou de validation du mois : présent = plan validé et figé. */
+  const { data: lock = null } = useQuery({
+    queryKey: ["billing-plan-lock", mKey],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billing_plan_locks")
+        .select("id, month, locked_at")
+        .eq("month", monthIso)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; month: string; locked_at: string } | null;
+    },
+  });
+  const isLocked = !!lock;
+
+  const toggleLock = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (next) {
+        const { data: auth } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("billing_plan_locks")
+          .insert({ month: monthIso, locked_by: auth?.user?.id ?? null });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("billing_plan_locks")
+          .delete()
+          .eq("month", monthIso);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, next) => {
+      qc.invalidateQueries({ queryKey: ["billing-plan-lock", mKey] });
+      setLockConfirm(null);
+      toast.success(next ? "Mois validé et verrouillé" : "Mois déverrouillé");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+  });
+
+
   const practitionerName = (id?: string | null) => {
     const p = practitioners.find((x) => x.id === id);
     return p ? `${p.first_name} ${p.last_name}` : "—";
