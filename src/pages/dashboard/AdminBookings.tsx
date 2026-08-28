@@ -771,16 +771,36 @@ const AdminBookings = () => {
               </span>
             </>
           ) : (
-            <>
-              <span className="text-sm font-semibold text-emerald-600">
-                {formatMoney(bookingRevenue(booking))} HTVA
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
-              </span>
-            </>
+            (() => {
+              const amount = bookingAmount(booking);
+              const isPending = booking.status === "pending";
+              return (
+                <>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold",
+                      isPending ? "text-amber-600" : "text-emerald-600"
+                    )}
+                  >
+                    {formatMoney(amount.net)} HTVA
+                  </span>
+                  {amount.discount > 0 && (
+                    <span className="text-[10px] text-muted-foreground">
+                      <span className="line-through">{formatMoney(amount.gross)}</span>{" "}
+                      — remise {formatMoney(amount.discount)}
+                      {amount.label ? ` (${amount.label})` : ""}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-muted-foreground">
+                    {isPending ? "potentiel — pré-réservation · " : ""}
+                    {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
+                  </span>
+                </>
+              );
+            })()
           )}
         </div>
+
         <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
           {booking.status === "pending" && (
             <>
