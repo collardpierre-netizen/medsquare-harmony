@@ -42,8 +42,11 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { toast } from "sonner";
+
 import { bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${n.toFixed(2)} €`;
