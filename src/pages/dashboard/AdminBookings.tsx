@@ -172,16 +172,22 @@ const AdminBookings = () => {
   };
 
   const fetchResources = async () => {
-    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }] = await Promise.all([
+    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }, { data: discountData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
       supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee, opening_hours").order("name"),
       supabase.from("practitioner_room_packages").select("practitioner_id, room_id, monthly_fee").eq("is_active", true),
+      supabase
+        .from("practitioner_discounts")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .eq("is_active", true),
     ]);
     setPractitioners(profs || []);
     setPackages(pkgData || []);
+    setDiscounts(discountData || []);
     setRooms(roomsData || []);
     setAllRooms(allRoomsData || []);
+
     if (roomsData && roomsData.length > 0 && !planningRoom) {
       setPlanningRoom(roomsData[0].id);
     }
