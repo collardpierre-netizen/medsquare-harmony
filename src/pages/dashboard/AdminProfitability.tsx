@@ -224,6 +224,7 @@ const AdminProfitability = () => {
       const packagedKeys = new Set<string>();
       for (const pkg of packages ?? []) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
+        if (!isPackageActiveInMonth(pkg as any, monthKey)) continue; // échu → tarif plein
         revenue += Number(pkg.monthly_fee || 0);
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }

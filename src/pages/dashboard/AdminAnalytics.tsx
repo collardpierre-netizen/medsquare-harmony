@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
-import { bookingBilledAmount } from "@/lib/roomBilling";
+import { bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
 
 /**
  * Returns the monthly flat fee (HTVA €) for a room on a given month,
@@ -353,6 +353,7 @@ const AdminAnalytics = () => {
       const packagedKeys = new Set<string>(); // `${practitioner_id}|${room_id}`
       for (const pkg of (packages ?? [])) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue; // déjà couvert par forfait salle
+        if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue; // échu ou pas encore actif
         const room = rooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
         const fee = Number(pkg.monthly_fee);
@@ -486,6 +487,7 @@ const AdminAnalytics = () => {
       const packagedKeys = new Set<string>();
       for (const pkg of (packages ?? [])) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
+        if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue;
         revenue += Number(pkg.monthly_fee);
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
@@ -587,6 +589,7 @@ const AdminAnalytics = () => {
         for (const ms of monthStartsForMatrix) {
           const mk = format(ms, "yyyy-MM");
           if (matrix[pkg.room_id][mk]?.flat) continue; // déjà couvert par forfait salle
+          if (!isPackageActiveInMonth(pkg as any, mk)) continue;
           if (!matrix[pkg.room_id][mk]) matrix[pkg.room_id][mk] = { revenue: 0, hours: 0, bookings: 0 };
           matrix[pkg.room_id][mk].revenue += Number(pkg.monthly_fee);
         }
@@ -762,6 +765,7 @@ const AdminAnalytics = () => {
         // Practitioner packages: add forfait per month per praticien+salle
         for (const pkg of (packages ?? [])) {
           if (flatFeeKeys.has(`${pkg.room_id}|${mKey}`)) continue;
+          if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
           if (!filteredRooms.some((r) => r.id === pkg.room_id)) continue;
           revenue += Number(pkg.monthly_fee);
           packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
@@ -955,6 +959,7 @@ const AdminAnalytics = () => {
           // Practitioner packages on this room
           for (const pkg of (packages ?? [])) {
             if (pkg.room_id !== room.id) continue;
+            if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
             rev += Number(pkg.monthly_fee);
             packagedMonthKeys.add(`${pkg.practitioner_id}|${mKey}`);
           }
@@ -1017,6 +1022,7 @@ const AdminAnalytics = () => {
       }
       for (const pkg of packages ?? []) {
         if (flatKeys.has(`${pkg.room_id}|${mKey}`)) continue;
+        if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
         const room = filteredRooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
         const fee = Number(pkg.monthly_fee || 0);
