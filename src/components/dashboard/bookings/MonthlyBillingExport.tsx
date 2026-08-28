@@ -54,7 +54,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       // Fetch practitioner packages (praticien + salle, forfaits actifs)
       const { data: pkgData } = await supabase
         .from("practitioner_room_packages")
-        .select("practitioner_id, room_id, monthly_fee, package_label, profiles!practitioner_room_packages_practitioner_id_fkey(first_name, last_name), rooms(name)")
+        .select("practitioner_id, room_id, monthly_fee, package_label, start_date, end_date, profiles!practitioner_room_packages_practitioner_id_fkey(first_name, last_name), rooms(name)")
         .eq("is_active", true);
       const packages = (pkgData ?? []).filter((p: any) => !flatFeeRoomIds.has(p.room_id));
       const packagedKey = (pid: string, rid: string) => `${pid}|${rid}`;

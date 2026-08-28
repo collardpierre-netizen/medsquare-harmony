@@ -216,7 +216,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("practitioner_room_packages")
-        .select("id, practitioner_id, room_id, package_label, monthly_fee, is_active")
+        .select("id, practitioner_id, room_id, package_label, monthly_fee, is_active, start_date, end_date")
         .eq("is_active", true);
       return (data ?? []) as unknown as PractitionerPackage[];
     },
