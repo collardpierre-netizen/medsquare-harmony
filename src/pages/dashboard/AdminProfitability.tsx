@@ -54,6 +54,7 @@ import {
   type Expense,
 } from "@/lib/expenses";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
+import { isPackageActiveInMonth } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-BE")} € HTVA`;
 
