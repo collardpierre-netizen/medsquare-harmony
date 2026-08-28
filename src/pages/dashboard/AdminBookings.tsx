@@ -1631,9 +1631,20 @@ const AdminBookings = () => {
                                   Horaire facturé {formatMoney(billing.hourly)} HTVA
                                   {billing.billedHours > 0 && ` · ${formatHours(billing.billedHours)}`}
                                 </Badge>
+                                {billing.discountTotal > 0 && (
+                                  <Badge variant="outline" className="text-xs shrink-0 text-sky-700 border-sky-500/30 bg-sky-500/5">
+                                    Remises −{formatMoney(billing.discountTotal)} HTVA
+                                  </Badge>
+                                )}
+                                {billing.pendingHours > 0 && (
+                                  <Badge variant="outline" className="text-xs shrink-0 text-amber-700 border-amber-500/30 bg-amber-500/5">
+                                    Pré-réservations {formatMoney(billing.pendingHourly)} HTVA · {formatHours(billing.pendingHours)}
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className="text-xs shrink-0 font-semibold text-emerald-600 border-emerald-200">
                                   Total {formatMoney(billing.total)} HTVA
                                 </Badge>
+
                               </div>
 
                             );
