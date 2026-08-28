@@ -242,6 +242,7 @@ const AdminContracts = () => {
                     <TableHead>Salle</TableHead>
                     <TableHead>Forfait</TableHead>
                     <TableHead className="text-right">Mensuel HTVA</TableHead>
+                    <TableHead>Validité</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
@@ -257,11 +258,21 @@ const AdminContracts = () => {
                       <TableCell className="text-right tabular-nums font-semibold">
                         {Number(p.monthly_fee).toFixed(2)} €
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {fmtDate(p.start_date) ?? "—"} →{" "}
+                        {p.end_date ? fmtDate(p.end_date) : "permanent"}
+                      </TableCell>
                       <TableCell>
-                        {p.is_active ? (
-                          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Actif</Badge>
-                        ) : (
+                        {!p.is_active ? (
                           <Badge variant="secondary">Inactif</Badge>
+                        ) : p.end_date && p.end_date < todayIso() ? (
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                            Échu — tarif plein
+                          </Badge>
+                        ) : p.start_date > todayIso() ? (
+                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">À venir</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Actif</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
