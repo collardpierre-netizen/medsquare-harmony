@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
-import { computeRoomStats, computePractitionerBilling } from "@/lib/roomBilling";
+import { computeRoomStats, computePractitionerBilling, bookingBilledAmount } from "@/lib/roomBilling";
 
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
@@ -68,6 +68,8 @@ const AdminBookings = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
   const [packages, setPackages] = useState<any[]>([]);
+  const [discounts, setDiscounts] = useState<any[]>([]);
+
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Edit dialog
@@ -172,16 +174,22 @@ const AdminBookings = () => {
   };
 
   const fetchResources = async () => {
-    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }] = await Promise.all([
+    const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }, { data: discountData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
       supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee, opening_hours").order("name"),
       supabase.from("practitioner_room_packages").select("practitioner_id, room_id, monthly_fee").eq("is_active", true),
+      supabase
+        .from("practitioner_discounts")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .eq("is_active", true),
     ]);
     setPractitioners(profs || []);
     setPackages(pkgData || []);
+    setDiscounts(discountData || []);
     setRooms(roomsData || []);
     setAllRooms(allRoomsData || []);
+
     if (roomsData && roomsData.length > 0 && !planningRoom) {
       setPlanningRoom(roomsData[0].id);
     }
@@ -297,6 +305,7 @@ const AdminBookings = () => {
       rooms: allRooms as any,
       bookings: bookings as any,
       packages: packages as any,
+      discounts: discounts as any,
       days,
       months: monthsInRange,
     });
@@ -323,15 +332,35 @@ const AdminBookings = () => {
     const globalAvg = roomList.length > 0
       ? Math.round(roomList.reduce((sum, r) => sum + r.occupancyPct, 0) / roomList.length)
       : 0;
+    const globalConfirmedAvg = roomList.length > 0
+      ? Math.round(roomList.reduce((sum, r) => sum + r.confirmedOccupancyPct, 0) / roomList.length)
+      : 0;
 
     const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
     const totalFlatRevenue = roomList.reduce((sum, r) => sum + r.flatRevenue, 0);
     const totalHourlyRevenue = roomList.reduce((sum, r) => sum + r.hourlyRevenue, 0);
+    const totalPendingRevenue = roomList.reduce((sum, r) => sum + r.pendingHourlyRevenue, 0);
+    const totalDiscount = roomList.reduce((sum, r) => sum + r.discountTotal, 0);
+    const totalPendingHours = roomList.reduce((sum, r) => sum + r.pendingHours, 0);
     const totalCoveredHourly = roomList.reduce((sum, r) => sum + r.coveredHourlyValue, 0);
     const totalAvailableHours = roomList.reduce((sum, r) => sum + r.availableHours, 0);
 
-    return { label, rooms: roomList, globalAvg, totalRevenue, totalFlatRevenue, totalHourlyRevenue, totalCoveredHourly, totalAvailableHours };
-  }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
+    return {
+      label,
+      rooms: roomList,
+      globalAvg,
+      globalConfirmedAvg,
+      totalRevenue,
+      totalFlatRevenue,
+      totalHourlyRevenue,
+      totalPendingRevenue,
+      totalPendingHours,
+      totalDiscount,
+      totalCoveredHourly,
+      totalAvailableHours,
+    };
+  }, [allRooms, bookings, filterDateFrom, filterDateTo, packages, discounts]);
+
 
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
@@ -636,25 +665,33 @@ const AdminBookings = () => {
   const isBookingCoveredByPackage = (b: any) =>
     packages.some((p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id);
 
+  /** Montant HTVA d'une réservation, remise (ponctuelle ou contractuelle) déduite. */
+  const bookingAmount = (b: any) => {
+    const room = allRooms.find((r) => r.id === b.room_id);
+    return bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), discounts as any);
+  };
+
   const bookingRevenue = (b: any) => {
     const room = allRooms.find((r) => r.id === b.room_id);
     if (!room) return 0;
     // Couvert par un forfait mensuel → pas de facturation horaire en sus
     if (isBookingCoveredByPackage(b)) return 0;
-    const hours = bookingHours(b);
-    return (room.hourly_rate || 0) * hours;
+    return bookingAmount(b).net;
   };
 
   /**
    * Total facturable HTVA d'un praticien : forfaits mensuels (le forfait prend le lead
-   * sur le tarif horaire) + réservations horaires non couvertes par un forfait.
+   * sur le tarif horaire) + réservations horaires non couvertes par un forfait,
+   * remises déduites. Les pré-réservations sont isolées.
    */
   const practitionerBilling = (list: any[]) =>
     computePractitionerBilling({
       bookings: list as any,
       rooms: allRooms as any,
       packages: packages as any,
+      discounts: discounts as any,
     });
+
 
 
 
@@ -734,16 +771,36 @@ const AdminBookings = () => {
               </span>
             </>
           ) : (
-            <>
-              <span className="text-sm font-semibold text-emerald-600">
-                {formatMoney(bookingRevenue(booking))} HTVA
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
-              </span>
-            </>
+            (() => {
+              const amount = bookingAmount(booking);
+              const isPending = booking.status === "pending";
+              return (
+                <>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold",
+                      isPending ? "text-amber-600" : "text-emerald-600"
+                    )}
+                  >
+                    {formatMoney(amount.net)} HTVA
+                  </span>
+                  {amount.discount > 0 && (
+                    <span className="text-[10px] text-muted-foreground">
+                      <span className="line-through">{formatMoney(amount.gross)}</span>{" "}
+                      — remise {formatMoney(amount.discount)}
+                      {amount.label ? ` (${amount.label})` : ""}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-muted-foreground">
+                    {isPending ? "potentiel — pré-réservation · " : ""}
+                    {booking.rooms?.hourly_rate ? `${booking.rooms.hourly_rate} €/h` : ""}
+                  </span>
+                </>
+              );
+            })()
           )}
         </div>
+
         <div className="flex items-center gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
           {booking.status === "pending" && (
             <>
@@ -1317,12 +1374,25 @@ const AdminBookings = () => {
                           </Badge>
                         </div>
                       </div>
-                      <Progress
-                        value={room.occupancyPct}
-                        className="h-2"
-                      />
+                      {/* Barre empilée : confirmé + pré-réservations */}
+                      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden flex">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${room.confirmedOccupancyPct}%` }}
+                        />
+                        <div
+                          className="h-full bg-amber-400/70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_3px,hsl(var(--background))_3px,hsl(var(--background))_5px)]"
+                          style={{ width: `${Math.max(0, room.occupancyPct - room.confirmedOccupancyPct)}%` }}
+                        />
+                      </div>
+                      {room.pendingHours > 0 && (
+                        <p className="text-[11px] text-amber-700">
+                          dont {room.pendingHours.toFixed(1)}h en pré-réservation (
+                          {room.occupancyPct - room.confirmedOccupancyPct}% d'occupation potentielle)
+                        </p>
+                      )}
                       {/* Séparation visuelle : forfait / horaire facturé / disponible */}
-                      <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                      <div className="grid gap-2 sm:grid-cols-4 text-[11px]">
                         <div className="rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5">
                           <p className="text-primary font-medium">Inclus au forfait</p>
                           <p className="font-semibold text-foreground">{eur0(room.flatRevenue)} HTVA</p>
@@ -1338,6 +1408,18 @@ const AdminBookings = () => {
                           <p className="text-muted-foreground">
                             {room.bookedHours.toFixed(1)}h réservées (battement inclus)
                           </p>
+                          {room.discountTotal > 0 && (
+                            <p className="text-muted-foreground italic">
+                              après {eur0(room.discountTotal)} de remises
+                            </p>
+                          )}
+                        </div>
+                        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5">
+                          <p className="text-amber-700 font-medium">Potentiel (en attente)</p>
+                          <p className="font-semibold text-foreground">{eur0(room.pendingHourlyRevenue)} HTVA</p>
+                          <p className="text-muted-foreground">
+                            {room.pendingHours.toFixed(1)}h pré-réservées
+                          </p>
                         </div>
                         <div className="rounded-md border border-border bg-muted/40 px-2 py-1.5">
                           <p className="font-medium">Heures disponibles</p>
@@ -1351,6 +1433,7 @@ const AdminBookings = () => {
                           </p>
                         </div>
                       </div>
+
 
                     </div>
                   ))}
@@ -1377,8 +1460,23 @@ const AdminBookings = () => {
                         </Badge>
                       </div>
                     </div>
-                    <Progress value={occupancyData.globalAvg} className="h-2.5 mt-1.5" />
+                    <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden flex mt-1.5">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${occupancyData.globalConfirmedAvg}%` }}
+                      />
+                      <div
+                        className="h-full bg-amber-400/70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_3px,hsl(var(--background))_3px,hsl(var(--background))_5px)]"
+                        style={{ width: `${Math.max(0, occupancyData.globalAvg - occupancyData.globalConfirmedAvg)}%` }}
+                      />
+                    </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                      <span>
+                        Confirmé :{" "}
+                        <span className="font-medium text-foreground">
+                          {occupancyData.globalConfirmedAvg}%
+                        </span>
+                      </span>
                       <span>
                         Inclus au forfait :{" "}
                         <span className="font-medium text-foreground">
@@ -1391,6 +1489,12 @@ const AdminBookings = () => {
                           {eur0(occupancyData.totalHourlyRevenue)} HTVA
                         </span>
                       </span>
+                      <span className="text-amber-700">
+                        Potentiel (en attente) :{" "}
+                        <span className="font-medium">
+                          {eur0(occupancyData.totalPendingRevenue)} HTVA · {occupancyData.totalPendingHours.toFixed(1)}h
+                        </span>
+                      </span>
                       <span>
                         Heures disponibles :{" "}
                         <span className="font-medium text-foreground">
@@ -1398,12 +1502,18 @@ const AdminBookings = () => {
                         </span>
                       </span>
 
+                      {occupancyData.totalDiscount > 0 && (
+                        <span className="italic">
+                          − {eur0(occupancyData.totalDiscount)} de remises accordées
+                        </span>
+                      )}
                       {occupancyData.totalCoveredHourly > 0 && (
                         <span className="italic">
                           + {eur0(occupancyData.totalCoveredHourly)} d'heures déjà couvertes par les
                           forfaits
                         </span>
                       )}
+
                       <span className="ml-auto">
                         Taux calculés sur les plages d'ouverture définies par salle
                       </span>
@@ -1521,9 +1631,20 @@ const AdminBookings = () => {
                                   Horaire facturé {formatMoney(billing.hourly)} HTVA
                                   {billing.billedHours > 0 && ` · ${formatHours(billing.billedHours)}`}
                                 </Badge>
+                                {billing.discountTotal > 0 && (
+                                  <Badge variant="outline" className="text-xs shrink-0 text-sky-700 border-sky-500/30 bg-sky-500/5">
+                                    Remises −{formatMoney(billing.discountTotal)} HTVA
+                                  </Badge>
+                                )}
+                                {billing.pendingHours > 0 && (
+                                  <Badge variant="outline" className="text-xs shrink-0 text-amber-700 border-amber-500/30 bg-amber-500/5">
+                                    Pré-réservations {formatMoney(billing.pendingHourly)} HTVA · {formatHours(billing.pendingHours)}
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className="text-xs shrink-0 font-semibold text-emerald-600 border-emerald-200">
                                   Total {formatMoney(billing.total)} HTVA
                                 </Badge>
+
                               </div>
 
                             );

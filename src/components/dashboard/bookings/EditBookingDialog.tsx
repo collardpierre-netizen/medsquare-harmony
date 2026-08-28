@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { format, addWeeks, addDays, getDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock, Calendar as CalendarIcon } from "lucide-react";
+import { Clock, MapPin, User, Pencil, Trash2, Loader2, Repeat, Lock, Calendar as CalendarIcon, Percent } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,10 +84,14 @@ const EditBookingDialog = ({
   const [endTime, setEndTime] = useState("");
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
+  const [discountType, setDiscountType] = useState<string>("none");
+  const [discountValue, setDiscountValue] = useState<string>("");
+  const [discountReason, setDiscountReason] = useState("");
   const [recurrence, setRecurrence] = useState(false);
   const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [dateOpen, setDateOpen] = useState(false);
+
 
   useEffect(() => {
     if (booking) {
@@ -123,6 +127,14 @@ const EditBookingDialog = ({
       setPractitionerId(booking.practitioner_id);
       setStatus(booking.status);
       setNotes(booking.notes || "");
+      setDiscountType(booking.discount_type || "none");
+      setDiscountValue(
+        booking.discount_value !== null && booking.discount_value !== undefined
+          ? String(booking.discount_value)
+          : ""
+      );
+      setDiscountReason(booking.discount_reason || "");
+
 
       // Check if this booking belongs to a recurrence group
       if (booking.recurrence_group_id) {
@@ -153,6 +165,13 @@ const EditBookingDialog = ({
 
     setSaving(true);
 
+    const hasDiscount = discountType !== "none" && Number(discountValue) > 0;
+    const discountPayload = {
+      discount_type: hasDiscount ? discountType : null,
+      discount_value: hasDiscount ? Number(discountValue) : null,
+      discount_reason: hasDiscount ? discountReason || null : null,
+    };
+
     // Update the existing booking
     const { error } = await supabase
       .from("bookings")
@@ -163,8 +182,10 @@ const EditBookingDialog = ({
         end_time: newEnd.toISOString(),
         status,
         notes: notes || null,
+        ...discountPayload,
       })
       .eq("id", booking.id);
+
 
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -201,7 +222,9 @@ const EditBookingDialog = ({
             status,
             notes: notes || null,
             recurrence_group_id: groupId,
+            ...discountPayload,
           });
+
         }
       }
 
@@ -359,11 +382,67 @@ const EditBookingDialog = ({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="confirmed">Confirmée</SelectItem>
-                <SelectItem value="pending">En attente</SelectItem>
+                <SelectItem value="pending">Pré-réservation (en attente)</SelectItem>
                 <SelectItem value="cancelled">Annulée</SelectItem>
               </SelectContent>
             </Select>
+            {status === "pending" && (
+              <p className="text-xs text-muted-foreground">
+                Le créneau est bloqué sur le planning mais n'est pas comptabilisé dans le
+                chiffre d'affaires confirmé.
+              </p>
+            )}
           </div>
+
+          {/* Remise de facturation */}
+          <div className="rounded-xl border border-border p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Percent className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label className="text-sm">Remise de facturation (HTVA)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Prend le lead sur la remise contractuelle du praticien.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Type</Label>
+                <Select value={discountType} onValueChange={setDiscountType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune remise</SelectItem>
+                    <SelectItem value="percent">Pourcentage (%)</SelectItem>
+                    <SelectItem value="amount">Montant fixe (€ HTVA)</SelectItem>
+                    <SelectItem value="hourly_rate">Tarif horaire négocié (€/h)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Valeur</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  disabled={discountType === "none"}
+                  placeholder={discountType === "percent" ? "10" : "25"}
+                />
+              </div>
+            </div>
+            {discountType !== "none" && (
+              <div className="space-y-2">
+                <Label className="text-xs">Motif</Label>
+                <Input
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  placeholder="Ex. geste commercial, remise de lancement…"
+                />
+              </div>
+            )}
+          </div>
+
 
           {/* Notes */}
           <div className="space-y-2">
