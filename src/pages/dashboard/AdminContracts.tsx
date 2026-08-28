@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import PractitionerDiscounts from "@/components/dashboard/contracts/PractitionerDiscounts";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
