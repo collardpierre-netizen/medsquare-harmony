@@ -243,6 +243,33 @@ export type Database = {
           },
         ]
       }
+      billing_plan_locks: {
+        Row: {
+          created_at: string
+          id: string
+          locked_at: string
+          locked_by: string | null
+          month: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          month: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          month?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_plan_notes: {
         Row: {
           created_at: string
