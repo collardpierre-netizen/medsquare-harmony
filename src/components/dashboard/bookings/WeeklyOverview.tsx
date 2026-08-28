@@ -216,6 +216,10 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
           <pattern id="week-hatch-activity" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="rgb(249 115 22 / 0.45)" strokeWidth="2" />
           </pattern>
+          <pattern id="week-hatch-pending" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="hsl(38 92% 45% / 0.8)" strokeWidth="2" strokeDasharray="3 3" />
+          </pattern>
+
         </defs>
       </svg>
       <CardHeader className="pb-3">
