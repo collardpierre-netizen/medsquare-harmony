@@ -179,6 +179,8 @@ const AdminContracts = () => {
       package_label: p.package_label,
       monthly_fee: String(p.monthly_fee),
       is_active: p.is_active,
+      start_date: p.start_date ?? todayIso(),
+      end_date: p.end_date ?? "",
       notes: p.notes ?? "",
       source: "custom",
     });
