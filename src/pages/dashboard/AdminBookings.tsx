@@ -945,15 +945,46 @@ const AdminBookings = () => {
                     <div className="flex items-center gap-2">
                       <Repeat className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <Label className="text-sm">Récurrence hebdomadaire</Label>
-                        <p className="text-xs text-muted-foreground">Répéter chaque semaine jusqu'à une date</p>
+                        <Label className="text-sm">Récurrence</Label>
+                        <p className="text-xs text-muted-foreground">Chaque semaine, 1 semaine sur 2 ou 1x/mois</p>
                       </div>
                     </div>
                     <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
                   </div>
                   {isRecurring && (
                     <div className="space-y-3 pt-1">
+                      {/* Frequency */}
+                      <div>
+                        <Label className="text-xs mb-1.5 block">Fréquence :</Label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            { key: "weekly" as const, label: "Chaque semaine" },
+                            { key: "biweekly" as const, label: "1 semaine sur 2" },
+                            { key: "monthly" as const, label: "1x par mois" },
+                          ].map((f) => (
+                            <button
+                              key={f.key}
+                              type="button"
+                              onClick={() => setRecurrenceFrequency(f.key)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                                recurrenceFrequency === f.key
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-muted-foreground border-border hover:bg-accent"
+                              )}
+                            >
+                              {f.label}
+                            </button>
+                          ))}
+                        </div>
+                        {recurrenceFrequency === "monthly" && (
+                          <p className="text-[11px] text-muted-foreground mt-1.5">
+                            Répété chaque mois à la même date que la date de début.
+                          </p>
+                        )}
+                      </div>
                       {/* Day pills */}
+                      {recurrenceFrequency !== "monthly" && (
                       <div>
                         <Label className="text-xs mb-1.5 block">Jours de la semaine :</Label>
                         <div className="flex gap-1.5 flex-wrap">
@@ -987,6 +1018,8 @@ const AdminBookings = () => {
                           </button>
                         </div>
                       </div>
+                      )}
+
                       <Label className="text-xs">Date de fin de récurrence *</Label>
                       <div className="flex gap-2">
                         <Input
