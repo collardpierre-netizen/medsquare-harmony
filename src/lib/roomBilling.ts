@@ -378,32 +378,45 @@ export const findPackage = (
 export interface PractitionerBilling {
   /** Forfaits mensuels HTVA (une fois par salle et par mois). */
   flat: number;
-  /** Réservations horaires HTVA hors forfait. */
+  /** Réservations horaires HTVA hors forfait, confirmées, remises déduites. */
   hourly: number;
+  /** Réservations horaires HTVA en pré-réservation (non validées). */
+  pendingHourly: number;
+  /** Heures pré-réservées (non validées). */
+  pendingHours: number;
+  /** Remises accordées (HTVA) sur les réservations confirmées. */
+  discountTotal: number;
   /** Valeur horaire incluse au forfait (informatif). */
   coveredHourlyValue: number;
   /** Heures incluses au forfait. */
   coveredHours: number;
-  /** Heures facturées à l'heure. */
+  /** Heures facturées à l'heure (confirmées). */
   billedHours: number;
   total: number;
   hasFlat: boolean;
 }
 
 /**
- * Facturation d'un praticien : forfaits (lead) + réservations horaires non couvertes.
+ * Facturation d'un praticien : forfaits (lead) + réservations horaires non couvertes,
+ * remises (contractuelles ou ponctuelles) déduites. Les pré-réservations
+ * (statut « en attente ») sont comptabilisées séparément et hors total facturé.
  */
 export const computePractitionerBilling = ({
   bookings,
   rooms,
   packages = [],
+  discounts = [],
 }: {
   bookings: BillingBooking[];
   rooms: BillingRoom[];
   packages?: BillingPackage[];
+  discounts?: BillingDiscount[];
 }): PractitionerBilling => {
   let flat = 0;
   let hourly = 0;
+  let pendingHourly = 0;
+  let pendingHours = 0;
+  let discountTotal = 0;
   let coveredHourlyValue = 0;
   let coveredHours = 0;
   let billedHours = 0;
@@ -414,6 +427,8 @@ export const computePractitionerBilling = ({
     const room = rooms.find((r) => r.id === b.room_id);
     const rate = Number(room?.hourly_rate || 0);
     const hours = bookingDurationHours(b);
+    const amount = bookingBilledAmount(b, rate, discounts);
+    const isPending = b.status === "pending";
     const pkg = findPackage(packages, b.practitioner_id, b.room_id);
     if (pkg) {
       const key = `${b.room_id}|${monthKey(new Date(b.start_time))}`;
@@ -421,10 +436,14 @@ export const computePractitionerBilling = ({
         flatKeys.add(key);
         flat += Number(pkg.monthly_fee || 0);
       }
-      coveredHourlyValue += rate * hours;
+      coveredHourlyValue += amount.gross;
       coveredHours += hours;
+    } else if (isPending) {
+      pendingHourly += amount.net;
+      pendingHours += hours;
     } else {
-      hourly += rate * hours;
+      hourly += amount.net;
+      discountTotal += amount.discount;
       billedHours += hours;
     }
   });
@@ -432,6 +451,9 @@ export const computePractitionerBilling = ({
   return {
     flat,
     hourly,
+    pendingHourly,
+    pendingHours,
+    discountTotal,
     coveredHourlyValue,
     coveredHours,
     billedHours,
@@ -439,3 +461,4 @@ export const computePractitionerBilling = ({
     hasFlat: flatKeys.size > 0,
   };
 };
+
