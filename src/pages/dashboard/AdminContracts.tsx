@@ -132,6 +132,8 @@ const AdminContracts = () => {
         package_label: payload.package_label.trim(),
         monthly_fee: Number(payload.monthly_fee),
         is_active: payload.is_active,
+        start_date: payload.start_date || todayIso(),
+        end_date: payload.end_date || null,
         notes: payload.notes.trim() || null,
       };
       if (payload.id) {
