@@ -42,8 +42,11 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { toast } from "sonner";
+
 import { bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${n.toFixed(2)} €`;
@@ -92,6 +95,8 @@ const AdminBillingPlan = () => {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [editing, setEditing] = useState<NoteForm | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [lockConfirm, setLockConfirm] = useState<"lock" | "unlock" | null>(null);
+
 
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -176,6 +181,46 @@ const AdminBillingPlan = () => {
       return (data ?? []) as unknown as NoteRow[];
     },
   });
+
+  /** Verrou de validation du mois : présent = plan validé et figé. */
+  const { data: lock = null } = useQuery({
+    queryKey: ["billing-plan-lock", mKey],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billing_plan_locks")
+        .select("id, month, locked_at")
+        .eq("month", monthIso)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; month: string; locked_at: string } | null;
+    },
+  });
+  const isLocked = !!lock;
+
+  const toggleLock = useMutation({
+    mutationFn: async (next: boolean) => {
+      if (next) {
+        const { data: auth } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("billing_plan_locks")
+          .insert({ month: monthIso, locked_by: auth?.user?.id ?? null });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("billing_plan_locks")
+          .delete()
+          .eq("month", monthIso);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, next) => {
+      qc.invalidateQueries({ queryKey: ["billing-plan-lock", mKey] });
+      setLockConfirm(null);
+      toast.success(next ? "Mois validé et verrouillé" : "Mois déverrouillé");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+  });
+
 
   const practitionerName = (id?: string | null) => {
     const p = practitioners.find((x) => x.id === id);
@@ -382,8 +427,36 @@ const AdminBillingPlan = () => {
             <Button variant="outline" size="icon" onClick={() => setMonth(addMonths(monthStart, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
+            {isLocked ? (
+              <Button
+                variant="outline"
+                onClick={() => setLockConfirm("unlock")}
+                disabled={toggleLock.isPending}
+              >
+                <LockOpen className="h-4 w-4 mr-2" /> Déverrouiller
+              </Button>
+            ) : (
+              <Button onClick={() => setLockConfirm("lock")} disabled={toggleLock.isPending}>
+                <Lock className="h-4 w-4 mr-2" /> Valider le mois
+              </Button>
+            )}
           </div>
         </div>
+
+        {isLocked && (
+          <Card className="border-emerald-300 bg-emerald-50/60">
+            <CardContent className="flex items-start gap-3 py-4 text-sm text-emerald-900">
+              <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                Plan validé et verrouillé le{" "}
+                {format(new Date(lock!.locked_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}. Les
+                notes de facturation de ce mois ne sont plus modifiables. Déverrouillez le mois pour
+                apporter des corrections.
+              </span>
+            </CardContent>
+          </Card>
+        )}
+
 
         {alerts.length > 0 && (
           <Card className="border-amber-300 bg-amber-50/60">
@@ -465,7 +538,7 @@ const AdminBillingPlan = () => {
                 sur la facture du mois.
               </CardDescription>
             </div>
-            <Button size="sm" onClick={() => setEditing({ ...emptyNote })}>
+            <Button size="sm" disabled={isLocked} onClick={() => setEditing({ ...emptyNote })}>
               <Plus className="h-4 w-4 mr-2" /> Nouvelle note
             </Button>
           </CardHeader>
@@ -501,7 +574,7 @@ const AdminBillingPlan = () => {
                         {n.expected_amount != null ? eur(Number(n.expected_amount)) : "—"}
                       </TableCell>
                       <TableCell>
-                        <button type="button" onClick={() => toggleStatus(n)}>
+                        <button type="button" disabled={isLocked} onClick={() => toggleStatus(n)}>
                           <Badge
                             className={
                               n.status === "invoiced"
@@ -519,6 +592,8 @@ const AdminBillingPlan = () => {
                         <Button
                           size="icon"
                           variant="ghost"
+                          disabled={isLocked}
+
                           onClick={() =>
                             setEditing({
                               id: n.id,
@@ -537,10 +612,12 @@ const AdminBillingPlan = () => {
                         <Button
                           size="icon"
                           variant="ghost"
+                          disabled={isLocked}
                           className="text-destructive hover:text-destructive"
                           onClick={() => setDeleteId(n.id)}
                         >
                           <Trash2 className="h-4 w-4" />
+
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -680,6 +757,30 @@ const AdminBillingPlan = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!lockConfirm} onOpenChange={(o) => !o && setLockConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lockConfirm === "unlock"
+                ? "Déverrouiller ce mois ?"
+                : "Valider et verrouiller ce mois ?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lockConfirm === "unlock"
+                ? `Le plan de ${format(monthStart, "MMMM yyyy", { locale: fr })} redeviendra modifiable. À utiliser uniquement pour corriger une erreur avant facturation.`
+                : `Le plan de ${format(monthStart, "MMMM yyyy", { locale: fr })} sera figé : les notes de facturation ne pourront plus être ajoutées, modifiées ni supprimées tant que le mois reste verrouillé.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => toggleLock.mutate(lockConfirm === "lock")}>
+              {lockConfirm === "unlock" ? "Déverrouiller" : "Valider le mois"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </DashboardLayout>
   );
 };
