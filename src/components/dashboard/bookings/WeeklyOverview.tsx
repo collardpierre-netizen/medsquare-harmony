@@ -359,6 +359,7 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                     const coveringBooking = inRange ? booking ?? getBookingCoveringHour(day, hour) : undefined;
                     const isPrivatise = coveringBooking?.notes?.includes("[Privatisé]");
                     const isRecurring = !!coveringBooking?.recurrence_group_id;
+                    const isPending = coveringBooking?.status === "pending";
 
                     const cellContent = (
                           <div
@@ -372,6 +373,8 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                               ? "bg-orange-500/25 text-orange-800 border border-orange-500/40"
                               : isPrivatise
                               ? "bg-red-600/50 text-white border-2 border-dashed border-red-800 cursor-pointer hover:bg-red-600/65"
+                              : booked && isPending
+                              ? "bg-amber-500/30 text-amber-950 border border-dashed border-amber-600 cursor-pointer hover:bg-amber-500/45"
                               : booked && isRecurring
                               ? "bg-red-800/55 text-white border border-red-900 cursor-pointer hover:bg-red-800/70"
                               : booked
@@ -392,9 +395,10 @@ const WeeklyOverview = ({ weekStart, selectedRoom, rooms, onSlotClick, onActivit
                           {/* Diagonal hatching overlay for occupied slots */}
                           {inRange && !isPast && isOccupied && (
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : isRecurring ? "url(#week-hatch-recurring)" : "url(#week-hatch-booked)"} />
+                              <rect width="100%" height="100%" fill={activity ? "url(#week-hatch-activity)" : isPrivatise ? "url(#week-hatch-privatise)" : isPending ? "url(#week-hatch-pending)" : isRecurring ? "url(#week-hatch-recurring)" : "url(#week-hatch-booked)"} />
                             </svg>
                           )}
+
                           {actSession && (
                             <span className="truncate px-1 relative z-10">
                               {actSession.activities?.title?.slice(0, 8) || "Act."}
