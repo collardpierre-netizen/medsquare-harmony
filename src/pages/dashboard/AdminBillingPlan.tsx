@@ -574,7 +574,7 @@ const AdminBillingPlan = () => {
                         {n.expected_amount != null ? eur(Number(n.expected_amount)) : "—"}
                       </TableCell>
                       <TableCell>
-                        <button type="button" onClick={() => toggleStatus(n)}>
+                        <button type="button" disabled={isLocked} onClick={() => toggleStatus(n)}>
                           <Badge
                             className={
                               n.status === "invoiced"
