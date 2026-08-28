@@ -222,7 +222,9 @@ const EditBookingDialog = ({
             status,
             notes: notes || null,
             recurrence_group_id: groupId,
+            ...discountPayload,
           });
+
         }
       }
 
