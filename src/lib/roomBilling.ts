@@ -325,17 +325,20 @@ export const computeRoomStats = ({
     });
   });
 
-  // Forfaits locataires : ajoutés pour chaque mois de la période (sauf si la salle
-  // est déjà facturée via un forfait de privatisation ce mois-là).
+  // Forfaits locataires : ajoutés pour chaque mois de la période où le forfait est
+  // valide (échéance incluse) et si la salle n'est pas déjà facturée via un forfait
+  // de privatisation ce mois-là.
   packages.forEach((pkg) => {
     const s = stats.get(pkg.room_id);
     if (!s) return;
     monthKeys.forEach((mKey) => {
       if (s.flatMonths.has(mKey)) return;
+      if (!isPackageActiveInMonth(pkg, mKey)) return;
       s.flatRevenue += Number(pkg.monthly_fee || 0);
       s.packagedKeys.add(`${pkg.practitioner_id}|${mKey}`);
     });
   });
+
 
   bookings.forEach((b) => {
     if (b.status === "cancelled") return;
