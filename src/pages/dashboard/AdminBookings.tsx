@@ -305,6 +305,7 @@ const AdminBookings = () => {
       rooms: allRooms as any,
       bookings: bookings as any,
       packages: packages as any,
+      discounts: discounts as any,
       days,
       months: monthsInRange,
     });
@@ -331,15 +332,35 @@ const AdminBookings = () => {
     const globalAvg = roomList.length > 0
       ? Math.round(roomList.reduce((sum, r) => sum + r.occupancyPct, 0) / roomList.length)
       : 0;
+    const globalConfirmedAvg = roomList.length > 0
+      ? Math.round(roomList.reduce((sum, r) => sum + r.confirmedOccupancyPct, 0) / roomList.length)
+      : 0;
 
     const totalRevenue = roomList.reduce((sum, r) => sum + r.revenue, 0);
     const totalFlatRevenue = roomList.reduce((sum, r) => sum + r.flatRevenue, 0);
     const totalHourlyRevenue = roomList.reduce((sum, r) => sum + r.hourlyRevenue, 0);
+    const totalPendingRevenue = roomList.reduce((sum, r) => sum + r.pendingHourlyRevenue, 0);
+    const totalDiscount = roomList.reduce((sum, r) => sum + r.discountTotal, 0);
+    const totalPendingHours = roomList.reduce((sum, r) => sum + r.pendingHours, 0);
     const totalCoveredHourly = roomList.reduce((sum, r) => sum + r.coveredHourlyValue, 0);
     const totalAvailableHours = roomList.reduce((sum, r) => sum + r.availableHours, 0);
 
-    return { label, rooms: roomList, globalAvg, totalRevenue, totalFlatRevenue, totalHourlyRevenue, totalCoveredHourly, totalAvailableHours };
-  }, [allRooms, bookings, filterDateFrom, filterDateTo, packages]);
+    return {
+      label,
+      rooms: roomList,
+      globalAvg,
+      globalConfirmedAvg,
+      totalRevenue,
+      totalFlatRevenue,
+      totalHourlyRevenue,
+      totalPendingRevenue,
+      totalPendingHours,
+      totalDiscount,
+      totalCoveredHourly,
+      totalAvailableHours,
+    };
+  }, [allRooms, bookings, filterDateFrom, filterDateTo, packages, discounts]);
+
 
 
   // Conflict detection: overlapping bookings in same room by DIFFERENT practitioners
