@@ -538,7 +538,7 @@ const AdminBillingPlan = () => {
                 sur la facture du mois.
               </CardDescription>
             </div>
-            <Button size="sm" onClick={() => setEditing({ ...emptyNote })}>
+            <Button size="sm" disabled={isLocked} onClick={() => setEditing({ ...emptyNote })}>
               <Plus className="h-4 w-4 mr-2" /> Nouvelle note
             </Button>
           </CardHeader>
