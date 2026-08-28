@@ -243,6 +243,60 @@ export type Database = {
           },
         ]
       }
+      billing_plan_notes: {
+        Row: {
+          created_at: string
+          expected_amount: number | null
+          id: string
+          label: string
+          month: string
+          note: string | null
+          practitioner_id: string | null
+          room_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expected_amount?: number | null
+          id?: string
+          label: string
+          month: string
+          note?: string | null
+          practitioner_id?: string | null
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expected_amount?: number | null
+          id?: string
+          label?: string
+          month?: string
+          note?: string | null
+          practitioner_id?: string | null
+          room_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_plan_notes_practitioner_id_fkey"
+            columns: ["practitioner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_plan_notes_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           activity_id: string | null
@@ -830,6 +884,7 @@ export type Database = {
       practitioner_room_packages: {
         Row: {
           created_at: string
+          end_date: string | null
           id: string
           is_active: boolean
           monthly_fee: number
@@ -837,10 +892,12 @@ export type Database = {
           package_label: string
           practitioner_id: string
           room_id: string
+          start_date: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          end_date?: string | null
           id?: string
           is_active?: boolean
           monthly_fee: number
@@ -848,10 +905,12 @@ export type Database = {
           package_label: string
           practitioner_id: string
           room_id: string
+          start_date?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          end_date?: string | null
           id?: string
           is_active?: boolean
           monthly_fee?: number
@@ -859,6 +918,7 @@ export type Database = {
           package_label?: string
           practitioner_id?: string
           room_id?: string
+          start_date?: string
           updated_at?: string
         }
         Relationships: [
@@ -914,7 +974,7 @@ export type Database = {
           specialty: string | null
           tiers_payant: boolean
           updated_at: string
-          user_id: string
+          user_id: string | null
           video_available: boolean
         }
         Insert: {
@@ -952,7 +1012,7 @@ export type Database = {
           specialty?: string | null
           tiers_payant?: boolean
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           video_available?: boolean
         }
         Update: {
@@ -990,7 +1050,7 @@ export type Database = {
           specialty?: string | null
           tiers_payant?: boolean
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           video_available?: boolean
         }
         Relationships: []

@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
+import { bookingBilledAmount } from "@/lib/roomBilling";
 
 /**
  * Returns the monthly flat fee (HTVA €) for a room on a given month,
@@ -195,6 +196,20 @@ const AdminAnalytics = () => {
     },
   });
 
+  /** Remises contractuelles actives (par praticien, éventuellement par salle et période). */
+  const { data: contractDiscounts } = useQuery({
+    queryKey: ["admin-analytics-discounts"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("practitioner_discounts")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .eq("is_active", true);
+      return data || [];
+    },
+  });
+
+
+
 
   const { data: packages } = useQuery({
     queryKey: ["admin-analytics-packages"],
@@ -212,7 +227,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, practitioner_id, start_time, end_time, status")
+        .select("id, room_id, practitioner_id, start_time, end_time, status, discount_type, discount_value, discount_reason")
         .gte("start_time", globalStart)
         .lt("start_time", globalEnd)
         .neq("status", "cancelled");
@@ -258,7 +273,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, practitioner_id, start_time, end_time, status")
+        .select("id, room_id, practitioner_id, start_time, end_time, status, discount_type, discount_value, discount_reason")
         .gte("start_time", projectionRange.start)
         .lt("start_time", projectionRange.end)
         .in("status", ["confirmed", "pending"]);
@@ -356,7 +371,7 @@ const AdminAnalytics = () => {
         if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue; // couvert par forfait praticien
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
-        const rev = (room?.hourly_rate || 0) * hours;
+        const rev = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
         const d = getDetail(b.room_id, room?.name || "Salle inconnue");
         if (b.status === "confirmed") {
           confirmedRev += rev;
@@ -403,7 +418,7 @@ const AdminAnalytics = () => {
         details: Array.from(details.values()).sort((a, b) => a.roomName.localeCompare(b.roomName, "fr")),
       };
     });
-  }, [rooms, projectionBookings, projectionRange, packages, projectionRegistrations]);
+  }, [rooms, projectionBookings, projectionRange, packages, projectionRegistrations, contractDiscounts]);
 
 
   const projectionTotals = useMemo(() => {
@@ -442,7 +457,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, practitioner_id, start_time, end_time, status")
+        .select("id, room_id, practitioner_id, start_time, end_time, status, discount_type, discount_value, discount_reason")
         .gte("start_time", monthlyRange.startNMinus1)
         .lt("start_time", monthlyRange.end)
         .neq("status", "cancelled");
@@ -481,7 +496,7 @@ const AdminAnalytics = () => {
         if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
-        revenue += (room?.hourly_rate || 0) * hours;
+        revenue += bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
         count += 1;
       }
       return { revenue: Math.round(revenue), count };
@@ -512,7 +527,7 @@ const AdminAnalytics = () => {
         date: start,
       };
     });
-  }, [rooms, monthlyBookings, monthlyRange, packages]);
+  }, [rooms, monthlyBookings, monthlyRange, packages, contractDiscounts]);
 
   const monthlyTotals = useMemo(() => {
     const total12m = monthlyRevenueData.reduce((s, r) => s + r.revenue, 0);
@@ -586,7 +601,7 @@ const AdminAnalytics = () => {
         // Skip bookings for practitioners covered by a package on this room
         if (packagedRoomPractitioners[room.id]?.has((b as any).practitioner_id)) continue;
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
-        const revenue = (room.hourly_rate || 0) * hours;
+        const revenue = bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
         if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };
         matrix[room.id][monthKey].revenue += revenue;
         matrix[room.id][monthKey].hours += hours;
@@ -685,7 +700,7 @@ const AdminAnalytics = () => {
           fmtBrussels.format(start),
           fmtBrussels.format(end),
           room?.name || "—",
-          rate, hours, Math.round(rate * hours), b.status,
+          rate, hours, Math.round(bookingBilledAmount(b as any, Number(rate), (contractDiscounts ?? []) as any).net), b.status,
         ]);
       }
       const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
@@ -707,7 +722,7 @@ const AdminAnalytics = () => {
     } finally {
       setIsExportingExcel(false);
     }
-  }, [monthlyRevenueData, monthlyBookings, monthlyTotals, rooms, today, toast]);
+  }, [monthlyRevenueData, monthlyBookings, monthlyTotals, rooms, today, toast, packages, contractDiscounts]);
 
   const getBrusselsOffset = (date: Date): number => {
     const month = date.getUTCMonth();
@@ -759,7 +774,7 @@ const AdminAnalytics = () => {
         if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}|${mKey}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
-        revenue += (room?.hourly_rate || 0) * hours;
+        revenue += bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
       }
 
       let totalSlots = 0;
@@ -953,7 +968,7 @@ const AdminAnalytics = () => {
           if (flatMonths.has(mKey)) continue;
           if (packagedMonthKeys.has(`${b.practitioner_id}|${mKey}`)) continue;
           const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
-          rev += (room.hourly_rate || 0) * hours;
+          rev += bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
         }
         row[room.name] = Math.round(rev);
       }
@@ -961,7 +976,7 @@ const AdminAnalytics = () => {
     });
 
     return { chartData, roomOccupancyData, roomSummaryData, roomRevenueData };
-  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId, packages]);
+  }, [periods, rooms, bookings, sessions, registrations, selectedRoomId, packages, contractDiscounts]);
 
   // ─── Répartition du CA (période sélectionnée) : par cabinet et par prestataire ───
   const { revenueByRoom, revenueByPractitioner } = useMemo(() => {
@@ -1020,7 +1035,7 @@ const AdminAnalytics = () => {
       const room = filteredRooms.find((r) => r.id === b.room_id);
       if (!room) continue;
       const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
-      const amount = Number(room.hourly_rate || 0) * hours;
+      const amount = bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
       addTo(roomTotals, room.name, amount);
       addTo(practitionerTotals, practitionerName(b.practitioner_id), amount);
     }
@@ -1032,7 +1047,7 @@ const AdminAnalytics = () => {
         .sort((a, b) => b.value - a.value);
 
     return { revenueByRoom: toSorted(roomTotals), revenueByPractitioner: toSorted(practitionerTotals) };
-  }, [rooms, bookings, packages, periods, selectedRoomId, practitionerProfiles]);
+  }, [rooms, bookings, packages, periods, selectedRoomId, practitionerProfiles, contractDiscounts]);
 
   const pieColors = [
     "hsl(var(--chart-1))",
