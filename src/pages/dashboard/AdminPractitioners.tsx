@@ -3,7 +3,7 @@ import {
   Users, Ban, CheckCircle, Plus, Loader2, Mail, RefreshCw,
   ChevronDown, ChevronUp, Pencil, Globe, Facebook, Instagram, ExternalLink,
   Linkedin, Twitter, Youtube, ArrowUp, ArrowDown, ShieldCheck,
-  AlertCircle, Trash2, Phone, Bell, Filter,
+  AlertCircle, Trash2, Phone, Bell, Filter, UserPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
@@ -54,6 +54,9 @@ const AdminPractitioners = () => {
   // Invite dialog
   const [open, setOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  /** Fiche brouillon en cours d'invitation (rattachement du compte à cette fiche). */
+  const [invitingDraftId, setInvitingDraftId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [deletingPractitioner, setDeletingPractitioner] = useState<any | null>(null);
@@ -193,11 +196,45 @@ const AdminPractitioners = () => {
     setInviteSchedule(DEFAULT_SCHEDULE);
     setInviteAccountType("practitioner");
     setShowAdvanced(false);
+    setInvitingDraftId(null);
+  };
+
+  /** Crée une fiche « brouillon » (sans compte utilisateur) : l'email n'est pas requis. */
+  const handleCreateDraft = async () => {
+    if (!inviteForm.first_name.trim() || !inviteForm.last_name.trim()) {
+      toast({ title: "Le prénom et le nom sont requis", variant: "destructive" });
+      return;
+    }
+    setCreatingDraft(true);
+    try {
+      const { error } = await supabase.from("profiles").insert({
+        user_id: null,
+        first_name: inviteForm.first_name.trim(),
+        last_name: inviteForm.last_name.trim(),
+        specialty: inviteForm.specialty || null,
+        bio: inviteForm.bio || null,
+        phone: inviteForm.phone || null,
+        contact_email: inviteForm.contact_email || inviteForm.email || null,
+        schedule: inviteSchedule.length > 0 ? (inviteSchedule as any) : null,
+        is_active: false,
+      } as any);
+      if (error) throw error;
+      toast({
+        title: "Fiche créée",
+        description: "La fiche est enregistrée sans compte. Vous pourrez envoyer l'invitation plus tard.",
+      });
+      resetInviteForm();
+      setOpen(false);
+      fetchPractitioners();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de créer la fiche", variant: "destructive" });
+    }
+    setCreatingDraft(false);
   };
 
   const handleInvite = async () => {
     if (!inviteForm.email) {
-      toast({ title: "L'email est requis", variant: "destructive" });
+      toast({ title: "L'email est requis pour envoyer l'invitation", variant: "destructive" });
       return;
     }
     setInviting(true);
@@ -213,6 +250,8 @@ const AdminPractitioners = () => {
           phone: inviteForm.phone,
           contact_email: inviteForm.contact_email || inviteForm.email,
           schedule: inviteSchedule.length > 0 ? inviteSchedule : null,
+          // Fiche brouillon existante à rattacher au nouveau compte
+          draft_profile_id: invitingDraftId,
         },
       });
       if (res.error) throw res.error;
@@ -226,6 +265,24 @@ const AdminPractitioners = () => {
     }
     setInviting(false);
   };
+
+  /** Ouvre le dialogue d'invitation pré-rempli depuis une fiche brouillon. */
+  const openInviteForDraft = (p: any) => {
+    setInvitingDraftId(p.id);
+    setInviteAccountType("practitioner");
+    setInviteForm({
+      email: "",
+      first_name: p.first_name || "",
+      last_name: p.last_name || "",
+      specialty: p.specialty || "",
+      bio: p.bio || "",
+      phone: p.phone || "",
+      contact_email: p.contact_email || "",
+    });
+    setInviteSchedule(Array.isArray(p.schedule) ? p.schedule : DEFAULT_SCHEDULE);
+    setOpen(true);
+  };
+
 
   // ---- Change account profile (patient <-> practitioner) ----
   const confirmRoleChange = async () => {
@@ -404,8 +461,11 @@ const AdminPractitioners = () => {
     setDeleting(false);
   };
 
+  /** Fiche créée par un admin sans compte utilisateur (pas encore invitée). */
+  const isDraftProfile = (p: any) => !p.user_id;
+
   const isAccountPending = (p: any) =>
-    p.roles.includes("practitioner") && !p.roles.includes("admin") && !p.last_sign_in_at;
+    !isDraftProfile(p) && p.roles.includes("practitioner") && !p.roles.includes("admin") && !p.last_sign_in_at;
 
   const filteredPractitioners = useMemo(() => {
     if (scoreFilter === "all") return practitioners;
@@ -485,12 +545,17 @@ const AdminPractitioners = () => {
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Inviter un nouveau praticien</DialogTitle>
+                <DialogTitle>
+                  {invitingDraftId ? "Inviter ce praticien" : "Nouveau praticien"}
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-5 pt-2">
                 <p className="text-sm text-muted-foreground">
-                  Le praticien recevra un email pour activer son compte. Vous pouvez déjà pré-remplir son profil.
+                  {invitingDraftId
+                    ? "Renseignez l'email du praticien : son compte sera créé et rattaché à cette fiche existante."
+                    : "Vous pouvez enregistrer la fiche sans l'inviter (l'email est alors facultatif) ou envoyer l'invitation directement."}
                 </p>
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Type de profil *</Label>
@@ -505,7 +570,9 @@ const AdminPractitioners = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="invite-email">Email *</Label>
+                    <Label htmlFor="invite-email">
+                      Email {invitingDraftId ? "*" : "(requis uniquement pour l'invitation)"}
+                    </Label>
                     <Input
                       id="invite-email"
                       type="email"
@@ -514,6 +581,7 @@ const AdminPractitioners = () => {
                       onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
                     />
                   </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>Prénom</Label>
@@ -588,11 +656,26 @@ const AdminPractitioners = () => {
                   </CollapsibleContent>
                 </Collapsible>
 
-                <Button onClick={handleInvite} disabled={inviting} className="w-full">
-                  {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
-                  Envoyer l'invitation
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {!invitingDraftId && (
+                    <Button
+                      variant="outline"
+                      onClick={handleCreateDraft}
+                      disabled={creatingDraft || inviting}
+                      className="flex-1"
+                    >
+                      {creatingDraft ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                      Créer la fiche sans inviter
+                    </Button>
+                  )}
+                  <Button onClick={handleInvite} disabled={inviting || creatingDraft} className="flex-1">
+                    {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                    Envoyer l'invitation
+                  </Button>
+                </div>
               </div>
+
+
             </DialogContent>
           </Dialog>
           </div>
@@ -919,11 +1002,18 @@ const AdminPractitioners = () => {
                           <p className="font-medium text-sm">
                             {p.first_name} {p.last_name}
                           </p>
+                          {isDraftProfile(p) && (
+                            <Badge className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] gap-1">
+                              <UserPlus className="h-3 w-3" />
+                              Fiche sans compte
+                            </Badge>
+                          )}
                           {p.roles.includes("admin") && (
                             <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
                               Admin
                             </Badge>
                           )}
+
                           {isAccountPending(p) && (
                             <Badge className="bg-orange-50 text-orange-600 border-orange-200 text-[10px] gap-1">
                               <AlertCircle className="h-3 w-3" />
@@ -1006,7 +1096,19 @@ const AdminPractitioners = () => {
                           Activer le compte
                         </Button>
                       )}
-                      {!p.roles.includes("admin") && (
+                      {isDraftProfile(p) && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="text-xs gap-1.5"
+                          onClick={() => openInviteForDraft(p)}
+                          title="Créer le compte et envoyer l'invitation"
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                          Inviter par email
+                        </Button>
+                      )}
+                      {!isDraftProfile(p) && !p.roles.includes("admin") && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -1023,7 +1125,7 @@ const AdminPractitioners = () => {
                           Renvoyer l'accès
                         </Button>
                       )}
-                      {!p.roles.includes("admin") && (
+                      {!isDraftProfile(p) && !p.roles.includes("admin") && (
                         <Select
                           value={p.roles.includes("practitioner") ? "practitioner" : "patient"}
                           onValueChange={(v) => {
@@ -1040,6 +1142,7 @@ const AdminPractitioners = () => {
                           </SelectContent>
                         </Select>
                       )}
+
                       <Button
                         variant="outline"
                         size="sm"

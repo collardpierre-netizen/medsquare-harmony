@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     });
     if (!isAdmin) throw new Error("Admin access required");
 
-    const { email, first_name, last_name, specialty, bio, phone, contact_email, schedule, resend_user_id, account_type } = await req.json();
+    const { email, first_name, last_name, specialty, bio, phone, contact_email, schedule, resend_user_id, account_type, draft_profile_id } = await req.json();
 
     const targetAccountType = account_type === "patient" ? "patient" : "practitioner";
 
@@ -71,20 +71,40 @@ Deno.serve(async (req) => {
 
     // Pre-fill profile data if provided (not a resend)
     if (!resend_user_id && linkData.user?.id) {
+      const newUserId = linkData.user.id;
+
+      // A "draft" profile (created by an admin without an account) is linked to the
+      // freshly created user: the auto-generated profile is removed to avoid duplicates.
+      if (draft_profile_id) {
+        await adminClient
+          .from("profiles")
+          .delete()
+          .eq("user_id", newUserId)
+          .neq("id", draft_profile_id);
+
+        await adminClient
+          .from("profiles")
+          .update({ user_id: newUserId })
+          .eq("id", draft_profile_id);
+      }
+
       const profileUpdates: Record<string, any> = {};
       if (specialty) profileUpdates.specialty = specialty;
       if (bio) profileUpdates.bio = bio;
       if (phone) profileUpdates.phone = phone;
       if (contact_email) profileUpdates.contact_email = contact_email;
       if (schedule) profileUpdates.schedule = schedule;
+      if (first_name) profileUpdates.first_name = first_name;
+      if (last_name) profileUpdates.last_name = last_name;
 
       if (Object.keys(profileUpdates).length > 0) {
         await adminClient
           .from("profiles")
           .update(profileUpdates)
-          .eq("user_id", linkData.user.id);
+          .eq("user_id", newUserId);
       }
     }
+
 
     // Build the redirect URL from the hashed token
     const properties = linkData.properties;

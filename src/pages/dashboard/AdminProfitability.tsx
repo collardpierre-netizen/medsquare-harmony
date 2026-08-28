@@ -54,6 +54,7 @@ import {
   type Expense,
 } from "@/lib/expenses";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
+import { isPackageActiveInMonth } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-BE")} € HTVA`;
 
@@ -140,7 +141,7 @@ const AdminProfitability = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("practitioner_room_packages")
-        .select("id, practitioner_id, room_id, package_label, monthly_fee, is_active")
+        .select("id, practitioner_id, room_id, package_label, monthly_fee, is_active, start_date, end_date")
         .eq("is_active", true);
       return (data || []) as PractitionerPackage[];
     },
@@ -224,6 +225,7 @@ const AdminProfitability = () => {
       const packagedKeys = new Set<string>();
       for (const pkg of packages ?? []) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
+        if (!isPackageActiveInMonth(pkg as any, monthKey)) continue; // échu → tarif plein
         revenue += Number(pkg.monthly_fee || 0);
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }

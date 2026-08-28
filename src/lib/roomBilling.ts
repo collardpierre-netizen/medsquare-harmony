@@ -46,7 +46,27 @@ export interface BillingPackage {
   practitioner_id: string;
   room_id: string;
   monthly_fee: number;
+  /** Début de validité du forfait (ISO date). Absent = toujours valable. */
+  start_date?: string | null;
+  /** Échéance du forfait (ISO date). Absent/null = forfait permanent. */
+  end_date?: string | null;
+  is_active?: boolean | null;
 }
+
+/**
+ * Un forfait s'applique à un mois donné s'il chevauche ce mois
+ * (échéance nulle = permanent). Après l'échéance, retour au tarif plein.
+ */
+export const isPackageActiveInMonth = (pkg: BillingPackage, mKey: string): boolean => {
+  if (pkg.is_active === false) return false;
+  const monthStart = `${mKey}-01`;
+  const [y, m] = mKey.split("-").map(Number);
+  const monthEnd = isoDate(new Date(y, m, 0));
+  if (pkg.start_date && pkg.start_date > monthEnd) return false;
+  if (pkg.end_date && pkg.end_date < monthStart) return false;
+  return true;
+};
+
 
 /** Types de remise : % du montant, montant fixe HTVA, ou tarif horaire négocié. */
 export type DiscountType = "percent" | "amount" | "hourly_rate";
@@ -305,17 +325,20 @@ export const computeRoomStats = ({
     });
   });
 
-  // Forfaits locataires : ajoutés pour chaque mois de la période (sauf si la salle
-  // est déjà facturée via un forfait de privatisation ce mois-là).
+  // Forfaits locataires : ajoutés pour chaque mois de la période où le forfait est
+  // valide (échéance incluse) et si la salle n'est pas déjà facturée via un forfait
+  // de privatisation ce mois-là.
   packages.forEach((pkg) => {
     const s = stats.get(pkg.room_id);
     if (!s) return;
     monthKeys.forEach((mKey) => {
       if (s.flatMonths.has(mKey)) return;
+      if (!isPackageActiveInMonth(pkg, mKey)) return;
       s.flatRevenue += Number(pkg.monthly_fee || 0);
       s.packagedKeys.add(`${pkg.practitioner_id}|${mKey}`);
     });
   });
+
 
   bookings.forEach((b) => {
     if (b.status === "cancelled") return;
@@ -367,13 +390,22 @@ export const computeRoomStats = ({
 };
 
 
-/** Forfait locataire actif d'un praticien pour une salle, ou null. */
+/**
+ * Forfait locataire d'un praticien pour une salle, valide au mois demandé.
+ * `mKey` (format YYYY-MM) omis = validité ignorée (compatibilité).
+ */
 export const findPackage = (
   packages: BillingPackage[],
   practitionerId: string,
   roomId: string,
+  mKey?: string,
 ): BillingPackage | null =>
-  packages.find((p) => p.practitioner_id === practitionerId && p.room_id === roomId) ?? null;
+  packages.find(
+    (p) =>
+      p.practitioner_id === practitionerId &&
+      p.room_id === roomId &&
+      (!mKey || isPackageActiveInMonth(p, mKey)),
+  ) ?? null;
 
 export interface PractitionerBilling {
   /** Forfaits mensuels HTVA (une fois par salle et par mois). */
@@ -429,7 +461,8 @@ export const computePractitionerBilling = ({
     const hours = bookingDurationHours(b);
     const amount = bookingBilledAmount(b, rate, discounts);
     const isPending = b.status === "pending";
-    const pkg = findPackage(packages, b.practitioner_id, b.room_id);
+    const bMonth = monthKey(new Date(b.start_time));
+    const pkg = findPackage(packages, b.practitioner_id, b.room_id, bMonth);
     if (pkg) {
       const key = `${b.room_id}|${monthKey(new Date(b.start_time))}`;
       if (!flatKeys.has(key)) {

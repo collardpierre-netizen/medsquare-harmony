@@ -45,6 +45,8 @@ interface Package {
   package_label: string;
   monthly_fee: number;
   is_active: boolean;
+  start_date: string;
+  end_date: string | null;
   notes: string | null;
   profiles?: { first_name: string; last_name: string } | null;
   rooms?: { name: string } | null;
@@ -57,9 +59,13 @@ interface EditState {
   package_label: string;
   monthly_fee: string;
   is_active: boolean;
+  start_date: string;
+  end_date: string;
   notes: string;
   source: "grid" | "custom";
 }
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const emptyForm: EditState = {
   practitioner_id: "",
@@ -67,9 +73,15 @@ const emptyForm: EditState = {
   package_label: "",
   monthly_fee: "",
   is_active: true,
+  start_date: todayIso(),
+  end_date: "",
   notes: "",
   source: "grid",
 };
+
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-BE") : null;
+
 
 const AdminContracts = () => {
   const qc = useQueryClient();
@@ -120,6 +132,8 @@ const AdminContracts = () => {
         package_label: payload.package_label.trim(),
         monthly_fee: Number(payload.monthly_fee),
         is_active: payload.is_active,
+        start_date: payload.start_date || todayIso(),
+        end_date: payload.end_date || null,
         notes: payload.notes.trim() || null,
       };
       if (payload.id) {
@@ -165,6 +179,8 @@ const AdminContracts = () => {
       package_label: p.package_label,
       monthly_fee: String(p.monthly_fee),
       is_active: p.is_active,
+      start_date: p.start_date ?? todayIso(),
+      end_date: p.end_date ?? "",
       notes: p.notes ?? "",
       source: "custom",
     });
@@ -226,6 +242,7 @@ const AdminContracts = () => {
                     <TableHead>Salle</TableHead>
                     <TableHead>Forfait</TableHead>
                     <TableHead className="text-right">Mensuel HTVA</TableHead>
+                    <TableHead>Validité</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
@@ -241,11 +258,21 @@ const AdminContracts = () => {
                       <TableCell className="text-right tabular-nums font-semibold">
                         {Number(p.monthly_fee).toFixed(2)} €
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {fmtDate(p.start_date) ?? "—"} →{" "}
+                        {p.end_date ? fmtDate(p.end_date) : "permanent"}
+                      </TableCell>
                       <TableCell>
-                        {p.is_active ? (
-                          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Actif</Badge>
-                        ) : (
+                        {!p.is_active ? (
                           <Badge variant="secondary">Inactif</Badge>
+                        ) : p.end_date && p.end_date < todayIso() ? (
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                            Échu — tarif plein
+                          </Badge>
+                        ) : p.start_date > todayIso() ? (
+                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">À venir</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Actif</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -387,6 +414,29 @@ const AdminContracts = () => {
                   <strong>{editing.package_label}</strong> — {editing.monthly_fee} € HTVA / mois
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Début d'application</Label>
+                  <Input
+                    type="date"
+                    value={editing.start_date}
+                    onChange={(e) => setEditing({ ...editing, start_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Échéance (vide = permanent)</Label>
+                  <Input
+                    type="date"
+                    value={editing.end_date}
+                    onChange={(e) => setEditing({ ...editing, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">
+                Après l'échéance, la facturation de ce praticien sur cette salle repasse
+                automatiquement au tarif horaire plein.
+              </p>
 
               <div className="space-y-1.5">
                 <Label>Notes (optionnel)</Label>

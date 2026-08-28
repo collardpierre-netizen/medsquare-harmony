@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { bookingBilledAmount } from "@/lib/roomBilling";
 
 const fmtBxl = (d: Date, pattern: string) =>
   format(new Date(d.toLocaleString("en-US", { timeZone: "Europe/Brussels" })), pattern, { locale: fr });
@@ -53,21 +54,34 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       // Fetch practitioner packages (praticien + salle, forfaits actifs)
       const { data: pkgData } = await supabase
         .from("practitioner_room_packages")
-        .select("practitioner_id, room_id, monthly_fee, package_label, profiles!practitioner_room_packages_practitioner_id_fkey(first_name, last_name), rooms(name)")
+        .select("practitioner_id, room_id, monthly_fee, package_label, start_date, end_date, profiles!practitioner_room_packages_practitioner_id_fkey(first_name, last_name), rooms(name)")
         .eq("is_active", true);
-      const packages = (pkgData ?? []).filter((p: any) => !flatFeeRoomIds.has(p.room_id));
+      const packages = (pkgData ?? []).filter(
+        (p: any) =>
+          !flatFeeRoomIds.has(p.room_id) &&
+          (!p.start_date || p.start_date <= monthEndISO) &&
+          (!p.end_date || p.end_date >= monthStartISO),
+      );
       const packagedKey = (pid: string, rid: string) => `${pid}|${rid}`;
       const packagedSet = new Set(packages.map((p: any) => packagedKey(p.practitioner_id, p.room_id)));
+
+      // Remises contractuelles par praticien (actives)
+      const { data: discountData } = await supabase
+        .from("practitioner_discounts")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .eq("is_active", true);
+      const discounts = (discountData ?? []) as any[];
 
       // Fetch bookings for the month (with room_id so we can exclude flat-fee rooms)
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, start_time, end_time, status, notes, practitioner_id, room_id, profiles(first_name, last_name), rooms(name, hourly_rate)")
+        .select("id, start_time, end_time, status, notes, practitioner_id, room_id, discount_type, discount_value, discount_reason, profiles(first_name, last_name), rooms(name, hourly_rate)")
         .gte("start_time", from.toISOString())
         .lte("start_time", to.toISOString())
         .in("status", ["confirmed", "pending"])
         .order("start_time", { ascending: true });
       if (error) throw error;
+
 
       const filteredRows = (data ?? []).filter(
         (b: any) => !flatFeeRoomIds.has(b.room_id) && !packagedSet.has(packagedKey(b.practitioner_id, b.room_id)),
@@ -172,6 +186,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         let y = headerY + 7;
         let practTotal = 0;
         let practHours = 0;
+        let practDiscount = 0;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(40, 40, 40);
@@ -190,9 +205,12 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
             const end = new Date(it.end_time);
             const hours = (end.getTime() - start.getTime()) / 3_600_000;
             const rate = Number(it.rooms?.hourly_rate ?? 0);
-            const amount = hours * rate;
+            // Remise ponctuelle (sur la réservation) > remise contractuelle du praticien
+            const billed = bookingBilledAmount(it as any, rate, discounts as any);
+            const amount = billed.net;
             practHours += hours;
             practTotal += amount;
+            practDiscount += billed.discount;
 
             const dateStr = fmtBxl(start, "EEE dd/MM");
             const horaire = `${fmtBxl(start, "HH:mm")} – ${fmtBxl(end, "HH:mm")}`;
@@ -219,7 +237,22 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
               doc.setTextColor(40, 40, 40);
             }
             y += 6;
+
+            // Ligne de remise appliquée
+            if (billed.discount > 0) {
+              doc.setFontSize(7);
+              doc.setTextColor(150, 90, 0);
+              doc.text(
+                `Remise ${billed.label ?? ""} — brut ${formatEUR(billed.gross)}, remise −${formatEUR(billed.discount)}`,
+                cols.salle,
+                y - 2,
+              );
+              doc.setFontSize(9);
+              doc.setTextColor(40, 40, 40);
+              y += 3;
+            }
           });
+
 
         // Flat-fee (forfait mensuel de privatisation) rows
         (group.flatFees ?? []).forEach((f) => {
@@ -256,16 +289,25 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           y
         );
         doc.text(`Montant à facturer : ${formatEUR(practTotal)}`, pageW - margin, y, { align: "right" });
+        if (practDiscount > 0) {
+          y += 5;
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(8);
+          doc.setTextColor(150, 90, 0);
+          doc.text(`Remises déduites : −${formatEUR(practDiscount)}`, pageW - margin, y, { align: "right" });
+          doc.setTextColor(20, 20, 20);
+        }
 
         // Footer note
         doc.setFont("helvetica", "italic");
         doc.setFontSize(8);
         doc.setTextColor(140, 140, 140);
         doc.text(
-          "Calcul : durée × tarif horaire de chaque salle, ou forfait mensuel pour les salles privatisées avec forfait. Montants HTVA.",
+          "Calcul : durée × tarif horaire de chaque salle (remises déduites), ou forfait mensuel pour les salles privatisées avec forfait. Montants HTVA.",
           margin,
           pageH - 10
         );
+
 
         grandTotal += practTotal;
         grandHours += practHours;
@@ -312,8 +354,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           0
         );
         const amt = items.reduce((s, it) => {
-          const h = (new Date(it.end_time).getTime() - new Date(it.start_time).getTime()) / 3_600_000;
-          return s + h * Number(it.rooms?.hourly_rate ?? 0);
+          return s + bookingBilledAmount(it as any, Number(it.rooms?.hourly_rate ?? 0), discounts as any).net;
         }, 0) + (g.flatFees ?? []).reduce((s, f) => s + f.fee, 0);
         const flatCount = (g.flatFees ?? []).length;
         const countLabel = flatCount > 0 ? `${items.length} + ${flatCount} forfait${flatCount > 1 ? "s" : ""}` : String(items.length);

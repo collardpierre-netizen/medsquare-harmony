@@ -14,6 +14,10 @@ export interface PractitionerPackage {
   package_label: string;
   monthly_fee: number;
   is_active: boolean;
+  /** Début d'application (ISO). */
+  start_date?: string | null;
+  /** Échéance (ISO). null = permanent ; après l'échéance, retour au tarif plein. */
+  end_date?: string | null;
 }
 
 /** Retourne le forfait mensuel actif d'un praticien pour une salle, ou null. */
