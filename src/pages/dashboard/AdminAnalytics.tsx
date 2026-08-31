@@ -1501,16 +1501,29 @@ const AdminAnalytics = () => {
                           <TableCell className="pl-6 text-muted-foreground">
                             ↳ {d.roomName}
                             {d.isForfait && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Forfait</span>}
+                            {(d.confirmedCount > 0 || d.pendingCount > 0) && (
+                              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Horaire</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
-                            {d.isForfait ? "—" : <>{d.confirmedCount} <span className="text-[10px]">({Math.round(d.confirmedHours * 10) / 10}h)</span></>}
+                            {d.confirmedCount > 0 ? (
+                              <>{d.confirmedCount} <span className="text-[10px]">({Math.round(d.confirmedHours * 10) / 10}h)</span></>
+                            ) : "—"}
                           </TableCell>
                           <TableCell className="text-right text-emerald-600">
                             {Math.round(d.confirmedRev).toLocaleString("fr-BE")} € HTVA
+                            {d.forfait > 0 && (d.confirmedRev - d.forfait) > 0.5 && (
+                              <span className="block text-[10px] text-muted-foreground font-normal">
+                                dont forfait {Math.round(d.forfait).toLocaleString("fr-BE")} € + horaire {Math.round(d.confirmedRev - d.forfait).toLocaleString("fr-BE")} €
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
-                            {d.isForfait ? "—" : <>{d.pendingCount} <span className="text-[10px]">({Math.round(d.pendingHours * 10) / 10}h)</span></>}
+                            {d.pendingCount > 0 ? (
+                              <>{d.pendingCount} <span className="text-[10px]">({Math.round(d.pendingHours * 10) / 10}h)</span></>
+                            ) : "—"}
                           </TableCell>
+
                           <TableCell className="text-right text-amber-600">
                             {Math.round(d.pendingRev).toLocaleString("fr-BE")} € HTVA
                           </TableCell>
