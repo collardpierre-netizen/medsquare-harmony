@@ -46,7 +46,7 @@ import ImageUpload from "@/components/dashboard/ImageUpload";
 import FeatureHighlightBanner from "@/components/dashboard/FeatureHighlightBanner";
 import { UserPlus } from "lucide-react";
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { value: "yoga", label: "Yoga" },
   { value: "pilates", label: "Pilates" },
   { value: "meditation", label: "Méditation" },
@@ -56,6 +56,7 @@ const CATEGORIES = [
   { value: "nutrition", label: "Atelier Nutrition" },
   { value: "autre", label: "Autre" },
 ];
+
 
 const DAYS = [
   { value: "lundi", label: "Lundi" },
@@ -123,6 +124,8 @@ const Activities = () => {
   const [rooms, setRooms] = useState<any[]>([]);
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [filterPractitioner, setFilterPractitioner] = useState<string>("all");
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>(DEFAULT_CATEGORIES);
+
   const [confirmDisableBooking, setConfirmDisableBooking] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
 
@@ -287,7 +290,19 @@ const Activities = () => {
         .order("last_name");
       setPractitioners(data || []);
     };
+    const fetchCategories = async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "activity_categories")
+        .maybeSingle();
+      const cats = (data?.value as any)?.categories;
+      if (Array.isArray(cats) && cats.length > 0) {
+        setCategories(cats.filter((c: any) => c?.value));
+      }
+    };
     fetchRooms();
+    fetchCategories();
     fetchPractitionersList();
     fetchActivities();
   }, [profile, filterPractitioner]);
@@ -467,7 +482,7 @@ const Activities = () => {
   };
 
   const categoryLabel = (cat: string) =>
-    CATEGORIES.find((c) => c.value === cat)?.label || cat;
+    categories.find((c) => c.value === cat)?.label || cat;
 
   return (
     <DashboardLayout>
@@ -867,7 +882,7 @@ const Activities = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
+                  {categories.map((c) => (
                     <SelectItem key={c.value} value={c.value}>
                       {c.label}
                     </SelectItem>
