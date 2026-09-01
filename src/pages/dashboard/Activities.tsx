@@ -290,7 +290,19 @@ const Activities = () => {
         .order("last_name");
       setPractitioners(data || []);
     };
+    const fetchCategories = async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "activity_categories")
+        .maybeSingle();
+      const cats = (data?.value as any)?.categories;
+      if (Array.isArray(cats) && cats.length > 0) {
+        setCategories(cats.filter((c: any) => c?.value));
+      }
+    };
     fetchRooms();
+    fetchCategories();
     fetchPractitionersList();
     fetchActivities();
   }, [profile, filterPractitioner]);
@@ -470,7 +482,7 @@ const Activities = () => {
   };
 
   const categoryLabel = (cat: string) =>
-    CATEGORIES.find((c) => c.value === cat)?.label || cat;
+    categories.find((c) => c.value === cat)?.label || cat;
 
   return (
     <DashboardLayout>
@@ -870,7 +882,7 @@ const Activities = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
+                  {categories.map((c) => (
                     <SelectItem key={c.value} value={c.value}>
                       {c.label}
                     </SelectItem>
