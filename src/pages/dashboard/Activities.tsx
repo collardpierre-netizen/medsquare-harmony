@@ -124,6 +124,8 @@ const Activities = () => {
   const [rooms, setRooms] = useState<any[]>([]);
   const [practitioners, setPractitioners] = useState<any[]>([]);
   const [filterPractitioner, setFilterPractitioner] = useState<string>("all");
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>(DEFAULT_CATEGORIES);
+
   const [confirmDisableBooking, setConfirmDisableBooking] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any | null>(null);
 
