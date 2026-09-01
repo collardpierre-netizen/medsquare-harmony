@@ -62,6 +62,7 @@ interface ActivityWithSessions {
   duration_minutes: number;
   max_participants: number | null;
   photo_url?: string | null;
+  photos?: string[] | null;
   is_free: boolean;
   price: number | null;
   booking_enabled: boolean;
@@ -178,7 +179,7 @@ const PraticienDetail = () => {
       // Fetch activities
       const { data: acts } = await supabase
         .from("activities")
-        .select("id, title, category, description, duration_minutes, max_participants, photo_url, is_free, price, booking_enabled, activity_sessions(id, start_time, end_time, rooms(name))")
+        .select("id, title, category, description, duration_minutes, max_participants, photo_url, photos, is_free, price, booking_enabled, activity_sessions(id, start_time, end_time, rooms(name))")
         .eq("practitioner_id", profile.id)
         .eq("is_active", true)
         .order("title");

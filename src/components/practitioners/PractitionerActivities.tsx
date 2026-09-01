@@ -13,6 +13,7 @@ interface ActivityWithSessions {
   duration_minutes: number;
   max_participants: number | null;
   photo_url?: string | null;
+  photos?: string[] | null;
   activity_sessions: {
     id: string;
     start_time: string;
@@ -54,7 +55,7 @@ const PractitionerActivities = ({ activities }: Props) => {
       <ScrollArea className="w-full">
         <div className="flex gap-4 pb-4">
           {activities.map((activity) => {
-            const photo = activity.photo_url || STOCK_PHOTOS[activity.category] || STOCK_PHOTOS.autre;
+            const photo = activity.photos?.[0] || activity.photo_url || STOCK_PHOTOS[activity.category] || STOCK_PHOTOS.autre;
             const nextSession = activity.activity_sessions[0];
 
             return (
