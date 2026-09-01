@@ -46,7 +46,7 @@ import ImageUpload from "@/components/dashboard/ImageUpload";
 import FeatureHighlightBanner from "@/components/dashboard/FeatureHighlightBanner";
 import { UserPlus } from "lucide-react";
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { value: "yoga", label: "Yoga" },
   { value: "pilates", label: "Pilates" },
   { value: "meditation", label: "Méditation" },
@@ -56,6 +56,7 @@ const CATEGORIES = [
   { value: "nutrition", label: "Atelier Nutrition" },
   { value: "autre", label: "Autre" },
 ];
+
 
 const DAYS = [
   { value: "lundi", label: "Lundi" },
