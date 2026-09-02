@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
-import { computeRoomStats, computePractitionerBilling, bookingBilledAmount } from "@/lib/roomBilling";
+import { computeRoomStats, computePractitionerBilling, bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
 
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
