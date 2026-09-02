@@ -44,7 +44,6 @@ interface Booking {
   start_time: string;
   end_time: string;
   status: string;
-  notes: string | null;
 }
 
 const EspaceDetail = () => {
@@ -80,7 +79,7 @@ const EspaceDetail = () => {
 
       const { data: bk } = await supabase
         .from("bookings")
-        .select("id, start_time, end_time, status, notes")
+        .select("id, start_time, end_time, status")
         .eq("room_id", id)
         .gte("start_time", startOfToday.toISOString())
         .lte("start_time", twoWeeksLater.toISOString())
@@ -125,7 +124,7 @@ const EspaceDetail = () => {
     room.photos && room.photos.length > 0 ? room.photos : [DEFAULT_IMAGE];
 
   const isUnavailable = isRoomUnavailable(room);
-  const isPrivatized = isRoomCurrentlyPrivatized(room) || bookings.some((b) => b.notes?.includes("[Privatisé]"));
+  const isPrivatized = isRoomCurrentlyPrivatized(room);
   const isBlocked = isUnavailable || isPrivatized;
   
 

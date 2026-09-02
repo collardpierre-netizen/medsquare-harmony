@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getRoomDayHours, getRoomOpenHoursCount } from "@/lib/roomOpeningHours";
-import { computeRoomStats, computePractitionerBilling, bookingBilledAmount } from "@/lib/roomBilling";
+import { computeRoomStats, computePractitionerBilling, bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
 
 import WeeklyOverview from "@/components/dashboard/bookings/WeeklyOverview";
 import WeeklyAllRoomsOverview from "@/components/dashboard/bookings/WeeklyAllRoomsOverview";
@@ -679,7 +679,12 @@ const AdminBookings = () => {
 
   /** Une réservation est-elle couverte par un forfait locataire (praticien + salle, mois de la résa) ? */
   const isBookingCoveredByPackage = (b: any) =>
-    packages.some((p) => p.practitioner_id === b.practitioner_id && p.room_id === b.room_id);
+    packages.some(
+      (p) =>
+        p.practitioner_id === b.practitioner_id &&
+        p.room_id === b.room_id &&
+        isPackageActiveInMonth(p as any, String(b.start_time).slice(0, 7)),
+    );
 
   /** Montant HTVA d'une réservation, remise (ponctuelle ou contractuelle) déduite. */
   const bookingAmount = (b: any) => {
