@@ -1,5 +1,11 @@
 # Roadmap
 
-## En cours
-- [ ] Corriger les 6 findings de monitoring (réservation patient RLS, forfaits historiques, permissions visiteurs, forfaits échus, séances récurrentes sans salle)
-- [ ] Alerte tableau de bord : réservations en attente de validation, avec boutons Valider / Annuler
+## Fait
+- [x] Réservation patient : politiques d'accès manquantes (créneaux + inscriptions invités)
+- [x] Forfaits locataires : dates de début historiques corrigées (mois passés)
+- [x] Page espace : disponibilités visibles pour les visiteurs
+- [x] Liste réservations : forfait échu → plus de 0 € à tort
+- [x] Alerte tableau de bord : réservations en attente (Valider / Annuler)
+
+## À valider
+- [ ] Séances récurrentes générées automatiquement sans salle → invisibles sur le planning (plan proposé)
