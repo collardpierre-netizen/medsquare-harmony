@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale, Eye } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertCircle, Scale, Eye, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const { user, profile, isAdmin } = useAuth();
@@ -18,6 +19,9 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ upcoming: 0, pending: 0, confirmed: 0 });
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [pendingLegalDocs, setPendingLegalDocs] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
@@ -49,11 +53,24 @@ const Dashboard = () => {
         confirmed: confirmed.length,
       });
 
+      setPendingBookings(pending);
       setRecentBookings((bookings || []).slice(0, 5));
     };
 
     fetchData();
-  }, [profile, isAdmin]);
+  }, [profile, isAdmin, refreshKey]);
+
+  const updateBookingStatus = async (id: string, status: "confirmed" | "cancelled") => {
+    setUpdatingId(id);
+    const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
+    setUpdatingId(null);
+    if (error) {
+      toast.error("Impossible de mettre à jour la réservation");
+      return;
+    }
+    toast.success(status === "confirmed" ? "Réservation validée" : "Réservation annulée");
+    setRefreshKey((k) => k + 1);
+  };
 
   // Fetch pending legal documents
   useEffect(() => {
@@ -118,6 +135,67 @@ const Dashboard = () => {
             Voici un aperçu de votre activité.
           </p>
         </div>
+
+        {/* Pending bookings alert */}
+        {pendingBookings.length > 0 && (
+          <Card className="border-yellow-200 bg-yellow-50/50">
+            <CardContent className="pt-6 pb-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
+                  <AlertCircle className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-yellow-900">
+                    {pendingBookings.length} réservation{pendingBookings.length > 1 ? "s" : ""} en attente de validation
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-0.5">
+                    Validez ou annulez ces pré-réservations pour libérer les créneaux.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {pendingBookings.slice(0, 5).map((b: any) => (
+                  <div
+                    key={b.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-yellow-200 bg-background px-3 py-2"
+                  >
+                    <div className="text-sm">
+                      <p className="font-medium">{b.rooms?.name || "Salle"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(b.start_time), "EEEE d MMMM · HH:mm", { locale: fr })} –{" "}
+                        {format(new Date(b.end_time), "HH:mm", { locale: fr })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        disabled={updatingId === b.id}
+                        onClick={() => updateBookingStatus(b.id, "confirmed")}
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Valider
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={updatingId === b.id}
+                        onClick={() => updateBookingStatus(b.id, "cancelled")}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {pendingBookings.length > 5 && (
+                <Button variant="link" size="sm" className="px-0" onClick={() => navigate("/dashboard/bookings")}>
+                  Voir toutes les réservations
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Legal docs alert */}
         {pendingLegalDocs > 0 && (
