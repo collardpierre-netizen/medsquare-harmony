@@ -261,6 +261,38 @@ const AdminBookings = () => {
     setCollapsedPractitioners(new Set(groupedByPractitioner.map(([pid]) => pid)));
   }, [groupedByPractitioner.map(([pid]) => pid).join(",")]);
 
+  // Privatisations couvrant la période filtrée (affichage informatif : montant forfaitaire uniquement,
+  // aucune heure n'est ajoutée aux totaux des groupes praticiens)
+  const privatizationsInRange = useMemo(() => {
+    const now = new Date();
+    const rangeStart = filterDateFrom ? startOfDay(filterDateFrom) : startOfMonth(now);
+    const rangeEnd = filterDateTo ? startOfDay(filterDateTo) : endOfMonth(rangeStart);
+
+    return (allRooms as any[])
+      .filter((r) => {
+        if (!r.privatized_from) return false;
+        if (filterRoom !== "__all__" && r.id !== filterRoom) return false;
+        if (filterPractitioner !== "__all__" && r.assigned_practitioner_id !== filterPractitioner) return false;
+        const from = parseISO(r.privatized_from);
+        const until = r.privatized_until ? parseISO(r.privatized_until) : null;
+        if (from > rangeEnd) return false;
+        if (until && until < rangeStart) return false;
+        return true;
+      })
+      .map((r) => {
+        const prof = practitioners.find((p) => p.id === r.assigned_practitioner_id);
+        return {
+          id: r.id,
+          roomName: r.name,
+          practitionerName: prof ? `${prof.first_name} ${prof.last_name}`.trim() : null,
+          from: r.privatized_from as string,
+          until: (r.privatized_until as string) || null,
+          monthlyFee: Number(r.privatization_monthly_fee) || 0,
+          upcoming: parseISO(r.privatized_from) > rangeStart,
+        };
+      });
+  }, [allRooms, practitioners, filterRoom, filterPractitioner, filterDateFrom, filterDateTo]);
+
   const toggleCollapsed = (pid: string) => {
     setCollapsedPractitioners(prev => {
       const next = new Set(prev);
