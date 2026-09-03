@@ -1670,6 +1670,54 @@ const AdminBookings = () => {
                       {collapsedPractitioners.size === groupedByPractitioner.length ? "Tout déplier" : "Tout replier"}
                     </Button>
                   </div>
+                  {privatizationsInRange.length > 0 && (
+                    <Card className="border-amber-500/40 bg-amber-500/5">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Lock className="h-4 w-4 text-amber-600" />
+                          Privatisations sur la période
+                          <Badge variant="outline" className="ml-1 text-[10px]">
+                            {privatizationsInRange.length}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          Ces occupations proviennent d'une privatisation de salle et non de réservations : elles
+                          n'apparaissent donc pas dans les groupes ci-dessous.
+                        </p>
+                        {privatizationsInRange.map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex flex-wrap items-center gap-2 rounded-md border bg-background/60 px-3 py-2 text-sm"
+                          >
+                            <span className="font-medium">{p.roomName}</span>
+                            {p.practitionerName && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {p.practitionerName}
+                              </Badge>
+                            )}
+                            {p.upcoming && (
+                              <Badge variant="outline" className="border-amber-500/50 text-amber-700 text-[10px]">
+                                <CalendarClock className="mr-1 h-3 w-3" />
+                                À venir
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {p.until
+                                ? `du ${formatPrivatizationDate(p.from)} au ${formatPrivatizationDate(p.until)}`
+                                : `dès le ${formatPrivatizationDate(p.from)}`}
+                            </span>
+                            {p.monthlyFee > 0 && (
+                              <span className="ml-auto text-xs font-semibold">
+                                {eur0(p.monthlyFee)} HTVA / mois
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
                   {groupedByPractitioner.map(([pid, group]) => {
                     const allGroupIds = group.bookings.map((b: any) => b.id);
                     const allSelected = allGroupIds.length > 0 && allGroupIds.every((id: string) => selectedIds.has(id));
