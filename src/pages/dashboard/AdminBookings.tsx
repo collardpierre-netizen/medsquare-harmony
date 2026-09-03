@@ -179,7 +179,7 @@ const AdminBookings = () => {
     const [{ data: profs }, { data: roomsData }, { data: allRoomsData }, { data: pkgData }, { data: discountData }] = await Promise.all([
       supabase.from("profiles").select("id, first_name, last_name").order("last_name"),
       supabase.from("rooms").select("id, name").eq("is_available", true).order("name"),
-      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee, opening_hours").order("name"),
+      supabase.from("rooms").select("id, name, is_available, privatized_from, privatized_until, hourly_rate, privatization_monthly_fee, opening_hours, assigned_practitioner_id").order("name"),
       supabase.from("practitioner_room_packages").select("practitioner_id, room_id, monthly_fee, start_date, end_date").eq("is_active", true),
       supabase
         .from("practitioner_discounts")
@@ -260,6 +260,38 @@ const AdminBookings = () => {
   useEffect(() => {
     setCollapsedPractitioners(new Set(groupedByPractitioner.map(([pid]) => pid)));
   }, [groupedByPractitioner.map(([pid]) => pid).join(",")]);
+
+  // Privatisations couvrant la période filtrée (affichage informatif : montant forfaitaire uniquement,
+  // aucune heure n'est ajoutée aux totaux des groupes praticiens)
+  const privatizationsInRange = useMemo(() => {
+    const now = new Date();
+    const rangeStart = filterDateFrom ? startOfDay(filterDateFrom) : startOfMonth(now);
+    const rangeEnd = filterDateTo ? startOfDay(filterDateTo) : endOfMonth(rangeStart);
+
+    return (allRooms as any[])
+      .filter((r) => {
+        if (!r.privatized_from) return false;
+        if (filterRoom !== "__all__" && r.id !== filterRoom) return false;
+        if (filterPractitioner !== "__all__" && r.assigned_practitioner_id !== filterPractitioner) return false;
+        const from = parseISO(r.privatized_from);
+        const until = r.privatized_until ? parseISO(r.privatized_until) : null;
+        if (from > rangeEnd) return false;
+        if (until && until < rangeStart) return false;
+        return true;
+      })
+      .map((r) => {
+        const prof = practitioners.find((p) => p.id === r.assigned_practitioner_id);
+        return {
+          id: r.id,
+          roomName: r.name,
+          practitionerName: prof ? `${prof.first_name} ${prof.last_name}`.trim() : null,
+          from: r.privatized_from as string,
+          until: (r.privatized_until as string) || null,
+          monthlyFee: Number(r.privatization_monthly_fee) || 0,
+          upcoming: parseISO(r.privatized_from) > rangeStart,
+        };
+      });
+  }, [allRooms, practitioners, filterRoom, filterPractitioner, filterDateFrom, filterDateTo]);
 
   const toggleCollapsed = (pid: string) => {
     setCollapsedPractitioners(prev => {
@@ -1638,6 +1670,54 @@ const AdminBookings = () => {
                       {collapsedPractitioners.size === groupedByPractitioner.length ? "Tout déplier" : "Tout replier"}
                     </Button>
                   </div>
+                  {privatizationsInRange.length > 0 && (
+                    <Card className="border-amber-500/40 bg-amber-500/5">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Lock className="h-4 w-4 text-amber-600" />
+                          Privatisations sur la période
+                          <Badge variant="outline" className="ml-1 text-[10px]">
+                            {privatizationsInRange.length}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          Ces occupations proviennent d'une privatisation de salle et non de réservations : elles
+                          n'apparaissent donc pas dans les groupes ci-dessous.
+                        </p>
+                        {privatizationsInRange.map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex flex-wrap items-center gap-2 rounded-md border bg-background/60 px-3 py-2 text-sm"
+                          >
+                            <span className="font-medium">{p.roomName}</span>
+                            {p.practitionerName && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {p.practitionerName}
+                              </Badge>
+                            )}
+                            {p.upcoming && (
+                              <Badge variant="outline" className="border-amber-500/50 text-amber-700 text-[10px]">
+                                <CalendarClock className="mr-1 h-3 w-3" />
+                                À venir
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {p.until
+                                ? `du ${formatPrivatizationDate(p.from)} au ${formatPrivatizationDate(p.until)}`
+                                : `dès le ${formatPrivatizationDate(p.from)}`}
+                            </span>
+                            {p.monthlyFee > 0 && (
+                              <span className="ml-auto text-xs font-semibold">
+                                {eur0(p.monthlyFee)} HTVA / mois
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
                   {groupedByPractitioner.map(([pid, group]) => {
                     const allGroupIds = group.bookings.map((b: any) => b.id);
                     const allSelected = allGroupIds.length > 0 && allGroupIds.every((id: string) => selectedIds.has(id));
