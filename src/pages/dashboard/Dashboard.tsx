@@ -136,8 +136,8 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Pending bookings alert */}
-        {pendingBookings.length > 0 && (
+        {/* Pending bookings alert (admin only: practitioners must not self-approve) */}
+        {isAdmin && pendingBookings.length > 0 && (
           <Card className="border-yellow-200 bg-yellow-50/50">
             <CardContent className="pt-6 pb-5 space-y-3">
               <div className="flex items-center gap-3">
