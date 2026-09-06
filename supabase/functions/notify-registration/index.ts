@@ -15,22 +15,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
+    // Auth check (optional: guest registrations have no user session)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    let callerUserId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      const authSupabase = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData } = await authSupabase.auth.getClaims(token);
+      callerUserId = (claimsData?.claims?.sub as string) || null;
     }
 
-    const callerUserId = claimsData.claims.sub;
 
     // Input validation
     const text = await req.text();
@@ -65,23 +62,29 @@ Deno.serve(async (req) => {
     const practitioner = session.activities?.profiles;
     const practitionerUserId = practitioner?.user_id;
 
-    // Check: caller must be the registrant, the practitioner, or an admin
-    let authorized = practitionerUserId === callerUserId;
+    // Check: caller must be the registrant, the practitioner, an admin,
+    // or the request must reference a real guest registration of this session
+    let authorized = !!callerUserId && practitionerUserId === callerUserId;
     if (!authorized && registration_id) {
       const { data: reg } = await supabase
         .from("activity_registrations")
-        .select("user_id")
+        .select("user_id, session_id")
         .eq("id", registration_id)
         .single();
-      if (reg?.user_id === callerUserId) authorized = true;
+      if (reg && reg.session_id === session_id) {
+        if (callerUserId && reg.user_id === callerUserId) authorized = true;
+        // Guest registration (no account): allow the notification
+        if (!reg.user_id) authorized = true;
+      }
     }
-    if (!authorized) {
+    if (!authorized && callerUserId) {
       const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: callerUserId, _role: "admin" });
       if (isAdmin) authorized = true;
     }
     if (!authorized) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
 
     const contactEmail = practitioner?.contact_email;
     if (!contactEmail) {
