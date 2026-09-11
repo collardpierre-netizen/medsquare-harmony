@@ -275,22 +275,28 @@ const AdminProfitability = () => {
         label: format(start, "MMM yyyy", { locale: fr }),
         isFuture: monthKey > currentKey,
         revenue,
+        pendingRevenue,
+        discountTotal,
         expenses: expenseTotal,
         margin,
         marginRate: revenue > 0 ? (margin / revenue) * 100 : 0,
         expenseByCategory: Array.from(expenseByCategory.entries()).sort((a, b) => b[1] - a[1]),
       };
     });
-  }, [rooms, packages, bookings, expenses, range, today]);
+  }, [rooms, packages, bookings, discounts, expenses, range, today]);
 
   const totals = useMemo(() => {
     const revenue = monthlyRows.reduce((s, r) => s + r.revenue, 0);
+    const pendingRevenue = monthlyRows.reduce((s, r) => s + r.pendingRevenue, 0);
+    const discountTotal = monthlyRows.reduce((s, r) => s + r.discountTotal, 0);
     const expensesTotal = monthlyRows.reduce((s, r) => s + r.expenses, 0);
     const margin = revenue - expensesTotal;
     const months = monthlyRows.length || 1;
     const annualMargin = (margin / months) * 12;
     return {
       revenue,
+      pendingRevenue,
+      discountTotal,
       expenses: expensesTotal,
       margin,
       marginRate: revenue > 0 ? (margin / revenue) * 100 : 0,
