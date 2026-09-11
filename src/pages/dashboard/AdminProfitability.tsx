@@ -464,7 +464,12 @@ const AdminProfitability = () => {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-emerald-600">{eur(totals.revenue)}</p>
-              <p className="text-xs text-muted-foreground mt-1">{monthlyRows.length} mois analysés</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {monthlyRows.length} mois analysés · confirmé, remises déduites
+              </p>
+              {totals.pendingRevenue > 0 && (
+                <p className="text-xs text-amber-600 mt-0.5">+ {eur(totals.pendingRevenue)} en attente</p>
+              )}
             </CardContent>
           </Card>
           <Card>
