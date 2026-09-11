@@ -242,14 +242,22 @@ const AdminProfitability = () => {
         revenue += Number(pkg.monthly_fee || 0);
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
+      // Réservations horaires hors forfait : remises déduites, pré-réservations séparées.
+      let pendingRevenue = 0;
+      let discountTotal = 0;
       for (const b of bookings ?? []) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
         if (flatFeeRoomIds.has(b.room_id)) continue;
         if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
-        const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
-        revenue += Number(room?.hourly_rate || 0) * hours;
+        const amount = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), discounts ?? []);
+        if (b.status === "pending") {
+          pendingRevenue += amount.net;
+        } else {
+          revenue += amount.net;
+          discountTotal += amount.discount;
+        }
       }
 
       const expenseByCategory = new Map<string, number>();
