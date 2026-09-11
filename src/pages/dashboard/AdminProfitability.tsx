@@ -661,7 +661,10 @@ const AdminProfitability = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Détail mensuel</CardTitle>
-            <CardDescription>Montants HTVA. Les charges trimestrielles/annuelles sont lissées par mois.</CardDescription>
+            <CardDescription>
+              Montants HTVA, remises déduites. Les pré-réservations sont hors recettes confirmées et hors marge. Les
+              charges trimestrielles/annuelles sont lissées par mois.
+            </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
