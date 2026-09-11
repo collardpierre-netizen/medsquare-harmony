@@ -147,12 +147,25 @@ const AdminProfitability = () => {
     },
   });
 
+  const { data: discounts } = useQuery({
+    queryKey: ["profitability-discounts"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("practitioner_discounts")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .eq("is_active", true);
+      return (data || []) as BillingDiscount[];
+    },
+  });
+
   const { data: bookings } = useQuery({
     queryKey: ["profitability-bookings", range.start.toISOString(), range.end.toISOString()],
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, practitioner_id, start_time, end_time, status")
+        .select(
+          "id, room_id, practitioner_id, start_time, end_time, status, discount_type, discount_value, discount_reason",
+        )
         .gte("start_time", range.start.toISOString())
         .lt("start_time", range.end.toISOString())
         .in("status", ["confirmed", "pending"]);
