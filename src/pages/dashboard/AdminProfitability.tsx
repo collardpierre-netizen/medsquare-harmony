@@ -54,7 +54,7 @@ import {
   type Expense,
 } from "@/lib/expenses";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
-import { isPackageActiveInMonth } from "@/lib/roomBilling";
+import { isPackageActiveInMonth, bookingBilledAmount, type BillingDiscount } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-BE")} € HTVA`;
 
@@ -147,12 +147,25 @@ const AdminProfitability = () => {
     },
   });
 
+  const { data: discounts } = useQuery({
+    queryKey: ["profitability-discounts"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("practitioner_discounts")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .eq("is_active", true);
+      return (data || []) as BillingDiscount[];
+    },
+  });
+
   const { data: bookings } = useQuery({
     queryKey: ["profitability-bookings", range.start.toISOString(), range.end.toISOString()],
     queryFn: async () => {
       const { data } = await supabase
         .from("bookings")
-        .select("id, room_id, practitioner_id, start_time, end_time, status")
+        .select(
+          "id, room_id, practitioner_id, start_time, end_time, status, discount_type, discount_value, discount_reason",
+        )
         .gte("start_time", range.start.toISOString())
         .lt("start_time", range.end.toISOString())
         .in("status", ["confirmed", "pending"]);
@@ -229,14 +242,22 @@ const AdminProfitability = () => {
         revenue += Number(pkg.monthly_fee || 0);
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
+      // Réservations horaires hors forfait : remises déduites, pré-réservations séparées.
+      let pendingRevenue = 0;
+      let discountTotal = 0;
       for (const b of bookings ?? []) {
         const ts = new Date(b.start_time);
         if (ts < start || ts >= end) continue;
         if (flatFeeRoomIds.has(b.room_id)) continue;
         if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
-        const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
-        revenue += Number(room?.hourly_rate || 0) * hours;
+        const amount = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), discounts ?? []);
+        if (b.status === "pending") {
+          pendingRevenue += amount.net;
+        } else {
+          revenue += amount.net;
+          discountTotal += amount.discount;
+        }
       }
 
       const expenseByCategory = new Map<string, number>();
@@ -254,22 +275,28 @@ const AdminProfitability = () => {
         label: format(start, "MMM yyyy", { locale: fr }),
         isFuture: monthKey > currentKey,
         revenue,
+        pendingRevenue,
+        discountTotal,
         expenses: expenseTotal,
         margin,
         marginRate: revenue > 0 ? (margin / revenue) * 100 : 0,
         expenseByCategory: Array.from(expenseByCategory.entries()).sort((a, b) => b[1] - a[1]),
       };
     });
-  }, [rooms, packages, bookings, expenses, range, today]);
+  }, [rooms, packages, bookings, discounts, expenses, range, today]);
 
   const totals = useMemo(() => {
     const revenue = monthlyRows.reduce((s, r) => s + r.revenue, 0);
+    const pendingRevenue = monthlyRows.reduce((s, r) => s + r.pendingRevenue, 0);
+    const discountTotal = monthlyRows.reduce((s, r) => s + r.discountTotal, 0);
     const expensesTotal = monthlyRows.reduce((s, r) => s + r.expenses, 0);
     const margin = revenue - expensesTotal;
     const months = monthlyRows.length || 1;
     const annualMargin = (margin / months) * 12;
     return {
       revenue,
+      pendingRevenue,
+      discountTotal,
       expenses: expensesTotal,
       margin,
       marginRate: revenue > 0 ? (margin / revenue) * 100 : 0,
@@ -437,7 +464,12 @@ const AdminProfitability = () => {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-emerald-600">{eur(totals.revenue)}</p>
-              <p className="text-xs text-muted-foreground mt-1">{monthlyRows.length} mois analysés</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {monthlyRows.length} mois analysés · confirmé, remises déduites
+              </p>
+              {totals.pendingRevenue > 0 && (
+                <p className="text-xs text-amber-600 mt-0.5">+ {eur(totals.pendingRevenue)} en attente</p>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -629,14 +661,18 @@ const AdminProfitability = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Détail mensuel</CardTitle>
-            <CardDescription>Montants HTVA. Les charges trimestrielles/annuelles sont lissées par mois.</CardDescription>
+            <CardDescription>
+              Montants HTVA, remises déduites. Les pré-réservations sont hors recettes confirmées et hors marge. Les
+              charges trimestrielles/annuelles sont lissées par mois.
+            </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Mois</TableHead>
-                  <TableHead className="text-right">Recettes</TableHead>
+                  <TableHead className="text-right">Recettes confirmées</TableHead>
+                  <TableHead className="text-right">En attente</TableHead>
                   <TableHead className="text-right">Dépenses</TableHead>
                   <TableHead className="text-right">Marge nette</TableHead>
                   <TableHead className="text-right">Taux de marge</TableHead>
@@ -654,6 +690,9 @@ const AdminProfitability = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-right text-emerald-600">{eur(r.revenue)}</TableCell>
+                    <TableCell className="text-right text-amber-600">
+                      {r.pendingRevenue > 0 ? eur(r.pendingRevenue) : "—"}
+                    </TableCell>
                     <TableCell className="text-right text-destructive">{eur(r.expenses)}</TableCell>
                     <TableCell className={`text-right font-semibold ${r.margin >= 0 ? "text-primary" : "text-destructive"}`}>
                       {eur(r.margin)}
@@ -664,6 +703,9 @@ const AdminProfitability = () => {
                 <TableRow className="border-t-2 font-bold">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right text-emerald-600">{eur(totals.revenue)}</TableCell>
+                  <TableCell className="text-right text-amber-600">
+                    {totals.pendingRevenue > 0 ? eur(totals.pendingRevenue) : "—"}
+                  </TableCell>
                   <TableCell className="text-right text-destructive">{eur(totals.expenses)}</TableCell>
                   <TableCell className={`text-right ${totals.margin >= 0 ? "text-primary" : "text-destructive"}`}>
                     {eur(totals.margin)}
