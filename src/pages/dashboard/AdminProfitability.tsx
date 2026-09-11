@@ -668,7 +668,8 @@ const AdminProfitability = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mois</TableHead>
-                  <TableHead className="text-right">Recettes</TableHead>
+                  <TableHead className="text-right">Recettes confirmées</TableHead>
+                  <TableHead className="text-right">En attente</TableHead>
                   <TableHead className="text-right">Dépenses</TableHead>
                   <TableHead className="text-right">Marge nette</TableHead>
                   <TableHead className="text-right">Taux de marge</TableHead>
