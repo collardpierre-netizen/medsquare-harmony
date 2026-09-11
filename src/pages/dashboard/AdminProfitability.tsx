@@ -700,6 +700,9 @@ const AdminProfitability = () => {
                 <TableRow className="border-t-2 font-bold">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right text-emerald-600">{eur(totals.revenue)}</TableCell>
+                  <TableCell className="text-right text-amber-600">
+                    {totals.pendingRevenue > 0 ? eur(totals.pendingRevenue) : "—"}
+                  </TableCell>
                   <TableCell className="text-right text-destructive">{eur(totals.expenses)}</TableCell>
                   <TableCell className={`text-right ${totals.margin >= 0 ? "text-primary" : "text-destructive"}`}>
                     {eur(totals.margin)}
