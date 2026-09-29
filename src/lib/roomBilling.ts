@@ -549,7 +549,7 @@ export const computePractitionerBilling = ({
     const room = rooms.find((r) => r.id === b.room_id);
     const rate = Number(room?.hourly_rate || 0);
     const hours = bookingDurationHours(b);
-    const amount = bookingBilledAmount(b, rate, discounts);
+    const amount = bookingBilledAmount(b, rate, discounts, packages as any);
     const isPending = b.status === "pending";
     const bMonth = monthKey(new Date(b.start_time));
     const pkg = findPackage(packages, b.practitioner_id, b.room_id, bMonth);
