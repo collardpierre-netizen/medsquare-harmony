@@ -279,7 +279,7 @@ const AdminBillingPlan = () => {
       if (flatFeeRoomIds.has(b.room_id)) return;
       if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}`)) return;
       const room = rooms.find((r) => r.id === b.room_id);
-      const amount = bookingBilledAmount(b, Number(room?.hourly_rate || 0), discounts as any).net;
+      const amount = bookingBilledAmount(b, Number(room?.hourly_rate || 0), discounts as any, packages as any).net;
       const hours =
         (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
       const key = b.practitioner_id;

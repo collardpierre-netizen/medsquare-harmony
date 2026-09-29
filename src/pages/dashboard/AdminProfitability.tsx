@@ -251,7 +251,7 @@ const AdminProfitability = () => {
         if (flatFeeRoomIds.has(b.room_id)) continue;
         if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
-        const amount = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), discounts ?? []);
+        const amount = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), discounts ?? [], (packages ?? []) as any);
         if (b.status === "pending") {
           pendingRevenue += amount.net;
         } else {
