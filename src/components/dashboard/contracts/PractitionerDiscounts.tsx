@@ -43,10 +43,11 @@ interface DiscountRow {
   discount_type: string;
   discount_value: number;
   label: string | null;
-  start_date: string;
+  start_date: string | null;
   end_date: string | null;
   is_active: boolean;
   notes: string | null;
+  applies_to: string;
   profiles?: { first_name: string; last_name: string } | null;
   rooms?: { name: string } | null;
 }
@@ -62,6 +63,7 @@ interface FormState {
   end_date: string;
   is_active: boolean;
   notes: string;
+  applies_to: string;
 }
 
 const emptyForm: FormState = {
@@ -74,6 +76,13 @@ const emptyForm: FormState = {
   end_date: "",
   is_active: true,
   notes: "",
+  applies_to: "hourly",
+};
+
+const SCOPE_LABELS: Record<string, string> = {
+  hourly: "Tarif horaire",
+  package: "Forfait",
+  both: "Les deux",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -138,7 +147,9 @@ const PractitionerDiscounts = () => {
         discount_type: form.discount_type,
         discount_value: Number(form.discount_value),
         label: form.label || null,
-        start_date: form.start_date,
+        start_date: form.start_date || null,
+        applies_to: form.applies_to,
+        discount_type: form.applies_to !== "hourly" && form.discount_type === "hourly_rate" ? "percent" : form.discount_type,
         end_date: form.end_date || null,
         is_active: form.is_active,
         notes: form.notes || null,
@@ -177,7 +188,6 @@ const PractitionerDiscounts = () => {
 
   const canSave =
     !!editing?.practitioner_id &&
-    !!editing?.start_date &&
     Number(editing?.discount_value) > 0;
 
   const isExpired = (row: DiscountRow) =>
@@ -192,8 +202,8 @@ const PractitionerDiscounts = () => {
               <Percent className="h-5 w-5 text-primary" /> Remises contractuelles
             </CardTitle>
             <CardDescription>
-              Remises appliquées automatiquement aux réservations horaires du praticien (avec
-              échéance facultative). Une remise encodée directement sur une réservation prend le
+              Remises appliquées automatiquement au tarif horaire et/ou au forfait du praticien
+              (dates de début et d'échéance facultatives). Une remise encodée directement sur une réservation prend le
               lead sur celle-ci.
             </CardDescription>
           </div>
@@ -212,6 +222,7 @@ const PractitionerDiscounts = () => {
                 <TableRow>
                   <TableHead>Praticien</TableHead>
                   <TableHead>Salle</TableHead>
+                  <TableHead>S'applique à</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Remise</TableHead>
                   <TableHead>Période</TableHead>
@@ -226,10 +237,11 @@ const PractitionerDiscounts = () => {
                       {d.profiles ? `${d.profiles.first_name} ${d.profiles.last_name}` : "—"}
                     </TableCell>
                     <TableCell>{d.rooms?.name || "Toutes les salles"}</TableCell>
+                    <TableCell>{SCOPE_LABELS[d.applies_to] || "Tarif horaire"}</TableCell>
                     <TableCell>{TYPE_LABELS[d.discount_type] || d.discount_type}</TableCell>
                     <TableCell className="font-semibold">{formatValue(d)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      dès le {formatDate(d.start_date)}
+                      {d.start_date ? `dès le ${formatDate(d.start_date)}` : "immédiate"}
                       {d.end_date ? ` — jusqu'au ${formatDate(d.end_date)}` : " (sans échéance)"}
                     </TableCell>
                     <TableCell>
@@ -257,7 +269,8 @@ const PractitionerDiscounts = () => {
                             discount_type: d.discount_type,
                             discount_value: String(d.discount_value),
                             label: d.label || "",
-                            start_date: d.start_date,
+                            start_date: d.start_date || "",
+                            applies_to: d.applies_to || "hourly",
                             end_date: d.end_date || "",
                             is_active: d.is_active,
                             notes: d.notes || "",
@@ -318,6 +331,27 @@ const PractitionerDiscounts = () => {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>S'applique à</Label>
+                <Select
+                  value={editing.applies_to}
+                  onValueChange={(v) =>
+                    setEditing({
+                      ...editing,
+                      applies_to: v,
+                      discount_type: v !== "hourly" && editing.discount_type === "hourly_rate" ? "percent" : editing.discount_type,
+                    })
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hourly">Tarif horaire</SelectItem>
+                    <SelectItem value="package">Forfait</SelectItem>
+                    <SelectItem value="both">Les deux</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Type de remise</Label>
@@ -329,7 +363,9 @@ const PractitionerDiscounts = () => {
                     <SelectContent>
                       <SelectItem value="percent">Pourcentage (%)</SelectItem>
                       <SelectItem value="amount">Montant fixe (€ HTVA)</SelectItem>
-                      <SelectItem value="hourly_rate">Tarif horaire négocié (€/h)</SelectItem>
+                      {editing.applies_to === "hourly" && (
+                        <SelectItem value="hourly_rate">Tarif horaire négocié (€/h)</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -347,7 +383,7 @@ const PractitionerDiscounts = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Début</Label>
+                  <Label>Début (facultatif)</Label>
                   <Input
                     type="date"
                     value={editing.start_date}
