@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  BellOff,
   LayoutDashboard,
   User,
   CalendarDays,
@@ -62,6 +63,7 @@ const navItems: NavItem[] = [
   { label: "Forfaits locataires", href: "/dashboard/admin/contracts", icon: FileSignature, adminOnly: true },
   { label: "Plan de facturation", href: "/dashboard/admin/billing-plan", icon: ClipboardCheck, adminOnly: true },
   { label: "Toutes les réservations", href: "/dashboard/admin/bookings", icon: CalendarCheck, adminOnly: true },
+  { label: "Notifications doublons", href: "/dashboard/admin/duplicate-notifications", icon: BellOff, adminOnly: true },
   { label: "Inscriptions activités", href: "/dashboard/admin/registrations", icon: ClipboardList, adminOnly: true },
   { label: "Statistiques", href: "/dashboard/admin/analytics", icon: TrendingUp, adminOnly: true },
   { label: "Rentabilité", href: "/dashboard/admin/profitability", icon: PiggyBank, adminOnly: true },
