@@ -1296,7 +1296,7 @@ const AdminBookings = () => {
           </Popover>
 
           {(filterRoom !== "__all__" || filterPractitioner !== "__all__" || filterDateFrom || filterDateTo) && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(undefined); setFilterDateTo(undefined); }}>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(startOfMonth(new Date())); setFilterDateTo(endOfMonth(new Date())); }}>
               Réinitialiser
             </Button>
           )}
