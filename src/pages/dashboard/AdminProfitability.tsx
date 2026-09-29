@@ -54,7 +54,7 @@ import {
   type Expense,
 } from "@/lib/expenses";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
-import { isPackageActiveInMonth, bookingBilledAmount, type BillingDiscount } from "@/lib/roomBilling";
+import { isPackageActiveInMonth, bookingBilledAmount, packageMonthlyFee, dedupeOverlappingBookings, type BillingDiscount } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${Math.round(n).toLocaleString("fr-BE")} € HTVA`;
 
@@ -152,7 +152,7 @@ const AdminProfitability = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("practitioner_discounts")
-        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active, applies_to")
         .eq("is_active", true);
       return (data || []) as BillingDiscount[];
     },
@@ -169,7 +169,7 @@ const AdminProfitability = () => {
         .gte("start_time", range.start.toISOString())
         .lt("start_time", range.end.toISOString())
         .in("status", ["confirmed", "pending"]);
-      return data || [];
+      return dedupeOverlappingBookings((data || []) as any[]);
     },
   });
 
@@ -239,7 +239,7 @@ const AdminProfitability = () => {
       for (const pkg of packages ?? []) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
         if (!isPackageActiveInMonth(pkg as any, monthKey)) continue; // échu → tarif plein
-        revenue += Number(pkg.monthly_fee || 0);
+        revenue += packageMonthlyFee(pkg as any, monthKey, (discounts ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
       // Réservations horaires hors forfait : remises déduites, pré-réservations séparées.

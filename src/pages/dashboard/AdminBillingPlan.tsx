@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
+import { bookingBilledAmount, isPackageActiveInMonth, packageMonthlyFee, dedupeOverlappingBookings } from "@/lib/roomBilling";
 
 const eur = (n: number) => `${n.toFixed(2)} €`;
 const iso = (d: Date) => format(d, "yyyy-MM-dd");
@@ -165,7 +165,7 @@ const AdminBillingPlan = () => {
         .lte("start_time", monthEnd.toISOString())
         .in("status", ["confirmed", "pending"]);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return dedupeOverlappingBookings((data ?? []) as any[]);
     },
   });
 
@@ -267,7 +267,7 @@ const AdminBillingPlan = () => {
       add(p.practitioner_id, practitionerName(p.practitioner_id), {
         label: `Forfait — ${p.package_label}`,
         detail: `${p.rooms?.name ?? "—"}${p.end_date ? ` · échéance ${p.end_date}` : " · permanent"}`,
-        amount: Number(p.monthly_fee || 0),
+        amount: packageMonthlyFee(p as any, mKey, discounts as any).net,
         kind: "flat",
       });
     });
