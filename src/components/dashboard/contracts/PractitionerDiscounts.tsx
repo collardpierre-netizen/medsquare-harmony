@@ -72,7 +72,7 @@ const emptyForm: FormState = {
   discount_type: "percent",
   discount_value: "",
   label: "",
-  start_date: new Date().toISOString().slice(0, 10),
+  start_date: "",
   end_date: "",
   is_active: true,
   notes: "",
@@ -221,7 +221,7 @@ const PractitionerDiscounts = () => {
                 <TableRow>
                   <TableHead>Praticien</TableHead>
                   <TableHead>Salle</TableHead>
-                  <TableHead>S'applique à</TableHead>
+                  <TableHead className="whitespace-nowrap">S'applique à</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Remise</TableHead>
                   <TableHead>Période</TableHead>
@@ -236,7 +236,7 @@ const PractitionerDiscounts = () => {
                       {d.profiles ? `${d.profiles.first_name} ${d.profiles.last_name}` : "—"}
                     </TableCell>
                     <TableCell>{d.rooms?.name || "Toutes les salles"}</TableCell>
-                    <TableCell>{SCOPE_LABELS[d.applies_to] || "Tarif horaire"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{SCOPE_LABELS[d.applies_to] || "Tarif horaire"}</TableCell>
                     <TableCell>{TYPE_LABELS[d.discount_type] || d.discount_type}</TableCell>
                     <TableCell className="font-semibold">{formatValue(d)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
