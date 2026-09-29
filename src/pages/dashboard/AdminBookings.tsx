@@ -1238,6 +1238,25 @@ const AdminBookings = () => {
             </Select>
           </div>
 
+          {/* Month navigation */}
+          {(() => {
+            const base = filterDateFrom ?? new Date();
+            const goMonth = (d: Date) => { setFilterDateFrom(startOfMonth(d)); setFilterDateTo(endOfMonth(d)); };
+            return (
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Mois précédent" onClick={() => goMonth(addMonths(base, -1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" className="h-9 text-sm min-w-[130px] capitalize" onClick={() => goMonth(new Date())}>
+                  {format(base, "MMMM yyyy", { locale: fr })}
+                </Button>
+                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Mois suivant" onClick={() => goMonth(addMonths(base, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })()}
+
           {/* Date range filter */}
           <Popover>
             <PopoverTrigger asChild>
@@ -1277,7 +1296,7 @@ const AdminBookings = () => {
           </Popover>
 
           {(filterRoom !== "__all__" || filterPractitioner !== "__all__" || filterDateFrom || filterDateTo) && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(undefined); setFilterDateTo(undefined); }}>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(startOfMonth(new Date())); setFilterDateTo(endOfMonth(new Date())); }}>
               Réinitialiser
             </Button>
           )}
