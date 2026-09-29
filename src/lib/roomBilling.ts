@@ -182,14 +182,41 @@ export interface DiscountedAmount {
 }
 
 /**
+ * Conflit de privatisation : la salle est couverte, à la date de la réservation,
+ * par un forfait « Privatisation » d'un AUTRE praticien. Une telle réservation
+ * n'est pas facturée à l'heure (filet de sécurité) et doit être signalée.
+ */
+export const isPrivatizationConflict = (
+  booking: BillingBooking,
+  packages: (BillingPackage & { package_label?: string | null })[] = [],
+): boolean => {
+  if (booking.status === "cancelled") return false;
+  const day = isoDate(new Date(booking.start_time));
+  return packages.some(
+    (p) =>
+      p.room_id === booking.room_id &&
+      p.practitioner_id !== booking.practitioner_id &&
+      p.is_active !== false &&
+      /privati/i.test(p.package_label ?? "") &&
+      (!p.start_date || p.start_date <= day) &&
+      (!p.end_date || p.end_date >= day),
+  );
+};
+
+/**
  * Montant facturé d'une réservation, remise incluse.
  * Priorité : remise ponctuelle sur la réservation > remise contractuelle du praticien.
+ * Si `packages` est fourni et que la réservation est en conflit de privatisation, montant = 0.
  */
 export const bookingBilledAmount = (
   booking: BillingBooking,
   hourlyRate: number,
   discounts: BillingDiscount[] = [],
+  packages?: (BillingPackage & { package_label?: string | null })[],
 ): DiscountedAmount => {
+  if (packages && isPrivatizationConflict(booking, packages)) {
+    return { gross: 0, net: 0, discount: 0, appliedType: null, label: "Conflit de privatisation" };
+  }
   const hours = bookingDurationHours(booking);
   const gross = Number(hourlyRate || 0) * hours;
 

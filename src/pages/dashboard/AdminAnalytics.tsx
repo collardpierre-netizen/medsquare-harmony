@@ -356,7 +356,7 @@ const AdminAnalytics = () => {
         if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue; // échu ou pas encore actif
         const room = rooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
-        const fee = packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any).net;
+        const fee = packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         confirmedRev += fee;
         const d = getDetail(pkg.room_id, room.name);
         d.isForfait = true;
@@ -372,7 +372,7 @@ const AdminAnalytics = () => {
         if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue; // couvert par forfait praticien
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
-        const rev = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
+        const rev = bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         const d = getDetail(b.room_id, room?.name || "Salle inconnue");
         if (b.status === "confirmed") {
           confirmedRev += rev;
@@ -488,7 +488,7 @@ const AdminAnalytics = () => {
       for (const pkg of (packages ?? [])) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
         if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue;
-        revenue += packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any).net;
+        revenue += packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
       for (const b of monthlyBookings) {
@@ -498,7 +498,7 @@ const AdminAnalytics = () => {
         if (packagedKeys.has(`${(b as any).practitioner_id}|${b.room_id}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3600000;
-        revenue += bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
+        revenue += bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         count += 1;
       }
       return { revenue: Math.round(revenue), count };
@@ -591,7 +591,7 @@ const AdminAnalytics = () => {
           if (matrix[pkg.room_id][mk]?.flat) continue; // déjà couvert par forfait salle
           if (!isPackageActiveInMonth(pkg as any, mk)) continue;
           if (!matrix[pkg.room_id][mk]) matrix[pkg.room_id][mk] = { revenue: 0, hours: 0, bookings: 0 };
-          matrix[pkg.room_id][mk].revenue += packageMonthlyFee(pkg as any, mk, (contractDiscounts ?? []) as any).net;
+          matrix[pkg.room_id][mk].revenue += packageMonthlyFee(pkg as any, mk, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         }
       }
       for (const b of monthlyBookings) {
@@ -604,7 +604,7 @@ const AdminAnalytics = () => {
         // Skip bookings for practitioners covered by a package on this room
         if (packagedRoomPractitioners[room.id]?.has((b as any).practitioner_id)) continue;
         const hours = (new Date(b.end_time).getTime() - ts.getTime()) / 3600000;
-        const revenue = bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
+        const revenue = bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         if (!matrix[room.id][monthKey]) matrix[room.id][monthKey] = { revenue: 0, hours: 0, bookings: 0 };
         matrix[room.id][monthKey].revenue += revenue;
         matrix[room.id][monthKey].hours += hours;
@@ -703,7 +703,7 @@ const AdminAnalytics = () => {
           fmtBrussels.format(start),
           fmtBrussels.format(end),
           room?.name || "—",
-          rate, hours, Math.round(bookingBilledAmount(b as any, Number(rate), (contractDiscounts ?? []) as any).net), b.status,
+          rate, hours, Math.round(bookingBilledAmount(b as any, Number(rate), (contractDiscounts ?? []) as any, (packages ?? []) as any).net), b.status,
         ]);
       }
       const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
@@ -767,7 +767,7 @@ const AdminAnalytics = () => {
           if (flatFeeKeys.has(`${pkg.room_id}|${mKey}`)) continue;
           if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
           if (!filteredRooms.some((r) => r.id === pkg.room_id)) continue;
-          revenue += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
+          revenue += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
           packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
         }
       }
@@ -778,7 +778,7 @@ const AdminAnalytics = () => {
         if (packagedKeys.has(`${b.practitioner_id}|${b.room_id}|${mKey}`)) continue;
         const room = rooms.find((r) => r.id === b.room_id);
         const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
-        revenue += bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
+        revenue += bookingBilledAmount(b as any, Number(room?.hourly_rate || 0), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
       }
 
       let totalSlots = 0;
@@ -960,7 +960,7 @@ const AdminAnalytics = () => {
           for (const pkg of (packages ?? [])) {
             if (pkg.room_id !== room.id) continue;
             if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
-            rev += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
+            rev += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
             packagedMonthKeys.add(`${pkg.practitioner_id}|${mKey}`);
           }
         }
@@ -973,7 +973,7 @@ const AdminAnalytics = () => {
           if (flatMonths.has(mKey)) continue;
           if (packagedMonthKeys.has(`${b.practitioner_id}|${mKey}`)) continue;
           const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
-          rev += bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
+          rev += bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         }
         row[room.name] = Math.round(rev);
       }
@@ -1025,7 +1025,7 @@ const AdminAnalytics = () => {
         if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
         const room = filteredRooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
-        const fee = packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
+        const fee = packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
         addTo(roomTotals, room.name, fee);
         addTo(practitionerTotals, practitionerName(pkg.practitioner_id), fee);
@@ -1041,7 +1041,7 @@ const AdminAnalytics = () => {
       const room = filteredRooms.find((r) => r.id === b.room_id);
       if (!room) continue;
       const hours = (new Date(b.end_time).getTime() - bStart.getTime()) / 3600000;
-      const amount = bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any).net;
+      const amount = bookingBilledAmount(b as any, Number(room.hourly_rate || 0), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
       addTo(roomTotals, room.name, amount);
       addTo(practitionerTotals, practitionerName(b.practitioner_id), amount);
     }

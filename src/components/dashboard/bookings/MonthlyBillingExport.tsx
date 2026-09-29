@@ -206,7 +206,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
             const hours = (end.getTime() - start.getTime()) / 3_600_000;
             const rate = Number(it.rooms?.hourly_rate ?? 0);
             // Remise ponctuelle (sur la réservation) > remise contractuelle du praticien
-            const billed = bookingBilledAmount(it as any, rate, discounts as any);
+            const billed = bookingBilledAmount(it as any, rate, discounts as any, (pkgData ?? []) as any);
             const amount = billed.net;
             practHours += hours;
             practTotal += amount;
@@ -354,7 +354,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
           0
         );
         const amt = items.reduce((s, it) => {
-          return s + bookingBilledAmount(it as any, Number(it.rooms?.hourly_rate ?? 0), discounts as any).net;
+          return s + bookingBilledAmount(it as any, Number(it.rooms?.hourly_rate ?? 0), discounts as any, (pkgData ?? []) as any).net;
         }, 0) + (g.flatFees ?? []).reduce((s, f) => s + f.fee, 0);
         const flatCount = (g.flatFees ?? []).length;
         const countLabel = flatCount > 0 ? `${items.length} + ${flatCount} forfait${flatCount > 1 ? "s" : ""}` : String(items.length);
