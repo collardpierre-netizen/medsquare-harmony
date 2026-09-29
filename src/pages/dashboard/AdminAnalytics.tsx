@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { PractitionerPackage } from "@/lib/practitionerPackages";
-import { bookingBilledAmount, isPackageActiveInMonth } from "@/lib/roomBilling";
+import { bookingBilledAmount, isPackageActiveInMonth, packageMonthlyFee, dedupeOverlappingBookings } from "@/lib/roomBilling";
 
 /**
  * Returns the monthly flat fee (HTVA €) for a room on a given month,
@@ -202,7 +202,7 @@ const AdminAnalytics = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("practitioner_discounts")
-        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active, applies_to")
         .eq("is_active", true);
       return data || [];
     },
@@ -231,7 +231,7 @@ const AdminAnalytics = () => {
         .gte("start_time", globalStart)
         .lt("start_time", globalEnd)
         .neq("status", "cancelled");
-      return data || [];
+      return dedupeOverlappingBookings((data || []) as any[]);
     },
     enabled: !!rooms,
   });
@@ -245,7 +245,7 @@ const AdminAnalytics = () => {
         .gte("start_time", globalStart)
         .lt("start_time", globalEnd)
         .eq("status", "scheduled");
-      return data || [];
+      return dedupeOverlappingBookings((data || []) as any[]);
     },
     enabled: !!rooms,
   });
@@ -277,7 +277,7 @@ const AdminAnalytics = () => {
         .gte("start_time", projectionRange.start)
         .lt("start_time", projectionRange.end)
         .in("status", ["confirmed", "pending"]);
-      return data || [];
+      return dedupeOverlappingBookings((data || []) as any[]);
     },
     enabled: !!rooms,
   });
@@ -356,7 +356,7 @@ const AdminAnalytics = () => {
         if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue; // échu ou pas encore actif
         const room = rooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
-        const fee = Number(pkg.monthly_fee);
+        const fee = packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any).net;
         confirmedRev += fee;
         const d = getDetail(pkg.room_id, room.name);
         d.isForfait = true;
@@ -462,7 +462,7 @@ const AdminAnalytics = () => {
         .gte("start_time", monthlyRange.startNMinus1)
         .lt("start_time", monthlyRange.end)
         .neq("status", "cancelled");
-      return data || [];
+      return dedupeOverlappingBookings((data || []) as any[]);
     },
     enabled: !!rooms,
   });
@@ -488,7 +488,7 @@ const AdminAnalytics = () => {
       for (const pkg of (packages ?? [])) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
         if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue;
-        revenue += Number(pkg.monthly_fee);
+        revenue += packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
       for (const b of monthlyBookings) {
@@ -591,7 +591,7 @@ const AdminAnalytics = () => {
           if (matrix[pkg.room_id][mk]?.flat) continue; // déjà couvert par forfait salle
           if (!isPackageActiveInMonth(pkg as any, mk)) continue;
           if (!matrix[pkg.room_id][mk]) matrix[pkg.room_id][mk] = { revenue: 0, hours: 0, bookings: 0 };
-          matrix[pkg.room_id][mk].revenue += Number(pkg.monthly_fee);
+          matrix[pkg.room_id][mk].revenue += packageMonthlyFee(pkg as any, mk, (contractDiscounts ?? []) as any).net;
         }
       }
       for (const b of monthlyBookings) {
@@ -767,7 +767,7 @@ const AdminAnalytics = () => {
           if (flatFeeKeys.has(`${pkg.room_id}|${mKey}`)) continue;
           if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
           if (!filteredRooms.some((r) => r.id === pkg.room_id)) continue;
-          revenue += Number(pkg.monthly_fee);
+          revenue += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
           packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
         }
       }
@@ -960,7 +960,7 @@ const AdminAnalytics = () => {
           for (const pkg of (packages ?? [])) {
             if (pkg.room_id !== room.id) continue;
             if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
-            rev += Number(pkg.monthly_fee);
+            rev += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
             packagedMonthKeys.add(`${pkg.practitioner_id}|${mKey}`);
           }
         }
@@ -1025,7 +1025,7 @@ const AdminAnalytics = () => {
         if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
         const room = filteredRooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
-        const fee = Number(pkg.monthly_fee || 0);
+        const fee = packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
         addTo(roomTotals, room.name, fee);
         addTo(practitionerTotals, practitionerName(pkg.practitioner_id), fee);

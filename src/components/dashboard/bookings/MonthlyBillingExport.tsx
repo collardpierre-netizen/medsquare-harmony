@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { bookingBilledAmount } from "@/lib/roomBilling";
+import { bookingBilledAmount, packageMonthlyFee, dedupeOverlappingBookings } from "@/lib/roomBilling";
 
 const fmtBxl = (d: Date, pattern: string) =>
   format(new Date(d.toLocaleString("en-US", { timeZone: "Europe/Brussels" })), pattern, { locale: fr });
@@ -68,7 +68,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       // Remises contractuelles par praticien (actives)
       const { data: discountData } = await supabase
         .from("practitioner_discounts")
-        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active")
+        .select("practitioner_id, room_id, discount_type, discount_value, label, start_date, end_date, is_active, applies_to")
         .eq("is_active", true);
       const discounts = (discountData ?? []) as any[];
 
@@ -83,7 +83,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
       if (error) throw error;
 
 
-      const filteredRows = (data ?? []).filter(
+      const filteredRows = dedupeOverlappingBookings((data ?? []) as any[]).filter(
         (b: any) => !flatFeeRoomIds.has(b.room_id) && !packagedSet.has(packagedKey(b.practitioner_id, b.room_id)),
       ) as any[];
 
@@ -118,7 +118,7 @@ export default function MonthlyBillingExport({ defaultMonth }: Props) {
         const pid = p.practitioner_id;
         const name = `${p.profiles?.first_name ?? ""} ${p.profiles?.last_name ?? ""}`.trim() || "Praticien";
         if (!groups.has(pid)) groups.set(pid, { name, items: [], flatFees: [] });
-        groups.get(pid)!.flatFees.push({ roomName: p.rooms?.name ?? "—", fee: Number(p.monthly_fee), label: p.package_label });
+        groups.get(pid)!.flatFees.push({ roomName: p.rooms?.name ?? "—", fee: packageMonthlyFee(p, monthStartISO.slice(0, 7), discounts as any).net, label: p.package_label });
       });
 
 

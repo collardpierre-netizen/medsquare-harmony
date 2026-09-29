@@ -11,5 +11,5 @@
 ## À valider
 - [ ] Séances récurrentes générées automatiquement sans salle → invisibles sur le planning (plan proposé)
 
-- [ ] Remises contractuelles : applies_to (horaire/forfait/les deux), début facultatif, remise sur forfait partout
-- [ ] Doublons réservations : nettoyage (GO 1), blocage chevauchement même salle (GO 2), calculs dédoublonnés (GO 3)
+- [x] Remises contractuelles : applies_to (horaire/forfait/les deux), début facultatif, remise sur forfait partout
+- [x] Doublons réservations : nettoyage (GO 1), blocage chevauchement même salle (GO 2), calculs dédoublonnés (GO 3)

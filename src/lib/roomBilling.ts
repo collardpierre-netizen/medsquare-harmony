@@ -78,10 +78,20 @@ export interface BillingDiscount {
   discount_type: DiscountType;
   discount_value: number;
   label?: string | null;
-  start_date: string;
+  /** Début (ISO). Absent = applicable immédiatement. */
+  start_date?: string | null;
   end_date?: string | null;
   is_active?: boolean | null;
+  /** Cible : tarif horaire (défaut), forfait, ou les deux. */
+  applies_to?: DiscountScope | null;
 }
+
+export type DiscountScope = "hourly" | "package" | "both";
+
+const scopeMatches = (d: BillingDiscount, scope: "hourly" | "package") => {
+  const a = d.applies_to || "hourly";
+  return a === "both" || a === scope;
+};
 
 /**
  * Remise contractuelle applicable à une réservation :
@@ -97,12 +107,65 @@ export const findDiscount = (
     (d) =>
       d.practitioner_id === practitionerId &&
       d.is_active !== false &&
+      scopeMatches(d, "hourly") &&
       (!d.room_id || d.room_id === roomId) &&
-      d.start_date <= dayIso &&
+      (!d.start_date || d.start_date <= dayIso) &&
       (!d.end_date || d.end_date >= dayIso),
   );
   if (matches.length === 0) return null;
   return matches.find((d) => d.room_id === roomId) ?? matches[0];
+};
+
+/**
+ * Montant mensuel HTVA d'un forfait locataire après remise contractuelle
+ * (remise « forfait » ou « les deux » chevauchant le mois). Seuls % et montant fixe
+ * s'appliquent ; le tarif horaire négocié est ignoré pour un forfait.
+ */
+export const packageMonthlyFee = (
+  pkg: Pick<BillingPackage, "practitioner_id" | "room_id" | "monthly_fee">,
+  mKey: string,
+  discounts: BillingDiscount[] = [],
+): { gross: number; net: number; discount: number } => {
+  const gross = Number(pkg.monthly_fee || 0);
+  const monthStart = `${mKey}-01`;
+  const [y, m] = mKey.split("-").map(Number);
+  const monthEnd = isoDate(new Date(y, m, 0));
+  const matches = discounts.filter(
+    (d) =>
+      d.practitioner_id === pkg.practitioner_id &&
+      d.is_active !== false &&
+      scopeMatches(d, "package") &&
+      d.discount_type !== "hourly_rate" &&
+      (!d.room_id || d.room_id === pkg.room_id) &&
+      (!d.start_date || d.start_date <= monthEnd) &&
+      (!d.end_date || d.end_date >= monthStart),
+  );
+  const d = matches.find((x) => x.room_id === pkg.room_id) ?? matches[0];
+  if (!d) return { gross, net: gross, discount: 0 };
+  const v = Number(d.discount_value || 0);
+  const net = Math.max(0, d.discount_type === "percent" ? gross * (1 - Math.min(100, v) / 100) : gross - v);
+  return { gross, net, discount: gross - net };
+};
+
+/**
+ * Filet de sécurité : ne garde qu'une réservation par créneau chevauchant dans une même
+ * salle (la plus longue). Les réservations annulées sont conservées telles quelles.
+ */
+export const dedupeOverlappingBookings = <T extends BillingBooking>(bookings: T[]): T[] => {
+  const active = bookings.filter((b) => b.status !== "cancelled");
+  const dur = (b: T) => new Date(b.end_time).getTime() - new Date(b.start_time).getTime();
+  const sorted = [...active].sort((a, b) => dur(b) - dur(a));
+  const kept: T[] = [];
+  sorted.forEach((b) => {
+    const s = new Date(b.start_time).getTime();
+    const e = new Date(b.end_time).getTime();
+    const clash = kept.some(
+      (k) => k.room_id === b.room_id && new Date(k.start_time).getTime() < e && s < new Date(k.end_time).getTime(),
+    );
+    if (!clash) kept.push(b);
+  });
+  const keep = new Set(kept);
+  return bookings.filter((b) => b.status === "cancelled" || keep.has(b));
 };
 
 export interface DiscountedAmount {
@@ -334,13 +397,13 @@ export const computeRoomStats = ({
     monthKeys.forEach((mKey) => {
       if (s.flatMonths.has(mKey)) return;
       if (!isPackageActiveInMonth(pkg, mKey)) return;
-      s.flatRevenue += Number(pkg.monthly_fee || 0);
+      s.flatRevenue += packageMonthlyFee(pkg, mKey, discounts).net;
       s.packagedKeys.add(`${pkg.practitioner_id}|${mKey}`);
     });
   });
 
 
-  bookings.forEach((b) => {
+  dedupeOverlappingBookings(bookings).forEach((b) => {
     if (b.status === "cancelled") return;
     if (!dayKeys.has(isoDate(new Date(b.start_time)))) return;
     const s = stats.get(b.room_id);
@@ -454,7 +517,7 @@ export const computePractitionerBilling = ({
   let billedHours = 0;
   const flatKeys = new Set<string>();
 
-  bookings.forEach((b) => {
+  dedupeOverlappingBookings(bookings).forEach((b) => {
     if (b.status === "cancelled") return;
     const room = rooms.find((r) => r.id === b.room_id);
     const rate = Number(room?.hourly_rate || 0);
@@ -467,7 +530,7 @@ export const computePractitionerBilling = ({
       const key = `${b.room_id}|${monthKey(new Date(b.start_time))}`;
       if (!flatKeys.has(key)) {
         flatKeys.add(key);
-        flat += Number(pkg.monthly_fee || 0);
+        flat += packageMonthlyFee(pkg, bMonth, discounts).net;
       }
       coveredHourlyValue += amount.gross;
       coveredHours += hours;
