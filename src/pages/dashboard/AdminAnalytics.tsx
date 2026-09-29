@@ -356,7 +356,7 @@ const AdminAnalytics = () => {
         if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue; // échu ou pas encore actif
         const room = rooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
-        const fee = packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
+        const fee = packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any).net;
         confirmedRev += fee;
         const d = getDetail(pkg.room_id, room.name);
         d.isForfait = true;
@@ -488,7 +488,7 @@ const AdminAnalytics = () => {
       for (const pkg of (packages ?? [])) {
         if (flatFeeRoomIds.has(pkg.room_id)) continue;
         if (!isPackageActiveInMonth(pkg as any, format(start, "yyyy-MM"))) continue;
-        revenue += packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
+        revenue += packageMonthlyFee(pkg as any, format(start, "yyyy-MM"), (contractDiscounts ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}`);
       }
       for (const b of monthlyBookings) {
@@ -591,7 +591,7 @@ const AdminAnalytics = () => {
           if (matrix[pkg.room_id][mk]?.flat) continue; // déjà couvert par forfait salle
           if (!isPackageActiveInMonth(pkg as any, mk)) continue;
           if (!matrix[pkg.room_id][mk]) matrix[pkg.room_id][mk] = { revenue: 0, hours: 0, bookings: 0 };
-          matrix[pkg.room_id][mk].revenue += packageMonthlyFee(pkg as any, mk, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
+          matrix[pkg.room_id][mk].revenue += packageMonthlyFee(pkg as any, mk, (contractDiscounts ?? []) as any).net;
         }
       }
       for (const b of monthlyBookings) {
@@ -767,7 +767,7 @@ const AdminAnalytics = () => {
           if (flatFeeKeys.has(`${pkg.room_id}|${mKey}`)) continue;
           if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
           if (!filteredRooms.some((r) => r.id === pkg.room_id)) continue;
-          revenue += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
+          revenue += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
           packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
         }
       }
@@ -960,7 +960,7 @@ const AdminAnalytics = () => {
           for (const pkg of (packages ?? [])) {
             if (pkg.room_id !== room.id) continue;
             if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
-            rev += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
+            rev += packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
             packagedMonthKeys.add(`${pkg.practitioner_id}|${mKey}`);
           }
         }
@@ -1025,7 +1025,7 @@ const AdminAnalytics = () => {
         if (!isPackageActiveInMonth(pkg as any, mKey)) continue;
         const room = filteredRooms.find((r) => r.id === pkg.room_id);
         if (!room) continue;
-        const fee = packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any, (packages ?? []) as any).net;
+        const fee = packageMonthlyFee(pkg as any, mKey, (contractDiscounts ?? []) as any).net;
         packagedKeys.add(`${pkg.practitioner_id}|${pkg.room_id}|${mKey}`);
         addTo(roomTotals, room.name, fee);
         addTo(practitionerTotals, practitionerName(pkg.practitioner_id), fee);
