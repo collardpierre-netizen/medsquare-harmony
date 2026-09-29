@@ -144,7 +144,6 @@ const PractitionerDiscounts = () => {
       const row = {
         practitioner_id: form.practitioner_id,
         room_id: form.room_id === "all" ? null : form.room_id,
-        discount_type: form.discount_type,
         discount_value: Number(form.discount_value),
         label: form.label || null,
         start_date: form.start_date || null,
