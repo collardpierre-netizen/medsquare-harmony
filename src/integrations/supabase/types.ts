@@ -659,6 +659,7 @@ export type Database = {
       }
       practitioner_discounts: {
         Row: {
+          applies_to: string
           created_at: string
           discount_type: string
           discount_value: number
@@ -669,10 +670,11 @@ export type Database = {
           notes: string | null
           practitioner_id: string
           room_id: string | null
-          start_date: string
+          start_date: string | null
           updated_at: string
         }
         Insert: {
+          applies_to?: string
           created_at?: string
           discount_type?: string
           discount_value?: number
@@ -683,10 +685,11 @@ export type Database = {
           notes?: string | null
           practitioner_id: string
           room_id?: string | null
-          start_date?: string
+          start_date?: string | null
           updated_at?: string
         }
         Update: {
+          applies_to?: string
           created_at?: string
           discount_type?: string
           discount_value?: number
@@ -697,7 +700,7 @@ export type Database = {
           notes?: string | null
           practitioner_id?: string
           room_id?: string | null
-          start_date?: string
+          start_date?: string | null
           updated_at?: string
         }
         Relationships: [
