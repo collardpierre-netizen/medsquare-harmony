@@ -79,8 +79,10 @@ const AdminBookings = () => {
   // Filters
   const [filterRoom, setFilterRoom] = useState<string>("__all__");
   const [filterPractitioner, setFilterPractitioner] = useState<string>("__all__");
-  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(() => startOfMonth(new Date()));
-  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(() => endOfMonth(new Date()));
+  // Scope de période : "day" par défaut (vue du jour), "month" = mois complet
+  const [dateScope, setDateScope] = useState<"day" | "month">("day");
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(() => startOfDay(new Date()));
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(() => startOfDay(new Date()));
 
   // Planning view state
   const [planningWeekStart, setPlanningWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -1273,21 +1275,68 @@ const AdminBookings = () => {
             </Select>
           </div>
 
-          {/* Month navigation */}
+          {/* Scope Jour / Mois + navigation */}
           {(() => {
             const base = filterDateFrom ?? new Date();
-            const goMonth = (d: Date) => { setFilterDateFrom(startOfMonth(d)); setFilterDateTo(endOfMonth(d)); };
+            const goToday = () => {
+              const now = new Date();
+              if (dateScope === "day") {
+                setFilterDateFrom(startOfDay(now));
+                setFilterDateTo(startOfDay(now));
+              } else {
+                setFilterDateFrom(startOfMonth(now));
+                setFilterDateTo(endOfMonth(now));
+              }
+            };
+            const goPrev = () => {
+              const d = new Date(base);
+              if (dateScope === "day") {
+                setFilterDateFrom(startOfDay(addDays(d, -1)));
+                setFilterDateTo(startOfDay(addDays(d, -1)));
+              } else {
+                setFilterDateFrom(startOfMonth(addMonths(d, -1)));
+                setFilterDateTo(endOfMonth(addMonths(d, -1)));
+              }
+            };
+            const goNext = () => {
+              const d = new Date(base);
+              if (dateScope === "day") {
+                setFilterDateFrom(startOfDay(addDays(d, 1)));
+                setFilterDateTo(startOfDay(addDays(d, 1)));
+              } else {
+                setFilterDateFrom(startOfMonth(addMonths(d, 1)));
+                setFilterDateTo(endOfMonth(addMonths(d, 1)));
+              }
+            };
             return (
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Mois précédent" onClick={() => goMonth(addMonths(base, -1))}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="h-9 text-sm min-w-[130px] capitalize" onClick={() => goMonth(new Date())}>
-                  {format(base, "MMMM yyyy", { locale: fr })}
-                </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Mois suivant" onClick={() => goMonth(addMonths(base, 1))}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-muted rounded-lg p-1">
+                  <button
+                    onClick={() => { setDateScope("day"); setFilterDateFrom(startOfDay(new Date())); setFilterDateTo(startOfDay(new Date())); }}
+                    className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-all", dateScope === "day" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    Jour
+                  </button>
+                  <button
+                    onClick={() => { setDateScope("month"); setFilterDateFrom(startOfMonth(new Date())); setFilterDateTo(endOfMonth(new Date())); }}
+                    className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-all", dateScope === "month" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    Mois
+                  </button>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-9 w-9" aria-label={dateScope === "day" ? "Jour précédent" : "Mois précédent"} onClick={goPrev}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-9 text-sm min-w-[130px] capitalize" onClick={goToday}>
+                    {dateScope === "day"
+                      ? format(base, "EEE d MMM yyyy", { locale: fr })
+                      : format(base, "MMMM yyyy", { locale: fr })}
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9" aria-label={dateScope === "day" ? "Jour suivant" : "Mois suivant"} onClick={goNext}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             );
           })()}
@@ -1331,7 +1380,7 @@ const AdminBookings = () => {
           </Popover>
 
           {(filterRoom !== "__all__" || filterPractitioner !== "__all__" || filterDateFrom || filterDateTo) && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(startOfMonth(new Date())); setFilterDateTo(endOfMonth(new Date())); }}>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateScope("day"); setFilterRoom("__all__"); setFilterPractitioner("__all__"); setFilterDateFrom(startOfDay(new Date())); setFilterDateTo(startOfDay(new Date())); }}>
               Réinitialiser
             </Button>
           )}
