@@ -105,7 +105,7 @@ const AdminBookings = () => {
   const [newBooking, setNewBooking] = useState({
     practitioner_id: "",
     room_id: "",
-    date: "",
+    date: format(new Date(), "yyyy-MM-dd"),
     start_time: "08:00",
     end_time: "09:00",
     notes: "",
@@ -119,6 +119,7 @@ const AdminBookings = () => {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [endDateOpen, setEndDateOpen] = useState(false);
+  const [newDateOpen, setNewDateOpen] = useState(false);
 
 
   const DAYS_OF_WEEK = [
