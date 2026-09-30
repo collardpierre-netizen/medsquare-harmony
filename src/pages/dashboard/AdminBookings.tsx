@@ -445,7 +445,7 @@ const AdminBookings = () => {
     setNewBooking({
       practitioner_id: "",
       room_id: "",
-      date: "",
+      date: format(new Date(), "yyyy-MM-dd"),
       start_time: "08:00",
       end_time: "09:00",
       notes: "",
