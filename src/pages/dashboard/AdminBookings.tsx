@@ -105,7 +105,7 @@ const AdminBookings = () => {
   const [newBooking, setNewBooking] = useState({
     practitioner_id: "",
     room_id: "",
-    date: "",
+    date: format(new Date(), "yyyy-MM-dd"),
     start_time: "08:00",
     end_time: "09:00",
     notes: "",
@@ -119,6 +119,7 @@ const AdminBookings = () => {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [endDateOpen, setEndDateOpen] = useState(false);
+  const [newDateOpen, setNewDateOpen] = useState(false);
 
 
   const DAYS_OF_WEEK = [
@@ -444,7 +445,7 @@ const AdminBookings = () => {
     setNewBooking({
       practitioner_id: "",
       room_id: "",
-      date: "",
+      date: format(new Date(), "yyyy-MM-dd"),
       start_time: "08:00",
       end_time: "09:00",
       notes: "",
@@ -953,7 +954,41 @@ const AdminBookings = () => {
 
                 <div className="space-y-2">
                   <Label>Date de début *</Label>
-                  <Input type="date" value={newBooking.date} onChange={(e) => setNewBooking((b) => ({ ...b, date: e.target.value }))} />
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={newBooking.date}
+                      onChange={(e) => setNewBooking((b) => ({ ...b, date: e.target.value }))}
+                      className="flex-1"
+                      placeholder="JJ/MM/AAAA"
+                    />
+                    <Button variant="outline" size="sm" type="button" onClick={() => setNewBooking((b) => ({ ...b, date: format(new Date(), "yyyy-MM-dd") }))}>
+                      Aujourd'hui
+                    </Button>
+                    <Popover open={newDateOpen} onOpenChange={setNewDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="icon" type="button" aria-label="Ouvrir le calendrier">
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[320px] p-0" align="end" sideOffset={4}>
+                        <div className="w-[320px]">
+                          <Calendar
+                            mode="single"
+                            selected={newBooking.date ? parseISO(newBooking.date) : undefined}
+                            onSelect={(d) => {
+                              if (d) setNewBooking((b) => ({ ...b, date: format(d, "yyyy-MM-dd") }));
+                              setNewDateOpen(false);
+                            }}
+                            defaultMonth={newBooking.date ? parseISO(newBooking.date) : new Date()}
+                            initialFocus
+                            locale={fr}
+                            className="p-3 pointer-events-auto mx-auto"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
