@@ -7,8 +7,7 @@
  *   periods: [ { from: "YYYY-MM-DD", to: "YYYY-MM-DD", label?: string, closed: boolean, start?: number, end?: number } ]
  * }
  *
- * Fallback quand rien n'est encodé : semaine 8h–22h, week-end 9h–21h
- * (l'ancien comportement codé en dur).
+ * Fallback quand rien n'est encodé : semaine 9h–22h, week-end 9h–21h, 7j/7.
  */
 
 export interface DayHours {
@@ -45,7 +44,7 @@ export const DAY_LABELS = [
 export const defaultDayHours = (weekday: number): DayHours =>
   weekday === 0 || weekday === 6
     ? { closed: false, start: 9, end: 21 }
-    : { closed: false, start: 8, end: 22 };
+    : { closed: false, start: 9, end: 22 };
 
 export const defaultOpeningHours = (): RoomOpeningHours => ({
   weekly: Object.fromEntries(

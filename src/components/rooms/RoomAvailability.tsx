@@ -156,7 +156,7 @@ const RoomAvailability = ({ bookings, openingHours }: Props) => {
           <div className="h-3 w-3 rounded-sm bg-muted/30 border border-border/30" />
           Fermé
         </div>
-        <span className="ml-auto">Sem. 8h–22h • W-E 9h–21h</span>
+        <span className="ml-auto">Sem. 9h–22h • W-E 9h–21h</span>
       </div>
     </div>
   );

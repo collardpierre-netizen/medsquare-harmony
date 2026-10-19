@@ -29,7 +29,8 @@ describe("checkWithinOpeningHours", () => {
     expect(checkWithinOpeningHours(cfg, at("2026-12-24T10:00:00+01:00"), at("2026-12-24T11:00:00+01:00"))).toBe("closed");
   });
   it("sans configuration, applique les horaires par défaut", () => {
-    expect(checkWithinOpeningHours(null, at("2026-10-19T08:00:00+02:00"), at("2026-10-19T22:00:00+02:00"))).toBeNull();
+    expect(checkWithinOpeningHours(null, at("2026-10-19T09:00:00+02:00"), at("2026-10-19T22:00:00+02:00"))).toBeNull();
+    expect(checkWithinOpeningHours(null, at("2026-10-19T08:00:00+02:00"), at("2026-10-19T10:00:00+02:00"))).toBe("outside");
     expect(checkWithinOpeningHours(null, at("2026-10-18T08:00:00+02:00"), at("2026-10-18T10:00:00+02:00"))).toBe("outside");
   });
 });

@@ -2,7 +2,7 @@
 -- doit respecter les plages d'ouverture de la salle (rooms.opening_hours).
 -- Même logique que src/lib/roomOpeningHours.ts :
 --   * périodes exceptionnelles prioritaires sur la grille hebdomadaire ;
---   * opening_hours NULL => 8h–22h en semaine, 9h–21h le week-end ;
+--   * opening_hours NULL => 9h–22h en semaine, 9h–21h le week-end ;
 --   * heures exprimées en heure locale Europe/Brussels ; 0 = dimanche.
 
 CREATE OR REPLACE FUNCTION public.room_day_hours(_opening_hours jsonb, _day date)
@@ -13,7 +13,7 @@ SET search_path = public
 AS $$
 DECLARE
   _dow int := EXTRACT(DOW FROM _day)::int;
-  _def_start numeric := CASE WHEN _dow IN (0, 6) THEN 9 ELSE 8 END;
+  _def_start numeric := 9;
   _def_end numeric := CASE WHEN _dow IN (0, 6) THEN 21 ELSE 22 END;
   _week jsonb;
   _period jsonb;
