@@ -151,3 +151,56 @@ export const summarizeOpeningHours = (openingHours: unknown): string => {
   }
   return parts.join(" • ");
 };
+
+const brusselsMinutesOfDay = (date: Date): number => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Brussels",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const h = Number(parts.find((p) => p.type === "hour")?.value ?? 0) % 24;
+  const m = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return h * 60 + m;
+};
+
+export type OpeningHoursViolation = "closed" | "outside" | "multi_day";
+
+/**
+ * Vérifie qu'un créneau [start, end[ respecte les plages d'ouverture de la salle
+ * (grille hebdomadaire + périodes exceptionnelles). Retourne null si OK,
+ * sinon le motif du refus.
+ */
+export const checkWithinOpeningHours = (
+  openingHours: unknown,
+  start: Date,
+  end: Date,
+): OpeningHoursViolation | null => {
+  if (brusselsISODate(start) !== brusselsISODate(end) && brusselsMinutesOfDay(end) !== 0) {
+    return "multi_day";
+  }
+  const day = getRoomDayHours(openingHours, start);
+  if (day.closed) return "closed";
+  const s = brusselsMinutesOfDay(start);
+  const e = brusselsISODate(start) !== brusselsISODate(end) ? 24 * 60 : brusselsMinutesOfDay(end);
+  if (s < day.start * 60 || e > day.end * 60 || e <= s) return "outside";
+  return null;
+};
+
+/** Message lisible (FR) pour un refus lié aux horaires d'ouverture. */
+export const describeOpeningHoursViolation = (
+  openingHours: unknown,
+  date: Date,
+  violation: OpeningHoursViolation,
+): string => {
+  const label = new Intl.DateTimeFormat("fr-BE", {
+    timeZone: "Europe/Brussels",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(date);
+  if (violation === "closed") return `Le local est fermé le ${label}.`;
+  if (violation === "multi_day") return "Une réservation ne peut pas s'étendre sur plusieurs jours.";
+  const { start, end } = getRoomDayHours(openingHours, date);
+  return `Le ${label}, le local est ouvert de ${start}h à ${end}h.`;
+};

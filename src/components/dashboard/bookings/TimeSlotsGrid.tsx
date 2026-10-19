@@ -15,6 +15,8 @@ interface TimeSlotsGridProps {
   onSlotClick: (slot: Date) => void;
   onBookingClick?: (booking: Booking) => void;
   onActivityClick?: (session: ActivitySessionSlot) => void;
+  /** rooms.opening_hours de la salle affichée (horaires propres à la salle). */
+  openingHours?: unknown;
 }
 
 // Get hour in Europe/Brussels timezone
@@ -63,10 +65,10 @@ const brusselsSlotToUTC = (day: Date, hour: number, minute: number): Date => {
   return new Date(Date.UTC(year, month - 1, dayNum, hour - offset, minute, 0, 0));
 };
 
-const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, onSlotClick, onBookingClick, onActivityClick }: TimeSlotsGridProps) => {
+const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, onSlotClick, onBookingClick, onActivityClick, openingHours }: TimeSlotsGridProps) => {
   const isPastDate = isBefore(startOfDay(selectedDate), startOfDay(new Date()));
-  const timeSlots = useMemo(() => generateTimeSlotsForDate(selectedDate, 30), [selectedDate]);
-  const { start, end } = getOpeningHours(selectedDate);
+  const timeSlots = useMemo(() => generateTimeSlotsForDate(selectedDate, 30, openingHours), [selectedDate, openingHours]);
+  const { start, end, closed: isClosedDay } = getOpeningHours(selectedDate, openingHours);
 
   const isSlotBooked = (slot: Date) => {
     const slotHour = slot.getHours();
@@ -159,7 +161,7 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
             <CardTitle className="font-display text-base">
               {format(selectedDate, "EEEE d MMMM", { locale: fr })}
               <span className="text-xs text-muted-foreground font-normal ml-2">
-                {start}h – {end}h
+                {isClosedDay ? "Fermé" : `${start}h – ${end}h`}
               </span>
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
@@ -190,6 +192,10 @@ const TimeSlotsGrid = ({ selectedDate, bookings, activitySessions = [], rooms, o
         ) : rooms.length === 0 ? (
           <p className="text-muted-foreground text-sm text-center py-8">
             Aucune salle disponible.
+          </p>
+        ) : isClosedDay ? (
+          <p className="text-muted-foreground text-sm text-center py-8">
+            Ce local est fermé ce jour-là.
           </p>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
