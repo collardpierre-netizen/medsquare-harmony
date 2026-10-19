@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { format, addDays, isWeekend } from "date-fns";
+import { format, addDays } from "date-fns";
+import { getRoomDayHours, parseOpeningHours } from "@/lib/roomOpeningHours";
 import { fr } from "date-fns/locale";
 
 interface Booking {
@@ -11,14 +12,18 @@ interface Booking {
 
 interface Props {
   bookings: Booking[];
+  /** rooms.opening_hours de la salle (horaires propres à la salle). */
+  openingHours?: unknown;
 }
 
-// Full range covering both weekday (8-22) and weekend (9-21)
-const ALL_HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 8..21
-
-const getOpeningHours = (date: Date) => {
-  if (isWeekend(date)) return { start: 9, end: 21 };
-  return { start: 8, end: 22 };
+/** Plage d'heures affichée : de la plus tôt à la plus tardive ouverture de la semaine. */
+const computeHourRange = (openingHours: unknown): number[] => {
+  const cfg = parseOpeningHours(openingHours);
+  const open = Object.values(cfg.weekly).filter((d) => !d.closed && d.end > d.start);
+  if (open.length === 0) return [];
+  const min = Math.min(...open.map((d) => d.start));
+  const max = Math.max(...open.map((d) => d.end));
+  return Array.from({ length: max - min }, (_, i) => i + min);
 };
 
 // Brussels timezone offset helper: CET = UTC+1, CEST = UTC+2
@@ -43,7 +48,8 @@ const getBrusselsOffset = (date: Date): number => {
   return (isAfterMarchSwitch && isBeforeOctoberSwitch) ? 2 : 1;
 };
 
-const RoomAvailability = ({ bookings }: Props) => {
+const RoomAvailability = ({ bookings, openingHours }: Props) => {
+  const ALL_HOURS = useMemo(() => computeHourRange(openingHours), [openingHours]);
   const days = useMemo(() => {
     // Create days based on Brussels date (not browser local time)
     const now = new Date();
@@ -107,9 +113,8 @@ const RoomAvailability = ({ bookings }: Props) => {
                 {format(new Date(day.getTime() + getBrusselsOffset(day) * 60 * 60 * 1000), "EEE d MMM", { locale: fr })}
               </td>
               {ALL_HOURS.map((h) => {
-                const brusselsDate = new Date(day.getTime() + getBrusselsOffset(day) * 60 * 60 * 1000);
-                const dayOpening = getOpeningHours(brusselsDate);
-                const inRange = h >= dayOpening.start && h < dayOpening.end;
+                const dayOpening = getRoomDayHours(openingHours, day);
+                const inRange = !dayOpening.closed && h >= dayOpening.start && h < dayOpening.end;
                 const booked = inRange && isSlotBooked(day, h);
                 return (
                   <td key={h} className="px-0.5 py-1.5 text-center">

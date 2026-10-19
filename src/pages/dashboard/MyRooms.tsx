@@ -133,10 +133,10 @@ const MyRooms = () => {
           .eq("status", "scheduled"),
       ]);
 
-      const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
       const newDayData: Record<string, SlotInfo[]> = {};
 
       for (const room of rooms) {
+        const { start: openStart, end: openEnd } = getOpeningHours(selectedDate, (room as any).opening_hours);
         const slots: SlotInfo[] = [];
 
         for (let h = openStart; h < openEnd; h++) {
@@ -227,7 +227,7 @@ const MyRooms = () => {
 
         for (let d = 0; d < 7; d++) {
           const day = addDays(currentWeekStart, d);
-          const { start: openStart, end: openEnd } = getOpeningHours(day);
+          const { start: openStart, end: openEnd } = getOpeningHours(day, (room as any).opening_hours);
           totalSlots += openEnd - openStart;
 
           for (let h = openStart; h < openEnd; h++) {
@@ -297,7 +297,7 @@ const MyRooms = () => {
           let occupied = 0;
           for (let d = 0; d < 7; d++) {
             const day = addDays(start, d);
-            const { start: oS, end: oE } = getOpeningHours(day);
+            const { start: oS, end: oE } = getOpeningHours(day, (room as any).opening_hours);
             total += oE - oS;
             for (let h = oS; h < oE; h++) {
               const slotStart = new Date(day);

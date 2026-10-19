@@ -77,6 +77,8 @@ interface NewBookingDialogProps {
   isAdmin?: boolean;
   practitioners?: Array<{ id: string; first_name: string; last_name: string }>;
   currentProfileId?: string;
+  /** rooms.opening_hours de la salle concernée. */
+  openingHours?: unknown;
 }
 
 /** Visual time pill grid — user taps a pill to pick a time */
@@ -144,6 +146,7 @@ const NewBookingDialog = ({
   isAdmin,
   practitioners,
   currentProfileId,
+  openingHours,
 }: NewBookingDialogProps) => {
   const [bookingType, setBookingType] = useState<BookingType>("hourly");
   const [recurrence, setRecurrence] = useState<RecurrenceType>("none");
@@ -151,7 +154,7 @@ const NewBookingDialog = ({
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
   const [selectedPractitioner, setSelectedPractitioner] = useState<string>("");
 
-  const { start, end } = getOpeningHours(selectedDate);
+  const { start, end, closed: isClosedDay } = getOpeningHours(selectedDate, openingHours);
 
   // Time options
   const allTimeOptions = useMemo(() => generateTimeOptions(start, end), [start, end]);
@@ -258,7 +261,7 @@ const NewBookingDialog = ({
                 {format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}
               </p>
               <p className="text-xs text-muted-foreground">
-                {roomName} • Horaires : {start}h–{end}h
+                {roomName} • {isClosedDay ? "Fermé ce jour-là" : `Horaires : ${start}h–${end}h`}
               </p>
             </div>
           </div>
@@ -475,7 +478,7 @@ const NewBookingDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || (bookingType === "hourly" && durationMinutes < 30)}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || isClosedDay || (bookingType === "hourly" && durationMinutes < 30)}>
             {isSubmitting ? "Création..." : recurrence === "weekly"
               ? `Réserver (${recurrenceWeeks} semaines)`
               : "Réserver"}
