@@ -59,7 +59,7 @@ const EspaceDetail = () => {
 
       const { data: r } = await supabase
         .from("rooms")
-        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
+        .select("id, name, description, capacity, hourly_rate, equipment, photos, pricing, credits_info, opening_hours, is_available, privatized_from, privatized_until, assigned_practitioner_id, assigned_practitioner:profiles!rooms_assigned_practitioner_id_fkey(first_name, last_name)")
         .eq("id", id)
         .maybeSingle();
 
@@ -273,7 +273,7 @@ const EspaceDetail = () => {
               <h2 className="font-display text-xl font-semibold mb-4">
                 Disponibilités (14 prochains jours)
               </h2>
-              <RoomAvailability bookings={bookings} />
+              <RoomAvailability bookings={bookings} openingHours={(room as any).opening_hours} />
             </div>
           </motion.div>
 

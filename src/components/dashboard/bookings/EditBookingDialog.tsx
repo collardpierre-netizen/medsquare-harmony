@@ -39,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getOpeningHours } from "./utils";
+import { checkWithinOpeningHours, describeOpeningHoursViolation } from "@/lib/roomOpeningHours";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   [0, 30].map((m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
@@ -58,7 +59,7 @@ interface EditBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   booking: any | null;
-  rooms: Array<{ id: string; name: string }>;
+  rooms: Array<{ id: string; name: string; opening_hours?: unknown }>;
   practitioners: Array<{ id: string; first_name: string; last_name: string }>;
   onSaved: () => void;
 }
@@ -162,6 +163,16 @@ const EditBookingDialog = ({
       toast({ title: "Horaire invalide", description: "L'heure de fin doit être après l'heure de début.", variant: "destructive" });
       return;
     }
+    const roomOpeningHours = rooms.find((r) => r.id === roomId)?.opening_hours;
+    const hoursViolation = checkWithinOpeningHours(roomOpeningHours, newStart, newEnd);
+    if (hoursViolation) {
+      toast({
+        title: "En dehors des heures d'ouverture",
+        description: describeOpeningHoursViolation(roomOpeningHours, newStart, hoursViolation),
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSaving(true);
 
@@ -201,6 +212,7 @@ const EditBookingDialog = ({
       const bookingsToInsert: any[] = [];
       const bookingDayOfWeek = getDay(newStart);
       const timeDiffMs = newEnd.getTime() - newStart.getTime();
+      let skippedClosed = 0;
 
       for (let w = 0; w < recurrenceWeeks; w++) {
         for (const dayNum of recurrenceDays) {
@@ -213,6 +225,8 @@ const EditBookingDialog = ({
 
           const wStart = addDays(addWeeks(newStart, w), dayOffset);
           const wEnd = new Date(wStart.getTime() + timeDiffMs);
+          // Ignore les occurrences tombant en dehors des heures d'ouverture de la salle
+          if (checkWithinOpeningHours(roomOpeningHours, wStart, wEnd)) { skippedClosed++; continue; }
 
           bookingsToInsert.push({
             room_id: roomId,
@@ -233,7 +247,10 @@ const EditBookingDialog = ({
         if (recError) {
           toast({ title: "Réservation mise à jour mais récurrence échouée", description: recError.message, variant: "destructive" });
         } else {
-          toast({ title: `Réservation mise à jour + ${bookingsToInsert.length} récurrences créées ✓` });
+          toast({
+            title: `Réservation mise à jour + ${bookingsToInsert.length} récurrences créées ✓`,
+            ...(skippedClosed > 0 ? { description: `${skippedClosed} occurrence(s) ignorée(s) : en dehors des heures d'ouverture.` } : {}),
+          });
         }
       } else {
         toast({ title: "Réservation mise à jour ✓" });
@@ -534,7 +551,7 @@ const EditBookingDialog = ({
                 size="sm"
                 className="text-xs"
                 onClick={() => {
-                  const { start: openStart, end: openEnd } = getOpeningHours(new Date(date));
+                  const { start: openStart, end: openEnd } = getOpeningHours(new Date(date), rooms.find((r) => r.id === roomId)?.opening_hours);
                   setStartTime(`${String(openStart).padStart(2, "0")}:00`);
                   setEndTime(`${String(openEnd).padStart(2, "0")}:00`);
                   setNotes(notes ? notes + " [Privatisé]" : "[Privatisé]");

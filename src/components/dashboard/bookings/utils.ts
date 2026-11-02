@@ -1,4 +1,5 @@
-import { setHours, setMinutes, addMinutes, isBefore, isWeekend } from "date-fns";
+import { getRoomDayHours } from "@/lib/roomOpeningHours";
+import { setHours, setMinutes, addMinutes, isBefore } from "date-fns";
 
 export interface Booking {
   id: string;
@@ -33,13 +34,15 @@ export interface ActivitySessionSlot {
   };
 }
 
-/** Returns opening hours based on day type */
-export const getOpeningHours = (date: Date) => {
-  if (isWeekend(date)) {
-    return { start: 9, end: 21 };
-  }
-  return { start: 8, end: 22 };
-};
+/**
+ * Plages d'ouverture d'un jour donné.
+ * Si `roomOpeningHours` (rooms.opening_hours) est fourni, les horaires propres
+ * à la salle (grille hebdo + périodes exceptionnelles) sont utilisés ; sinon
+ * fallback sur les horaires par défaut (8h–22h en semaine, 9h–21h le week-end).
+ * Un jour fermé renvoie { closed: true, start: 0, end: 0 }.
+ */
+export const getOpeningHours = (date: Date, roomOpeningHours?: unknown) =>
+  getRoomDayHours(roomOpeningHours, date);
 
 export const generateTimeSlots = (
   startHour: number,
@@ -58,7 +61,7 @@ export const generateTimeSlots = (
 };
 
 /** Generate time slots for a specific date, respecting weekday/weekend hours */
-export const generateTimeSlotsForDate = (date: Date, interval: number) => {
-  const { start, end } = getOpeningHours(date);
+export const generateTimeSlotsForDate = (date: Date, interval: number, roomOpeningHours?: unknown) => {
+  const { start, end } = getOpeningHours(date, roomOpeningHours);
   return generateTimeSlots(start, end, interval);
 };

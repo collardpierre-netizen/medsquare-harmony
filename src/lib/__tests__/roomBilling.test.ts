@@ -89,8 +89,8 @@ describe("plages d'ouverture", () => {
 
   it("retombe sur les horaires par défaut sans configuration", () => {
     const noConfig: BillingRoom = { ...roomA, opening_hours: null };
-    // Lun-Ven 8h-22h (14h) + Sam-Dim 9h-21h (12h)
-    expect(roomOpenHours(noConfig, week)).toBe(5 * 14 + 2 * 12);
+    // Lun-Ven 9h-22h (13h) + Sam-Dim 9h-21h (12h)
+    expect(roomOpenHours(noConfig, week)).toBe(5 * 13 + 2 * 12);
   });
 });
 

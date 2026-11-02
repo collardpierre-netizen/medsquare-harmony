@@ -23,6 +23,7 @@ import ActivityDetailDialog from "@/components/dashboard/bookings/ActivityDetail
 import MyPlanningView from "@/components/dashboard/bookings/MyPlanningView";
 import AllRoomsOverview from "@/components/dashboard/bookings/AllRoomsOverview";
 import { getOpeningHours, type Booking, type ActivitySessionSlot } from "@/components/dashboard/bookings/utils";
+import { checkWithinOpeningHours, describeOpeningHoursViolation } from "@/lib/roomOpeningHours";
 import MyRoomsView from "@/components/dashboard/bookings/MyRoomsView";
 import type { BookingType, RecurrenceType } from "@/components/dashboard/bookings/NewBookingDialog";
 
@@ -207,7 +208,8 @@ const Bookings = () => {
     }
 
     const { bookingType, recurrence, recurrenceWeeks, recurrenceDays, startHour, startMinute, endHour, endMinute } = options;
-    const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
+    const roomOpeningHours = rooms.find((r: any) => r.id === selectedRoom)?.opening_hours;
+    const { start: openStart, end: openEnd } = getOpeningHours(selectedDate, roomOpeningHours);
 
     const insertRows: any[] = [];
     const bookingsToCreate: Array<{ startTime: Date; endTime: Date; week: number }> = [];
@@ -227,7 +229,7 @@ const Bookings = () => {
           let endTime: Date;
 
           if (bookingType === "full_day") {
-            const dayHours = getOpeningHours(baseDate);
+            const dayHours = getOpeningHours(baseDate, roomOpeningHours);
             startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
             endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
           } else {
@@ -257,7 +259,7 @@ const Bookings = () => {
         let endTime: Date;
 
         if (bookingType === "full_day") {
-          const dayHours = getOpeningHours(baseDate);
+          const dayHours = getOpeningHours(baseDate, roomOpeningHours);
           startTime = setMinutes(setHours(new Date(baseDate), dayHours.start), 0);
           endTime = setMinutes(setHours(new Date(baseDate), dayHours.end), 0);
         } else {
@@ -275,6 +277,22 @@ const Bookings = () => {
           ...(groupId ? { recurrence_group_id: groupId } : {}),
         });
       }
+    }
+
+    // Respect des horaires d'ouverture propres à la salle (grille + périodes exceptionnelles)
+    const hoursViolations: string[] = [];
+    for (const b of bookingsToCreate) {
+      const v = checkWithinOpeningHours(roomOpeningHours, b.startTime, b.endTime);
+      if (v) hoursViolations.push(describeOpeningHoursViolation(roomOpeningHours, b.startTime, v));
+    }
+    if (hoursViolations.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "En dehors des heures d'ouverture",
+        description: Array.from(new Set(hoursViolations)).slice(0, 3).join(" "),
+      });
+      setIsSubmitting(false);
+      return;
     }
 
     // Check for conflicts (bookings + activity sessions)
@@ -730,6 +748,7 @@ const Bookings = () => {
                 bookings={bookings}
                 activitySessions={activitySessions}
                 rooms={rooms}
+                openingHours={rooms.find((r: any) => r.id === selectedRoom)?.opening_hours}
                 onSlotClick={handleSlotClick}
                 onBookingClick={handleBookingClick}
                 onActivityClick={handleActivityClick}
@@ -755,6 +774,7 @@ const Bookings = () => {
         isAdmin={isAdmin}
         practitioners={practitioners}
         currentProfileId={profile?.id}
+        openingHours={rooms.find((r: any) => r.id === selectedRoom)?.opening_hours}
       />
 
       {/* Cancel booking dialog */}

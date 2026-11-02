@@ -110,9 +110,9 @@ const MyRoomsView = () => {
         supabase.from("activity_sessions").select("room_id, start_time, end_time, activities(title)")
           .in("room_id", roomIds).gte("start_time", dayStart).lt("start_time", dayEnd).eq("status", "scheduled"),
       ]);
-      const { start: openStart, end: openEnd } = getOpeningHours(selectedDate);
       const newDayData: Record<string, SlotInfo[]> = {};
       for (const room of rooms) {
+        const { start: openStart, end: openEnd } = getOpeningHours(selectedDate, (room as any).opening_hours);
         const slots: SlotInfo[] = [];
         for (let h = openStart; h < openEnd; h++) {
           const slotStart = new Date(selectedDate); slotStart.setHours(h, 0, 0, 0);
@@ -149,7 +149,7 @@ const MyRoomsView = () => {
         let totalSlots = 0, occupiedSlots = 0;
         for (let d = 0; d < 7; d++) {
           const day = addDays(currentWeekStart, d);
-          const { start: openStart, end: openEnd } = getOpeningHours(day);
+          const { start: openStart, end: openEnd } = getOpeningHours(day, (room as any).opening_hours);
           const daySlots = openEnd - openStart;
           totalSlots += daySlots;
           // Privatized rooms count as 100% occupied for that day
@@ -193,7 +193,7 @@ const MyRoomsView = () => {
           let total = 0, occupied = 0;
           for (let d = 0; d < 7; d++) {
             const day = addDays(start, d);
-            const { start: oS, end: oE } = getOpeningHours(day);
+            const { start: oS, end: oE } = getOpeningHours(day, (room as any).opening_hours);
             const daySlots = oE - oS;
             total += daySlots;
             // Privatized rooms count as 100% occupied for that day
