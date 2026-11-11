@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Geist:wght@300..700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    --background: 40 30% 98%;
-    --foreground: 220 20% 15%;
+    --background: 45 20% 97%;
+    --foreground: 160 15% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card-foreground: 160 15% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 15%;
+    --popover-foreground: 160 15% 10%;
 
-    --primary: 160 93% 16%;
+    --primary: 158 42% 20%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 30% 93%;
-    --secondary-foreground: 220 20% 15%;
+    --secondary: 42 22% 92%;
+    --secondary-foreground: 160 15% 10%;
 
-    --muted: 35 15% 94%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 42 18% 93%;
+    --muted-foreground: 160 6% 38%;
 
-    --accent: 160 30% 92%;
-    --accent-foreground: 160 90% 14%;
+    --accent: 150 18% 91%;
+    --accent-foreground: 158 42% 18%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -36,32 +36,32 @@
     --success: 142 71% 38%;
     --success-foreground: 0 0% 100%;
 
-    --border: 35 15% 88%;
-    --input: 35 15% 88%;
-    --ring: 160 93% 16%;
+    --border: 40 12% 86%;
+    --input: 40 12% 86%;
+    --ring: 158 42% 20%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 40 20% 97%;
     --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 160 93% 16%;
+    --sidebar-primary: 158 42% 20%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 160 25% 93%;
     --sidebar-accent-foreground: 160 90% 14%;
     --sidebar-border: 35 15% 90%;
-    --sidebar-ring: 160 93% 16%;
+    --sidebar-ring: 158 42% 20%;
 
     /* Chart colors */
-    --chart-1: 160 93% 16%;
+    --chart-1: 158 42% 20%;
     --chart-2: 25 95% 53%;
     --chart-3: 200 80% 50%;
     --chart-4: 280 65% 55%;
     --chart-5: 45 93% 47%;
 
     /* Custom tokens */
-    --warm: 35 40% 96%;
-    --sage: 133 20% 70%;
-    --sage-dark: 160 90% 14%;
+    --warm: 42 30% 94%;
+    --sage: 140 22% 72%;
+    --sage-dark: 158 42% 18%;
   }
 
   .dark {
@@ -129,18 +129,25 @@
     @apply bg-background text-foreground font-sans;
   }
 
+  body {
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Newsreader', Georgia, serif;
+    letter-spacing: -0.015em;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Newsreader', Georgia, serif;
+    letter-spacing: -0.015em;
   }
 
   .font-body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', system-ui, sans-serif;
   }
 }
 

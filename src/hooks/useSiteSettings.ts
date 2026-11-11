@@ -72,22 +72,22 @@ export interface SiteSettings {
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   hero: {
-    badge: "Centre médical pluridisciplinaire",
-    title: "Votre santé, notre",
-    titleAccent: "priorité",
-    subtitle: "Un espace de soins chaleureux où des praticiens passionnés vous accompagnent avec expertise et bienveillance.",
-    ctaPrimary: "Découvrir nos praticiens",
+    badge: "Centre paramédical",
+    title: "Soins, thérapies et cours,",
+    titleAccent: "sous un même toit.",
+    subtitle: "Psychologues, kinésiologues, massothérapeutes, pédicures, professeurs de yoga et de pilates : on vient pour un rendez-vous, on revient pour un cours.",
+    ctaPrimary: "Trouver un praticien",
     ctaSecondary: "Nous contacter",
   },
   why: {
-    badge: "Nos valeurs",
-    title: "Pourquoi choisir Medsquare ?",
-    subtitle: "Un centre médical pensé pour votre confort et votre bien-être.",
+    badge: "Le centre",
+    title: "Concrètement, ce qui change.",
+    subtitle: "Un centre paramédical à Meslin-l'Évêque, à deux pas d'Ath, pensé pour les soins comme pour le mouvement.",
     features: [
-      { icon: "Heart", title: "Approche humaine", description: "Chaque patient est unique. Nos praticiens prennent le temps de vous écouter et de vous accompagner." },
-      { icon: "Users", title: "Équipe pluridisciplinaire", description: "Une synergie entre professionnels de santé pour une prise en charge globale et coordonnée." },
-      { icon: "Shield", title: "Excellence médicale", description: "Des praticiens qualifiés, formés aux dernières avancées, dans un environnement moderne." },
-      { icon: "Clock", title: "Accessibilité", description: "Des horaires flexibles et un accueil attentif pour s'adapter à votre emploi du temps." },
+      { icon: "Users", title: "Plusieurs disciplines, un seul lieu", description: "Psychologie, kinésiologie, massages, pédicure, yoga, pilates… Quand un suivi demande plusieurs approches, tout se passe au même endroit." },
+      { icon: "Shield", title: "Parking sur place", description: "Un grand parking au pied du centre, avec des places réservées aux personnes à mobilité réduite." },
+      { icon: "Clock", title: "Ouvert tard, et le week-end", description: "Du lundi au vendredi de 8h à 22h, le samedi et le dimanche de 9h à 21h. De quoi caser une séance après le travail." },
+      { icon: "Heart", title: "Une salle de 60 m²", description: "Lumineuse, entourée de baies vitrées, avec vestiaires et douche : cours collectifs, ateliers et conférences jusqu'à 50 personnes." },
     ],
   },
   testimonials: {
@@ -101,8 +101,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     ],
   },
   contact: {
-    title: "Une question ? Contactez-nous.",
-    subtitle: "Notre équipe est à votre disposition pour répondre à toutes vos questions.",
+    title: "À deux pas d'Ath, avec parking sur place.",
+    subtitle: "Une question sur un praticien, une salle ou un cours ? Appelez-nous ou passez au centre.",
     phone: "+32 498 64 41 30",
     email: "medsquare7822@gmail.com",
   },

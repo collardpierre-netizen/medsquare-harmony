@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { supabase } from "@/integrations/supabase/client";
 import heroImage1 from "@/assets/hero-centre.jpg";
 import heroImage2 from "@/assets/hero-gallery-2.jpg";
 import heroImage3 from "@/assets/hero-gallery-3.jpg";
@@ -11,105 +12,158 @@ import heroImage4 from "@/assets/hero-gallery-4.jpg";
 
 const defaultImages = [
   { src: heroImage1, alt: "Intérieur du centre Medsquare", specialty: "" },
-  { src: heroImage2, alt: "Accueil chaleureux du centre", specialty: "" },
-  { src: heroImage3, alt: "Salle de consultation moderne", specialty: "" },
-  { src: heroImage4, alt: "Espace yoga et bien-être", specialty: "" },
+  { src: heroImage2, alt: "Accueil du centre", specialty: "" },
+  { src: heroImage3, alt: "Cabinet de consultation", specialty: "" },
+  { src: heroImage4, alt: "Salle polyvalente", specialty: "" },
 ];
 
-const INTERVAL = 6000;
+const INTERVAL = 6500;
+const pad = (n: number) => String(n).padStart(2, "0");
 
 const HeroSection = () => {
   const [current, setCurrent] = useState(0);
+  const [counts, setCounts] = useState<{ practitioners: number | null; rooms: number | null }>({
+    practitioners: null,
+    rooms: null,
+  });
   const { settings } = useSiteSettings();
   const hero = settings.hero;
 
   const images = useMemo(() => {
     if (hero.images && hero.images.length > 0) {
-      return hero.images.map((img) => ({ src: img.url, alt: img.alt, specialty: img.specialty || "" }));
+      return hero.images.map((img) => ({ src: img.url, alt: img.alt || "Medsquare", specialty: img.specialty || "" }));
     }
     return defaultImages;
   }, [hero.images]);
 
-  const next = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % images.length);
-  }, [images.length]);
+  const go = useCallback(
+    (dir: 1 | -1) => setCurrent((prev) => (prev + dir + images.length) % images.length),
+    [images.length],
+  );
+
+  useEffect(() => setCurrent(0), [images]);
 
   useEffect(() => {
-    setCurrent(0);
-  }, [images]);
-
-  useEffect(() => {
-    const timer = setInterval(next, INTERVAL);
+    const timer = setInterval(() => go(1), INTERVAL);
     return () => clearInterval(timer);
-  }, [next]);
+  }, [go, current]);
+
+  useEffect(() => {
+    (async () => {
+      const [p, r] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("rooms").select("id", { count: "exact", head: true }).eq("is_available", true),
+      ]);
+      setCounts({ practitioners: p.count ?? null, rooms: r.count ?? null });
+    })();
+  }, []);
+
+  const facts = [
+    { value: counts.practitioners ? String(counts.practitioners) : "—", label: "praticiens installés" },
+    { value: counts.rooms ? String(counts.rooms) : "—", label: "cabinets & salle" },
+    { value: "7j/7", label: "jusqu'à 22h en semaine" },
+  ];
+
+  const img = images[current];
 
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={current}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
-          className="absolute inset-0"
-        >
-          <img src={images[current].src} alt={images[current].alt} className="w-full h-full object-cover" />
-        </motion.div>
-      </AnimatePresence>
+    <section className="pt-8 pb-16 md:pt-14 md:pb-24">
+      <div className="container mx-auto px-4">
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+          {/* Texte */}
+          <div className="lg:col-span-5 order-2 lg:order-1">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              {hero.badge} · Meslin-l'Évêque, Ath
+            </p>
 
-      <div className="absolute inset-0 bg-gradient-to-r from-foreground/80 via-foreground/50 to-transparent z-[1]" />
+            <h1 className="font-display font-normal text-[2.75rem] leading-[1.02] md:text-6xl xl:text-7xl tracking-tight mb-6 text-balance">
+              {hero.title} <em className="text-primary">{hero.titleAccent}</em>
+            </h1>
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-2xl">
-          <motion.span initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="inline-block text-sage text-sm font-medium tracking-widest uppercase mb-4">
-            {hero.badge}
-          </motion.span>
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-md mb-8">{hero.subtitle}</p>
 
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-            {hero.title}{" "}
-            <span className="text-sage italic">{hero.titleAccent}</span>
-          </motion.h1>
-
-          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="text-white/80 text-lg md:text-xl leading-relaxed mb-8">
-            {hero.subtitle}
-          </motion.p>
-
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="flex flex-col sm:flex-row gap-4">
-            <Link to="/praticiens">
-              <Button size="lg" className="text-base px-8">{hero.ctaPrimary}</Button>
-            </Link>
-            <Link to="/contact">
-              <Button variant="outline" size="lg" className="text-base px-8 border-white text-white bg-white/10 hover:bg-white/20 hover:text-white">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <Link to="/praticiens">
+                <Button size="lg" className="h-12 px-6 rounded-full text-[15px]">
+                  {hero.ctaPrimary}
+                </Button>
+              </Link>
+              <Link
+                to="/contact"
+                className="group inline-flex items-center gap-1.5 text-[15px] font-medium underline-offset-4 hover:underline"
+              >
                 {hero.ctaSecondary}
-              </Button>
-            </Link>
-          </motion.div>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+
+            <dl className="grid grid-cols-3 gap-4 mt-12 pt-6 border-t border-border">
+              {facts.map((f) => (
+                <div key={f.label}>
+                  <dt className="sr-only">{f.label}</dt>
+                  <dd className="font-display text-3xl md:text-4xl leading-none">{f.value}</dd>
+                  <dd className="text-xs md:text-sm text-muted-foreground mt-2 leading-snug">{f.label}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {/* Image */}
+          <div className="lg:col-span-7 order-1 lg:order-2">
+            <div className="relative aspect-[4/3] lg:aspect-[5/4] overflow-hidden rounded-lg bg-muted">
+              <AnimatePresence initial={false}>
+                <motion.img
+                  key={img.src}
+                  src={img.src}
+                  alt={img.alt}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.9, ease: "easeInOut" }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </AnimatePresence>
+
+              <div className="absolute inset-x-0 bottom-0 p-4 md:p-5 flex items-end justify-between gap-4 bg-gradient-to-t from-black/45 to-transparent">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={`sp-${current}`}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-white text-sm md:text-[15px] max-w-[70%] leading-snug"
+                  >
+                    {img.specialty || img.alt}
+                  </motion.p>
+                </AnimatePresence>
+
+                {images.length > 1 && (
+                  <div className="flex items-center gap-1 text-white shrink-0">
+                    <button
+                      onClick={() => go(-1)}
+                      aria-label="Image précédente"
+                      className="h-9 w-9 grid place-items-center rounded-full hover:bg-white/15 transition-colors"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-xs tabular-nums w-12 text-center">
+                      {pad(current + 1)} / {pad(images.length)}
+                    </span>
+                    <button
+                      onClick={() => go(1)}
+                      aria-label="Image suivante"
+                      className="h-9 w-9 grid place-items-center rounded-full hover:bg-white/15 transition-colors"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Specialty pills — positioned above dots, below CTA on mobile */}
-      <div className="absolute bottom-14 sm:bottom-20 right-4 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-10 flex flex-wrap justify-end sm:justify-center gap-2 max-w-[200px] sm:max-w-3xl">
-        <AnimatePresence mode="wait">
-          {images[current].specialty && (
-            <motion.span
-              key={`specialty-${current}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4 }}
-              className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm font-medium text-white shadow-lg"
-            >
-              {images[current].specialty}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
-        {images.map((_, idx) => (
-          <button key={idx} onClick={() => setCurrent(idx)} className={cn("h-2 rounded-full transition-all duration-500", idx === current ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/60")} aria-label={`Voir image ${idx + 1}`} />
-        ))}
       </div>
     </section>
   );

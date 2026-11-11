@@ -104,10 +104,10 @@ const Contact = () => {
             transition={{ duration: 0.5 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <span className="text-primary text-sm font-medium tracking-widest uppercase">
+            <span className="text-sm text-muted-foreground">
               Contact
             </span>
-            <h1 className="font-display text-4xl md:text-5xl font-bold mt-3 mb-6">
+            <h1 className="font-display text-4xl md:text-5xl font-normal tracking-tight mt-3 mb-6">
               Contactez-nous
             </h1>
             <p className="text-muted-foreground text-lg leading-relaxed">
@@ -255,7 +255,7 @@ const Contact = () => {
               transition={{ duration: 0.5 }}
               className="text-center mb-12"
             >
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
+              <h2 className="font-display text-3xl md:text-4xl font-normal tracking-tight mb-4">
                 Questions fréquentes
               </h2>
               <p className="text-muted-foreground text-lg">

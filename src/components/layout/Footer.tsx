@@ -45,12 +45,12 @@ const Footer = () => {
           <div>
             <img src="/logo-medsquare.png" alt="Medsquare" className="h-12 w-auto mb-4 brightness-0 invert" />
             <p className="text-background/70 text-sm leading-relaxed mb-6">
-              Un centre médical pluridisciplinaire dédié à votre bien-être, 
-              dans un cadre chaleureux et professionnel.
+              Centre paramédical pluridisciplinaire à Meslin-l'Évêque (Ath) :
+              cabinets de consultation, salle polyvalente et cours collectifs.
             </p>
             {/* Social Links */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-background/50 mb-3">
+              <p className="text-sm text-background/50 mb-3">
                 Suivez-nous
               </p>
               <div className="flex items-center gap-2 flex-wrap">
@@ -61,7 +61,7 @@ const Footer = () => {
                       href={socials[key]}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 hover:bg-background/20 text-background/80 hover:text-background transition-all"
+                      className="flex items-center justify-center h-9 w-9 rounded-full bg-background/10 hover:bg-background/20 text-background/80 hover:text-background transition-all"
                       aria-label={label}
                     >
                       <Icon className="h-4 w-4" />
@@ -69,9 +69,9 @@ const Footer = () => {
                   ))
                 ) : (
                   <>
-                    <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 text-background/30"><Facebook className="h-4 w-4" /></span>
-                    <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 text-background/30"><Instagram className="h-4 w-4" /></span>
-                    <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-background/10 text-background/30"><Linkedin className="h-4 w-4" /></span>
+                    <span className="flex items-center justify-center h-9 w-9 rounded-full bg-background/10 text-background/30"><Facebook className="h-4 w-4" /></span>
+                    <span className="flex items-center justify-center h-9 w-9 rounded-full bg-background/10 text-background/30"><Instagram className="h-4 w-4" /></span>
+                    <span className="flex items-center justify-center h-9 w-9 rounded-full bg-background/10 text-background/30"><Linkedin className="h-4 w-4" /></span>
                   </>
                 )}
               </div>
@@ -80,13 +80,14 @@ const Footer = () => {
 
           {/* Navigation */}
           <div>
-            <h4 className="font-display text-lg font-semibold mb-4">Navigation</h4>
+            <h4 className="font-sans text-sm font-normal tracking-normal text-background/50 mb-4">Navigation</h4>
             <ul className="space-y-2">
               {[
                 { label: "Accueil", href: "/" },
                 { label: "Le Centre", href: "/centre" },
-                { label: "Nos Praticiens", href: "/praticiens" },
-                { label: "Nos Espaces", href: "/espaces" },
+                { label: "Praticiens", href: "/praticiens" },
+                { label: "Espaces", href: "/espaces" },
+                { label: "Activités", href: "/activites" },
                 { label: "Contact", href: "/contact" },
               ].map((link) => (
                 <li key={link.href}>
@@ -103,15 +104,15 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
-            <h4 className="font-display text-lg font-semibold mb-4">Contact</h4>
+            <h4 className="font-sans text-sm font-normal tracking-normal text-background/50 mb-4">Contact</h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <Phone className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>+32 498 64 41 30</span>
+                <a href="tel:+32498644130" className="hover:text-background transition-colors">+32 498 64 41 30</a>
               </li>
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <Mail className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>medsquare7822@gmail.com</span>
+                <a href="mailto:medsquare7822@gmail.com" className="hover:text-background transition-colors break-all">medsquare7822@gmail.com</a>
               </li>
               <li className="flex items-start gap-3 text-sm text-background/70">
                 <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
@@ -122,7 +123,7 @@ const Footer = () => {
 
           {/* Horaires */}
           <div>
-            <h4 className="font-display text-lg font-semibold mb-4">Horaires</h4>
+            <h4 className="font-sans text-sm font-normal tracking-normal text-background/50 mb-4">Horaires</h4>
             <ul className="space-y-2 text-sm text-background/70">
               <li className="flex justify-between">
                 <span>Lun - Ven</span>
@@ -136,10 +137,11 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-background/10 text-center">
+        <div className="mt-12 pt-8 border-t border-background/10 flex flex-col sm:flex-row justify-between gap-2">
           <p className="text-background/50 text-sm">
-            © {new Date().getFullYear()} Medsquare. Tous droits réservés.
+            © {new Date().getFullYear()} MedSquare SRL
           </p>
+          <p className="text-background/50 text-sm">25 rue de la Procession, 7822 Meslin-l'Évêque</p>
         </div>
       </div>
     </footer>

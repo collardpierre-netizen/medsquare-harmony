@@ -1,24 +1,20 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
-import { Heart, Target, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const values = [
   {
-    icon: Heart,
-    title: "Bienveillance",
-    description: "Chaque personne est accueillie avec respect, empathie et attention.",
+    title: "Des métiers qui se complètent",
+    description: "Psychologues, thérapeutes manuels, enseignants de yoga ou de pilates : chacun garde sa pratique, tous partagent le lieu.",
   },
   {
-    icon: Target,
-    title: "Excellence",
-    description: "Nous visons les plus hauts standards de qualité dans tous nos soins.",
+    title: "Des espaces faits pour soigner",
+    description: "Cabinets fermés au rez-de-chaussée et à l'étage, tables d'examen motorisées, une salle de 60 m² pour les cours collectifs.",
   },
   {
-    icon: Eye,
-    title: "Transparence",
-    description: "Une communication claire et honnête avec chacun de nos patients.",
+    title: "Facile d'accès",
+    description: "Un grand parking sur place, des cabinets de plain-pied, ouvert jusqu'à 22h en semaine et tout le week-end.",
   },
 ];
 
@@ -79,10 +75,10 @@ const Centre = () => {
             transition={{ duration: 0.5 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <span className="text-primary text-sm font-medium tracking-widest uppercase">
+            <span className="text-sm text-muted-foreground">
               Notre centre
             </span>
-            <h1 className="font-display text-4xl md:text-5xl font-bold mt-3 mb-6">
+            <h1 className="font-display text-4xl md:text-5xl font-normal tracking-tight mt-3 mb-6">
               Un lieu de soins pensé pour vous
             </h1>
             <p className="text-muted-foreground text-lg leading-relaxed">
@@ -98,9 +94,9 @@ const Centre = () => {
       <section className="py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">Nos valeurs</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-normal tracking-tight mb-4">Nos valeurs</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Les principes qui guident notre pratique au quotidien.
+              Trois choses qu'on a voulu bien faire dès le départ.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -111,12 +107,10 @@ const Centre = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="text-center"
+                className="border-t border-foreground/15 pt-6"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent mb-5">
-                  <value.icon className="h-7 w-7 text-accent-foreground" />
-                </div>
-                <h3 className="font-display text-xl font-semibold mb-3">{value.title}</h3>
+                <span className="text-xs tabular-nums text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
+                <h3 className="font-display text-2xl mt-3 mb-2">{value.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{value.description}</p>
               </motion.div>
             ))}
@@ -128,7 +122,7 @@ const Centre = () => {
       <section className="py-20 md:py-28 bg-warm">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">Nos espaces</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-normal tracking-tight mb-4">Nos espaces</h2>
             <p className="text-muted-foreground text-lg">
               Découvrez notre centre en images.
             </p>
@@ -141,7 +135,7 @@ const Centre = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="overflow-hidden rounded-xl"
+                className="overflow-hidden rounded-lg"
               >
                 <img
                   src={img.url}
@@ -160,7 +154,7 @@ const Centre = () => {
         <section className="py-20 md:py-28">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
-              <div className="relative w-full rounded-xl overflow-hidden shadow-md" style={{ paddingBottom: "56.25%" }}>
+              <div className="relative w-full rounded-lg overflow-hidden " style={{ paddingBottom: "56.25%" }}>
                 <iframe
                   src={videoUrl}
                   className="absolute inset-0 w-full h-full"
@@ -180,12 +174,12 @@ const Centre = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">Nous trouver</h2>
+              <h2 className="font-display text-3xl md:text-4xl font-normal tracking-tight mb-4">Nous trouver</h2>
               <p className="text-muted-foreground text-lg">
                 25 rue de la Procession, 7822 Meslin-l'Évêque
               </p>
             </div>
-            <div className="rounded-xl overflow-hidden shadow-md">
+            <div className="rounded-lg overflow-hidden ">
               <iframe
                 src="https://www.google.com/maps?q=Rue+de+la+Procession+25,+7822+Meslin-l%27%C3%89v%C3%AAque,+Belgium&output=embed"
                 width="100%"
