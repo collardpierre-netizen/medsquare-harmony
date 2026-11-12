@@ -116,6 +116,7 @@ const Activities = () => {
   const { profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [activities, setActivities] = useState<any[]>([]);
+  const [minPrices, setMinPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -255,6 +256,25 @@ const Activities = () => {
     const { data } = await query;
     setActivities(data || []);
 
+    // Fetch active price tiers so the card shows the real price ("Dès X €")
+    if (data && data.length > 0) {
+      const { data: pricesData } = await supabase
+        .from("activity_prices")
+        .select("activity_id, price")
+        .in("activity_id", data.map((a: any) => a.id))
+        .eq("is_active", true);
+      const minByActivity: Record<string, number> = {};
+      (pricesData || []).forEach((p: any) => {
+        const v = Number(p.price);
+        if (minByActivity[p.activity_id] === undefined || v < minByActivity[p.activity_id]) {
+          minByActivity[p.activity_id] = v;
+        }
+      });
+      setMinPrices(minByActivity);
+    } else {
+      setMinPrices({});
+    }
+
     // Fetch sessions for all activities
     if (data && data.length > 0) {
       const ids = data.map((a: any) => a.id);
@@ -341,6 +361,40 @@ const Activities = () => {
         toast({ variant: "destructive", title: "Erreur", description: error.message });
       } else {
         toast({ title: "Activité créée !" });
+      }
+    }
+
+    // Remove future sessions that fall outside the activity period (start/end date)
+    // and have no active registration. Without this, sessions generated before a
+    // start date was set stay open for booking (e.g. weekly sessions before the 1st day).
+    if (editingId && (startDateVal || endDateVal)) {
+      const nowIso = new Date().toISOString();
+      const { data: futureSessions } = await supabase
+        .from("activity_sessions")
+        .select("id, start_time, activity_registrations(id, status)")
+        .eq("activity_id", editingId)
+        .gte("start_time", nowIso);
+      const toBrusselsDate = (iso: string) =>
+        new Date(iso).toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
+      const outOfRange = (futureSessions || []).filter((s: any) => {
+        const d = toBrusselsDate(s.start_time);
+        return (startDateVal && d < startDateVal) || (endDateVal && d > endDateVal);
+      });
+      const deletable = outOfRange.filter(
+        (s: any) => !(s.activity_registrations || []).some((r: any) => r.status !== "cancelled")
+      );
+      if (deletable.length > 0) {
+        const { error: delError } = await supabase
+          .from("activity_sessions")
+          .delete()
+          .in("id", deletable.map((s: any) => s.id));
+        if (delError) console.error("Error removing out-of-period sessions:", delError);
+      }
+      if (outOfRange.length > deletable.length) {
+        toast({
+          title: "Séances hors période conservées",
+          description: `${outOfRange.length - deletable.length} séance(s) en dehors des dates ont déjà des inscrits : supprimez-les manuellement si nécessaire.`,
+        });
       }
     }
 
@@ -591,7 +645,13 @@ const Activities = () => {
                             {activity.max_participants} places max
                           </span>
                           <Badge variant={activity.is_free ? "secondary" : "default"} className="text-[10px]">
-                            {activity.is_free ? "Gratuit" : `${activity.price ?? "—"} €`}
+                            {activity.is_free
+                              ? "Gratuit"
+                              : minPrices[activity.id] !== undefined
+                                ? `Dès ${minPrices[activity.id]} €`
+                                : activity.price != null
+                                  ? `${activity.price} €`
+                                  : "Tarif à définir"}
                           </Badge>
                           {activity.booking_enabled && (
                             <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
