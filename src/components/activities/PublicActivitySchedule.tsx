@@ -47,7 +47,9 @@ const PublicActivitySchedule = ({ selectedCategory, search }: Props) => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const { data } = await supabase
       .from("activity_sessions")
-      .select("*, rooms(name), activities!inner(title, category, description, is_free, price, end_date, profiles(first_name, last_name))")
+      .select("*, rooms(name), activities!inner(title, category, description, is_free, price, end_date, is_active, profiles!inner(first_name, last_name, is_active))")
+      .eq("activities.is_active", true)
+      .eq("activities.profiles.is_active", true)
       .gte("start_time", startOfDay(weekStart).toISOString())
       .lt("start_time", weekEnd.toISOString())
       .in("status", ["scheduled", "full"])

@@ -129,10 +129,11 @@ const ActiviteDetail = () => {
       const { data: act } = await supabase
         .from("activities")
         .select(
-        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, start_date, end_date, profiles(id, first_name, last_name, specialty, avatar_url)"
+        "id, title, description, category, duration_minutes, max_participants, photo_url, photos, is_free, price, location, booking_enabled, external_registration_url, recurrence, start_date, end_date, profiles!inner(id, first_name, last_name, specialty, avatar_url, is_active)"
         )
         .eq("id", id)
         .eq("is_active", true)
+        .eq("profiles.is_active", true)
         .maybeSingle();
 
       if (!act) {

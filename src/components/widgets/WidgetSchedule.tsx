@@ -40,7 +40,9 @@ const WidgetSchedule = ({ config }: { config: WidgetConfig }) => {
 
       const { data: sessionsData } = await supabase
         .from("activity_sessions")
-        .select("id, start_time, end_time, max_participants, status, activity_id, activities!inner(end_date)")
+        .select("id, start_time, end_time, max_participants, status, activity_id, activities!inner(end_date, is_active, profiles!inner(is_active))")
+        .eq("activities.is_active", true)
+        .eq("activities.profiles.is_active", true)
         .gte("start_time", weekStart.toISOString())
         .lt("start_time", weekEnd.toISOString())
         .eq("status", "scheduled")

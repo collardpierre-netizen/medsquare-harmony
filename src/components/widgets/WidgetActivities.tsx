@@ -72,8 +72,9 @@ const WidgetActivities = ({ config }: { config: WidgetConfig }) => {
     const fetch = async () => {
       const { data } = await supabase
         .from("activities")
-        .select("id, title, category, description, photo_url, photos, duration_minutes, location, max_participants, practitioner_id")
+        .select("id, title, category, description, photo_url, photos, duration_minutes, location, max_participants, practitioner_id, profiles!inner(is_active)")
         .eq("is_active", true)
+        .eq("profiles.is_active", true)
         .limit(config.settings.maxItems || 20);
 
       if (!data) return;

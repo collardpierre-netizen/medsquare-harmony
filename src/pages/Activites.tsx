@@ -52,7 +52,7 @@ const ActivitesPage = () => {
       // Fetch categories from settings + distinct active categories
       const [{ data: catSetting }, { data: acts }] = await Promise.all([
         supabase.from("settings").select("value").eq("key", "activity_categories").maybeSingle(),
-        supabase.from("activities").select("*, profiles(id, first_name, last_name, specialty, avatar_url)").eq("is_active", true).order("title"),
+        supabase.from("activities").select("*, profiles!inner(id, first_name, last_name, specialty, avatar_url, is_active)").eq("is_active", true).eq("profiles.is_active", true).order("title"),
       ]);
 
       const actsData = acts || [];
