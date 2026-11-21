@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -28,11 +28,23 @@ const Navbar = () => {
 
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(`${href}/`);
 
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   return (
+    <>
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-colors duration-300",
-        scrolled || isOpen ? "bg-background/90 backdrop-blur-md border-b border-border" : "bg-background border-b border-transparent",
+        isOpen
+          ? "bg-background border-b border-border"
+          : scrolled
+            ? "bg-background/90 backdrop-blur-md border-b border-border"
+            : "bg-background border-b border-transparent",
       )}
     >
       <nav className="container mx-auto flex items-center justify-between h-16 md:h-20 px-4">
@@ -68,18 +80,30 @@ const Navbar = () => {
           </Link>
         </div>
 
-        <button
-          className="md:hidden p-2 -mr-2 rounded-md"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
-          aria-expanded={isOpen}
-        >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="md:hidden flex items-center gap-1 -mr-2">
+          <Link
+            to="/login"
+            aria-label="Espace praticien — connexion"
+            className="h-11 w-11 grid place-items-center rounded-full hover:bg-muted transition-colors"
+          >
+            <UserRound className="h-5 w-5" />
+          </Link>
+          <button
+            type="button"
+            className="h-11 w-11 grid place-items-center rounded-full hover:bg-muted transition-colors"
+            onClick={() => setIsOpen((o) => !o)}
+            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={isOpen}
+            aria-controls="mobile-menu"
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </nav>
+    </header>
 
       {isOpen && (
-        <div className="md:hidden fixed inset-0 top-16 bg-background z-40 overflow-y-auto">
+        <div id="mobile-menu" className="md:hidden fixed inset-x-0 bottom-0 top-16 bg-background z-[60] overflow-y-auto">
           <ul className="container mx-auto px-4 pt-4">
             {[{ label: "Accueil", href: "/" }, ...navLinks].map((link) => (
               <li key={link.href} className="border-b border-border">
@@ -105,7 +129,7 @@ const Navbar = () => {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 };
 

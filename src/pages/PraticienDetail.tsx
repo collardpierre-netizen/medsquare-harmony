@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Star, MessageCircle, GraduationCap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +85,7 @@ const DAYS_ORDER = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi",
 
 const PraticienDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [practitioner, setPractitioner] = useState<PractitionerProfile | null>(null);
   const [activities, setActivities] = useState<ActivityWithSessions[]>([]);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -135,11 +136,10 @@ const PraticienDetail = () => {
       }
 
       // Contact details are only readable by authenticated users (RLS/column grants)
-      const { data: contact } = await supabase
-        .from("profiles")
-        .select("phone, contact_email")
-        .eq("id", id)
-        .maybeSingle();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: contact } = sessionData.session
+        ? await supabase.from("profiles").select("phone, contact_email").eq("id", id).maybeSingle()
+        : { data: null };
 
       let parsedSchedule: DaySchedule[] | null = null;
       if (profile.schedule) {
@@ -388,6 +388,8 @@ const PraticienDetail = () => {
                 window.location.href = `mailto:${practitioner.contact_email}`;
               } else if (practitioner.phone) {
                 window.location.href = `tel:${practitioner.phone}`;
+              } else {
+                navigate("/contact");
               }
             }}>Contacter</Button>
             {hasBookable && (

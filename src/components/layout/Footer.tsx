@@ -89,6 +89,7 @@ const Footer = () => {
                 { label: "Espaces", href: "/espaces" },
                 { label: "Activités", href: "/activites" },
                 { label: "Contact", href: "/contact" },
+                { label: "Espace praticien", href: "/login" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link

@@ -78,7 +78,11 @@ const Login = () => {
         toast({
           variant: "destructive",
           title: "Erreur de connexion",
-          description: error.message,
+          description: /invalid login credentials/i.test(error.message)
+            ? "E-mail ou mot de passe incorrect."
+            : /email not confirmed/i.test(error.message)
+              ? "Votre adresse e-mail n'est pas encore confirmée. Vérifiez votre boîte mail."
+              : error.message,
         });
       } else {
         navigate("/dashboard");
