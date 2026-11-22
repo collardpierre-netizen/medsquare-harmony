@@ -1244,6 +1244,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_practitioner: {
+        Args: { _profile_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       activity_billing_frequency:
