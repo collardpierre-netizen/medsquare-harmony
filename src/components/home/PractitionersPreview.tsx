@@ -30,9 +30,13 @@ const PractitionersPreview = () => {
         .order("display_order" as any)
         .order("last_name");
       const list = data || [];
-      // Profils complets (photo + spécialité) en premier, ordre d'affichage conservé sinon
-      const score = (p: Practitioner) => (p.avatar_url ? 2 : 0) + (p.specialty?.trim() ? 1 : 0);
-      const sorted = [...list].sort((a, b) => score(b) - score(a));
+      // Ordre aléatoire à chaque visite, profils avec photo en priorité
+      const shuffled = [...list];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const sorted = [...shuffled.filter((p) => p.avatar_url), ...shuffled.filter((p) => !p.avatar_url)];
       setTotal(list.length);
       setPractitioners(sorted.slice(0, MAX));
       setLoading(false);
