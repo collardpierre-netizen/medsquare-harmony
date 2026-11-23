@@ -8,6 +8,13 @@
       "when": 1795342797471,
       "tag": "0000_tighten_rls_rates_activities_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795434010467,
+      "tag": "0001_tighten_rls_settings_and_rooms",
+      "breakpoints": true
     }
   ]
 }
